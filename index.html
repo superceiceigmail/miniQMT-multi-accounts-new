@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <title>交易策略维护</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+    <!-- 账户持仓信息模块 -->
+    <h2>
+      账户持仓信息
+      <button class="btn" onclick="loadAccountInfo()" style="margin-left:14px;">刷新</button>
+      <span style="color:#888; font-size:13px; margin-left:18px;">
+        <span id="refresh-timer">自动刷新: 60s</span>
+      </span>
+    </h2>
+    <div id="account-asset-info"></div>
+    <table id="position-table">
+      <thead>
+        <tr>
+          <th>股票代码</th>
+          <th>股票名称</th>
+          <th>市值</th>
+          <th>参考市值</th>
+          <th>持仓手数</th>
+          <th>可用手数</th>
+          <th>平均价格</th>
+          <th>shu持有百分比</th>
+          <th>关联策略</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+    <div id="errormsg" class="error"></div>
+    <h2 style="position:relative;">
+      交易策略维护
+      <span class="toolbox" style="position:absolute;right:0;top:0;">
+        <button class="toolbox-icon-btn" id="toolbox-btn" title="更多操作" onclick="toggleToolboxDropdown(event)">
+          <svg viewBox="0 0 32 32"><circle cx="6" cy="16" r="3"/><circle cx="16" cy="16" r="3"/><circle cx="26" cy="16" r="3"/></svg>
+        </button>
+        <div class="toolbox-dropdown" id="toolbox-dropdown">
+          <button onclick="showSupplementModal();hideToolboxDropdown();">补充新策略和新标的</button>
+          <button onclick="showChangeDefaultAmountModal();hideToolboxDropdown();">一键变更策略默认金额</button>
+          <button class="danger" onclick="showDeleteStrategyModal();hideToolboxDropdown();">删除当前策略</button>
+          <button class="danger" onclick="showClearModal();hideToolboxDropdown();">清空所有数据</button>
+        </div>
+      </span>
+    </h2>
+    <div style="display:flex;align-items:center;justify-content:flex-start;gap:18px;">
+      <label for="strategy">选择策略：</label>
+      <select id="strategy" onchange="loadStrategy()">
+        <option value="">请选择策略</option>
+      </select>
+      <button class="btn" onclick="showAddStrategyModal()">新增策略</button>
+      <button class="btn" onclick="showChangeDefaultAmountModal()">一键变更策略默认金额</button>
+    </div>
+    <div id="targets-box" style="display:none;">
+      <h3>标的变更</h3>
+      <div id="targets-form"></div>
+      <button class="btn" onclick="addPlan()">添加变更计划</button>
+      <button class="btn" style="margin-left:12px;" onclick="showAddTargetModal()">新增标的</button>
+    </div>
+    <hr>
+    <div>
+      <h3>当日变更计划列表</h3>
+      <table id="plans-table">
+        <thead>
+          <tr>
+            <th>策略名</th>
+            <th>标的</th>
+            <th>操作</th>
+            <th>金额</th>
+            <th>执行占比</th>
+            <th>shu持有百分比</th>
+            <th>执行前持有</th>
+            <th>执行后持有</th>
+            <th>其他策略持有</th>
+            <th>删除</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+      <button class="btn" onclick="exportPlan()">导出今日交易计划</button>
+    </div>
+    <div id="export-box" class="plan-box" style="display:none;">
+      <div id="export-summary-info" class="export-summary"></div>
+      <div id="export-summary-result" class="export-summary"></div>
+      <h4>今日交易计划(JSON):</h4>
+      <pre id="export-json"></pre>
+      <span class="split-btn">
+        <button class="btn" onclick="approvePlanAndCopy()">批准执行</button>
+        <button class="copy-btn" onclick="copyExportJson()">一键复制</button>
+      </span>
+    </div>
+    <!-- 跳转到Gradio账户管理面板按钮 -->
+    <div class="jump-btn-box">
+      <button class="jump-btn" onclick="window.open('http://127.0.0.1:7860/', '_blank')">
+        跳转到Gradio账户管理面板
+      </button>
+    </div>
+    <!-- Toast 提示 -->
+    <div id="toast"></div>
+    <!-- 清空弹窗 -->
+    <div class="modal-mask" id="clear-modal">
+      <div class="modal-content">
+        <div class="modal-title">清空所有本地数据</div>
+        <div>此操作不可恢复，所有持有及变更数据将丢失，是否继续？</div>
+        <div class="modal-btns">
+          <button onclick="hideClearModal()">取消</button>
+          <button class="modal-danger" onclick="doClearLocalStorage()">确认清空</button>
+        </div>
+      </div>
+    </div>
+    <!-- 删除策略弹窗 -->
+    <div class="modal-mask" id="delete-strategy-modal">
+      <div class="modal-content">
+        <div class="modal-title">删除当前策略</div>
+        <div id="delete-strategy-body"></div>
+        <div class="modal-btns">
+          <button onclick="hideDeleteStrategyModal()">取消</button>
+          <button class="modal-danger" onclick="doDeleteStrategy()">确认删除</button>
+        </div>
+      </div>
+    </div>
+    <!-- 补充弹窗 -->
+    <div class="modal-mask" id="supplement-modal">
+      <div class="modal-content">
+        <div class="modal-title">补充新策略和新标的</div>
+        <div id="supplement-modal-body"></div>
+        <div class="modal-btns">
+          <button onclick="hideSupplementModal()">取消</button>
+          <button class="modal-success" onclick="doSupplementStrategies()">确认补充</button>
+        </div>
+      </div>
+    </div>
+    <!-- 新增策略弹窗 -->
+    <div class="modal-mask" id="add-strategy-modal">
+      <div class="modal-content">
+        <div class="modal-title">新增策略</div>
+        <div class="modal-input">
+          <label>策略名称：</label>
+          <input type="text" id="add-strategy-name" style="width: 200px;" maxlength="20"/>
+        </div>
+        <div class="modal-btns">
+          <button onclick="hideAddStrategyModal()">取消</button>
+          <button class="modal-success" onclick="doAddStrategy()">新增</button>
+        </div>
+      </div>
+    </div>
+    <!-- 新增/编辑标的弹窗 -->
+    <div class="modal-mask" id="add-target-modal">
+      <div class="modal-content">
+        <div class="modal-title" id="add-target-modal-title">新增标的</div>
+        <div class="modal-input">
+          <label>标的名称：</label>
+          <input type="text" id="add-target-name" style="width: 180px;" maxlength="20"/>
+        </div>
+        <div class="modal-input">
+          <label>默认买入金额：</label>
+          <input type="number" id="add-target-amount" style="width: 100px;" min="1"/>
+        </div>
+        <div class="modal-btns">
+          <button onclick="hideAddTargetModal()">取消</button>
+          <button class="modal-success" id="add-target-confirm-btn" onclick="doAddTarget()">新增</button>
+        </div>
+      </div>
+    </div>
+    <!-- 删除标的弹窗 -->
+    <div class="modal-mask" id="delete-target-modal">
+      <div class="modal-content">
+        <div class="modal-title">删除标的</div>
+        <div id="delete-target-body"></div>
+        <div class="modal-btns">
+          <button onclick="hideDeleteTargetModal()">取消</button>
+          <button class="modal-danger" onclick="doDeleteTarget()">确认删除</button>
+        </div>
+      </div>
+    </div>
+    <!-- 一键变更策略默认金额弹窗 -->
+    <div class="modal-mask" id="change-default-amount-modal">
+      <div class="modal-content">
+        <div class="modal-title">一键变更策略默认金额</div>
+        <div id="change-default-amount-body"></div>
+        <div class="modal-btns">
+          <button onclick="hideChangeDefaultAmountModal()">取消</button>
+          <button class="modal-success" onclick="doChangeDefaultAmount()">保存</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script src="main.js"></script>
+</body>
+</html>

@@ -1,0 +1,270 @@
+{
+  "30年国债": {
+    "code": "511090",
+    "latest_price": 124.733
+  },
+  "30年国债指数": {
+    "code": "511130",
+    "latest_price": 112.484
+  },
+  "十年国债": {
+    "code": "511260",
+    "latest_price": 136.608
+  },
+  "国债": {
+    "code": "511010",
+    "latest_price": 141.499
+  },
+  "国开债": {
+    "code": "159649",
+    "latest_price": 108.059
+  },
+  "国开": {
+    "code": "159650",
+    "latest_price": 106.92
+  },
+  "可转债": {
+    "code": "511380",
+    "latest_price": 12.608
+  },
+  "国开债券": {
+    "code": "159651",
+    "latest_price": 106.224
+  },
+  "中证红利": {
+    "code": "515080",
+    "latest_price": 1.575
+  },
+  "红利低波": {
+    "code": "512890",
+    "latest_price": 1.219
+  },
+  "天弘添利": {
+    "code": "164206",
+    "latest_price": 1.604
+  },
+  "纳斯达克100": {
+    "code": "161130",
+    "latest_price": 3.661
+  },
+  "标普500": {
+    "code": "161125",
+    "latest_price": 2.71
+  },
+  "标普科技": {
+    "code": "161128",
+    "latest_price": 5.294
+  },
+  "标普信息科技": {
+    "code": "161128",
+    "latest_price": 5.294
+  },
+  "标普医疗": {
+    "code": "161126",
+    "latest_price": 1.817
+  },
+  "美国消费": {
+    "code": "162415",
+    "latest_price": 2.858
+  },
+  "美国精选": {
+    "code": "160140",
+    "latest_price": 1.266
+  },
+  "全球芯片": {
+    "code": "501225",
+    "latest_price": 1.573
+  },
+  "人工智能": {
+    "code": "161631",
+    "latest_price": 1.532
+  },
+  "嘉实黄金": {
+    "code": "160719",
+    "latest_price": 1.61
+  },
+  "黄金主题": {
+    "code": "161116",
+    "latest_price": 1.303
+  },
+  "嘉实原油": {
+    "code": "160723",
+    "latest_price": 1.442
+  },
+  "银华日利": {
+    "code": "511880",
+    "latest_price": 100.695
+  },
+  "日鑫利": {
+    "code": "RXL001",
+    "latest_price": null
+  },
+  "政经债券": {
+    "code": "511520",
+    "latest_price": 115.745
+  },
+  "消费": {
+    "code": "159928",
+    "latest_price": 0.808
+  },
+  "创业板50": {
+    "code": "159949",
+    "latest_price": 0.993
+  },
+  "军工": {
+    "code": "512660",
+    "latest_price": 1.128
+  },
+  "创业大盘": {
+    "code": "159814",
+    "latest_price": 0.433
+  },
+  "半导体": {
+    "code": "512480",
+    "latest_price": 1.031
+  },
+  "芯片": {
+    "code": "159995",
+    "latest_price": 1.212
+  },
+  "新能源车": {
+    "code": "515030",
+    "latest_price": 1.258
+  },
+  "科创": {
+    "code": "588050",
+    "latest_price": 1.023
+  },
+  "软件": {
+    "code": "159852",
+    "latest_price": 0.812
+  },
+  "建材": {
+    "code": "159745",
+    "latest_price": 0.597
+  },
+  "证券保险": {
+    "code": "512070",
+    "latest_price": 0.848
+  },
+  "通信": {
+    "code": "515880",
+    "latest_price": 1.481
+  },
+  "中证500": {
+    "code": "510500",
+    "latest_price": 6.09
+  },
+  "创成长": {
+    "code": "159967",
+    "latest_price": 0.463
+  },
+  "中概互联网": {
+    "code": "513050",
+    "latest_price": 1.361
+  },
+  "国债逆回购": {
+    "code": "131810",
+    "latest_price": 1.34
+  },
+  "恒生": {
+    "code": "159920",
+    "latest_price": 1.491
+  },
+  "科创50": {
+    "code": "588000",
+    "latest_price": 1.047
+  },
+  "德国": {
+    "code": "513030",
+    "latest_price": 1.903
+  },
+  "豆粕": {
+    "code": "159985",
+    "latest_price": 1.938
+  },
+  "黄金LOF": {
+    "code": "164701",
+    "latest_price": 1.386
+  },
+  "黄金ETF": {
+    "code": "518880",
+    "latest_price": 7.376
+  },
+  "印度基金": {
+    "code": "164824",
+    "latest_price": 1.525
+  },
+  "国泰商品": {
+    "code": "160216",
+    "latest_price": 0.544
+  },
+  "中概互联050": {
+    "code": "513050",
+    "latest_price": 1.361
+  },
+  "中概互联220": {
+    "code": "513220",
+    "latest_price": 1.224
+  },
+  "中概互联605": {
+    "code": "159605",
+    "latest_price": 1.049
+  },
+  "港股通互联网": {
+    "code": "159792",
+    "latest_price": 0.875
+  },
+  "恒生科技指数": {
+    "code": "513180",
+    "latest_price": 0.714
+  },
+  "创业板": {
+    "code": "159915",
+    "latest_price": 2.185
+  },
+  "计算机998": {
+    "code": "159998",
+    "latest_price": 0.902
+  },
+  "日经": {
+    "code": "513520",
+    "latest_price": 1.5
+  },
+  "计算机720": {
+    "code": "512720",
+    "latest_price": 1.075
+  },
+  "港股科技": {
+    "code": "159751",
+    "latest_price": 1.033
+  },
+  "港股通科技": {
+    "code": "513860",
+    "latest_price": 0.715
+  },
+  "海外科技": {
+    "code": "501312",
+    "latest_price": 1.81
+  },
+  "纳指9941": {
+    "code": "159941",
+    "latest_price": 1.228
+  },
+  "纳指3100": {
+    "code": "513100",
+    "latest_price": 1.633
+  },
+  "航天彩虹": {
+    "code": "002389",
+    "latest_price": 24.54
+  },
+  "中无人机": {
+    "code": "688297",
+    "latest_price": 51.99
+  },
+  "纳指生物科技": {
+    "code": "513290",
+    "latest_price": 1.165
+  }
+}

@@ -1,0 +1,1131 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <title>交易策略维护</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 40px; background: #f7f7f7;}
+    .container { background: #fff; padding: 24px; border-radius: 8px; max-width: 1080px; margin: auto; box-shadow: 0 2px 10px #ccc;}
+    h2 { margin-top: 0; }
+    select, input, button { font-size: 16px; margin: 4px 0; }
+    table { width: 100%; border-collapse: collapse; margin-bottom: 16px;}
+    th, td { border: 1px solid #ddd; padding: 6px 10px; text-align: left;}
+    th { background: #f0f0f0;}
+    .plan-box { background: #eef; padding: 12px; border-radius: 6px; margin-top: 16px;}
+    .btn { background: #409eff; color: #fff; border: none; padding: 8px 18px; border-radius: 4px; cursor: pointer;}
+    .btn:active { background: #2369b6;}
+    .input-short { width: 90px; }
+    pre { word-break: break-all; }
+    .hold-yes { color: green; font-weight: bold;}
+    .hold-no { color: darkred; font-weight: bold;}
+    .hold-other { color: #ffa500; font-weight: bold;}
+    .danger { background: #e74c3c; }
+    .danger:active { background: #d62717; }
+    .modal-mask {
+      position: fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.35); z-index:9999; display:none;
+    }
+    .modal-content {
+      background: #fff; border-radius: 8px; max-width: 350px; margin: 180px auto; padding: 28px 24px 16px 24px; box-shadow: 0 4px 24px #3337; position: relative;
+    }
+    .modal-title { font-size: 18px; font-weight: bold; margin-bottom: 16px; }
+    .modal-btns { text-align:center; margin-top: 22px;}
+    .modal-btns button { margin:0 18px; font-size: 16px;}
+    .modal-danger { background: #e74c3c; color: #fff;}
+    .modal-danger:active { background: #d62717;}
+    .modal-success { background: #409eff; color: #fff;}
+    .modal-success:active { background: #2369b6;}
+    .modal-input { margin-bottom: 12px;}
+    .toolbox {
+      float: right;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .toolbox-icon-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 4px;
+      margin-left: 10px;
+      outline: none;
+    }
+    .toolbox-icon-btn svg {
+      width: 26px;
+      height: 26px;
+      fill: #888;
+      transition: fill .2s;
+      vertical-align: middle;
+    }
+    .toolbox-icon-btn:active svg,
+    .toolbox-icon-btn:hover svg {
+      fill: #409eff;
+    }
+    .toolbox-dropdown {
+      position: absolute;
+      right: 0;
+      top: 38px;
+      background: #fff;
+      border: 1px solid #eee;
+      box-shadow: 0 2px 12px #3332;
+      border-radius: 6px;
+      min-width: 190px;
+      z-index: 10001;
+      display: none;
+      flex-direction: column;
+      padding: 8px 0;
+    }
+    .toolbox-dropdown button {
+      background: none;
+      color: #333;
+      border: none;
+      width: 100%;
+      text-align: left;
+      padding: 10px 18px;
+      font-size: 15px;
+      cursor: pointer;
+    }
+    .toolbox-dropdown button:hover {
+      background: #eef;
+      color: #409eff;
+    }
+    .toolbox-dropdown .danger {
+      color: #e74c3c;
+    }
+    .toolbox-dropdown .danger:hover {
+      background: #fdeaea;
+      color: #d62717;
+    }
+    .copy-btn {
+      background: #67c23a;
+      color: #fff;
+      border: none;
+      padding: 8px 18px;
+      border-radius: 4px;
+      cursor: pointer;
+      margin-left: 12px;
+    }
+    .copy-btn:active {
+      background: #49a127;
+    }
+    .error { color: red; font-weight: bold;}
+    .export-summary {
+      font-weight: bold;
+      margin: 8px 0 10px 0;
+      color: #2369b6;
+    }
+    .split-btn {
+      display: inline-flex;
+      align-items: center;
+    }
+    .split-btn .copy-btn {
+      margin-left: 0;
+      border-top-left-radius: 0;
+      border-bottom-left-radius: 0;
+      border-left: 1px solid #fff;
+      padding-left: 14px;
+      padding-right: 14px;
+      background: #5fbe55;
+    }
+    .split-btn .copy-btn:active {
+      background: #479e39;
+    }
+    .split-btn .btn {
+      border-top-right-radius: 0;
+      border-bottom-right-radius: 0;
+    }
+    #toast {
+      display:none;
+      position: fixed;
+      z-index: 99999;
+      top: 40px;
+      right: 40px;
+      min-width: 160px;
+      max-width: 90vw;
+      padding: 12px 24px;
+      background: #409eff;
+      color: #fff;
+      border-radius: 6px;
+      box-shadow: 0 2px 16px #3334;
+      font-size: 17px;
+      opacity: 0;
+      transition: opacity 0.3s;
+      pointer-events: none;
+      text-align: center;
+      word-break: break-all;
+    }
+    .jump-btn-box {
+      text-align: right;
+      margin-top: 28px;
+      margin-bottom: 0px;
+    }
+    .jump-btn {
+      background: #e1a84a;
+      color: #fff;
+      border: none;
+      padding: 9px 22px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 17px;
+      margin-top: 2px;
+      margin-right: 2px;
+      transition: background 0.2s;
+    }
+    .jump-btn:active, .jump-btn:hover {
+      background: #d08a01;
+    }
+    /* 新增：标的操作按钮 */
+    .target-ops-btn {
+      background: #409eff;
+      color: #fff;
+      border: none;
+      padding: 4px 10px;
+      border-radius: 4px;
+      margin: 0 2px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    .target-ops-btn:active { background: #2369b6; }
+    .target-ops-btn.danger {
+      background: #e74c3c;
+    }
+    .target-ops-btn.danger:active { background: #d62717; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- 账户持仓信息模块 -->
+    <h2>
+      账户持仓信息
+      <button class="btn" onclick="loadAccountInfo()" style="margin-left:14px;">刷新</button>
+      <span style="color:#888; font-size:13px; margin-left:18px;">
+        <span id="refresh-timer">自动刷新: 60s</span>
+      </span>
+    </h2>
+    <div id="account-asset-info"></div>
+    <table id="position-table">
+      <thead>
+        <tr>
+          <th>股票代码</th>
+          <th>股票名称</th>
+          <th>持仓手数</th>
+          <th>可用手数</th>
+          <th>市值</th>
+          <th>平均价格</th>
+          <th>shu持有百分比</th>
+          <th>关联策略</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+    <div id="errormsg" class="error"></div>
+    <h2 style="position:relative;">
+      交易策略维护
+      <span class="toolbox" style="position:absolute;right:0;top:0;">
+        <button class="toolbox-icon-btn" id="toolbox-btn" title="更多操作" onclick="toggleToolboxDropdown(event)">
+          <svg viewBox="0 0 32 32"><circle cx="6" cy="16" r="3"/><circle cx="16" cy="16" r="3"/><circle cx="26" cy="16" r="3"/></svg>
+        </button>
+        <div class="toolbox-dropdown" id="toolbox-dropdown">
+          <button onclick="showSupplementModal();hideToolboxDropdown();">补充新策略和新标的</button>
+          <button onclick="showChangeDefaultAmountModal();hideToolboxDropdown();">一键变更策略默认金额</button>
+          <button class="danger" onclick="showDeleteStrategyModal();hideToolboxDropdown();">删除当前策略</button>
+          <button class="danger" onclick="showClearModal();hideToolboxDropdown();">清空所有数据</button>
+        </div>
+      </span>
+    </h2>
+    <div style="display:flex;align-items:center;justify-content:flex-start;gap:18px;">
+      <label for="strategy">选择策略：</label>
+      <select id="strategy" onchange="loadStrategy()">
+        <option value="">请选择策略</option>
+      </select>
+      <button class="btn" onclick="showAddStrategyModal()">新增策略</button>
+      <button class="btn" onclick="showChangeDefaultAmountModal()">一键变更策略默认金额</button>
+    </div>
+    <div id="targets-box" style="display:none;">
+      <h3>标的变更</h3>
+      <div id="targets-form"></div>
+      <button class="btn" onclick="addPlan()">添加变更计划</button>
+      <button class="btn" style="margin-left:12px;" onclick="showAddTargetModal()">新增标的</button>
+    </div>
+    <hr>
+    <div>
+      <h3>当日变更计划列表</h3>
+      <table id="plans-table">
+        <thead>
+          <tr>
+            <th>策略名</th>
+            <th>标的</th>
+            <th>操作</th>
+            <th>金额</th>
+            <th>执行占比</th>
+            <th>shu持有百分比</th>
+            <th>执行前持有</th>
+            <th>执行后持有</th>
+            <th>其他策略持有</th>
+            <th>删除</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+      <button class="btn" onclick="exportPlan()">导出今日交易计划</button>
+    </div>
+    <div id="export-box" class="plan-box" style="display:none;">
+      <div id="export-summary-info" class="export-summary"></div>
+      <div id="export-summary-result" class="export-summary"></div>
+      <h4>今日交易计划(JSON):</h4>
+      <pre id="export-json"></pre>
+      <span class="split-btn">
+        <button class="btn" onclick="approvePlanAndCopy()">批准执行</button>
+        <button class="copy-btn" onclick="copyExportJson()">一键复制</button>
+      </span>
+    </div>
+    <!-- 跳转到Gradio账户管理面板按钮 -->
+    <div class="jump-btn-box">
+      <button class="jump-btn" onclick="window.open('http://127.0.0.1:7860/', '_blank')">
+        跳转到Gradio账户管理面板
+      </button>
+    </div>
+    <!-- Toast 提示 -->
+    <div id="toast"></div>
+    <!-- 清空弹窗 -->
+    <div class="modal-mask" id="clear-modal">
+      <div class="modal-content">
+        <div class="modal-title">清空所有本地数据</div>
+        <div>此操作不可恢复，所有持有及变更数据将丢失，是否继续？</div>
+        <div class="modal-btns">
+          <button onclick="hideClearModal()">取消</button>
+          <button class="modal-danger" onclick="doClearLocalStorage()">确认清空</button>
+        </div>
+      </div>
+    </div>
+    <!-- 删除策略弹窗 -->
+    <div class="modal-mask" id="delete-strategy-modal">
+      <div class="modal-content">
+        <div class="modal-title">删除当前策略</div>
+        <div id="delete-strategy-body"></div>
+        <div class="modal-btns">
+          <button onclick="hideDeleteStrategyModal()">取消</button>
+          <button class="modal-danger" onclick="doDeleteStrategy()">确认删除</button>
+        </div>
+      </div>
+    </div>
+    <!-- 补充弹窗 -->
+    <div class="modal-mask" id="supplement-modal">
+      <div class="modal-content">
+        <div class="modal-title">补充新策略和新标的</div>
+        <div id="supplement-modal-body"></div>
+        <div class="modal-btns">
+          <button onclick="hideSupplementModal()">取消</button>
+          <button class="modal-success" onclick="doSupplementStrategies()">确认补充</button>
+        </div>
+      </div>
+    </div>
+    <!-- 新增策略弹窗 -->
+    <div class="modal-mask" id="add-strategy-modal">
+      <div class="modal-content">
+        <div class="modal-title">新增策略</div>
+        <div class="modal-input">
+          <label>策略名称：</label>
+          <input type="text" id="add-strategy-name" style="width: 200px;" maxlength="20"/>
+        </div>
+        <div class="modal-btns">
+          <button onclick="hideAddStrategyModal()">取消</button>
+          <button class="modal-success" onclick="doAddStrategy()">新增</button>
+        </div>
+      </div>
+    </div>
+    <!-- 新增/编辑标的弹窗 -->
+    <div class="modal-mask" id="add-target-modal">
+      <div class="modal-content">
+        <div class="modal-title" id="add-target-modal-title">新增标的</div>
+        <div class="modal-input">
+          <label>标的名称：</label>
+          <input type="text" id="add-target-name" style="width: 180px;" maxlength="20"/>
+        </div>
+        <div class="modal-input">
+          <label>默认买入金额：</label>
+          <input type="number" id="add-target-amount" style="width: 100px;" min="1"/>
+        </div>
+        <div class="modal-btns">
+          <button onclick="hideAddTargetModal()">取消</button>
+          <button class="modal-success" id="add-target-confirm-btn" onclick="doAddTarget()">新增</button>
+        </div>
+      </div>
+    </div>
+    <!-- 删除标的弹窗 -->
+    <div class="modal-mask" id="delete-target-modal">
+      <div class="modal-content">
+        <div class="modal-title">删除标的</div>
+        <div id="delete-target-body"></div>
+        <div class="modal-btns">
+          <button onclick="hideDeleteTargetModal()">取消</button>
+          <button class="modal-danger" onclick="doDeleteTarget()">确认删除</button>
+        </div>
+      </div>
+    </div>
+    <!-- 一键变更策略默认金额弹窗 -->
+    <div class="modal-mask" id="change-default-amount-modal">
+      <div class="modal-content">
+        <div class="modal-title">一键变更策略默认金额</div>
+        <div id="change-default-amount-body"></div>
+        <div class="modal-btns">
+          <button onclick="hideChangeDefaultAmountModal()">取消</button>
+          <button class="modal-success" onclick="doChangeDefaultAmount()">保存</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script>
+    // Toast提示
+    function showToast(msg, color) {
+      var toast = document.getElementById('toast');
+      toast.innerText = msg;
+      if (color) toast.style.background = color;
+      else toast.style.background = '#409eff';
+      toast.style.display = 'block';
+      setTimeout(() => { toast.style.opacity = '1'; }, 10);
+      clearTimeout(window.toastTimeout1);
+      clearTimeout(window.toastTimeout2);
+      window.toastTimeout1 = setTimeout(() => { toast.style.opacity = '0'; }, 1500);
+      window.toastTimeout2 = setTimeout(() => { toast.style.display = 'none'; }, 2000);
+    }
+
+    // ==== 账户持仓信息 ====
+    let stockMarketValueMap = {}, stockPercentMap = {}, assetTotal = 0, cash = 0, marketValue = 0;
+    async function loadAccountInfo() {
+      let asset, positions;
+      try {
+        asset = await fetch('./template_account_info/template_account_asset_info.json?t=' + Date.now()).then(r => r.json());
+        positions = await fetch('./template_account_info/template_account_position_info.json?t=' + Date.now()).then(r => r.json());
+      } catch (e) {
+        document.getElementById('errormsg').textContent = '读取账户信息失败：' + e;
+        return;
+      }
+      assetTotal = Number(asset.total_asset) || 0;
+      cash = Number(asset.cash) || 0;
+      marketValue = Number(asset.market_value) || 0;
+      let assetDiv = document.getElementById('account-asset-info');
+      assetDiv.innerHTML = `
+        <b>账户ID:</b> ${asset.account_id} &nbsp;
+        <b>总资产:</b> ${assetTotal.toFixed(2)} &nbsp;
+        <b>可用现金:</b> ${cash.toFixed(2)} &nbsp;
+        <b>冻结资金:</b> ${Number(asset.frozen_cash).toFixed(2)} &nbsp;
+        <b>持仓市值:</b> ${marketValue.toFixed(2)} &nbsp;
+        <b>现金占比:</b> ${asset.percent_cash} &nbsp;
+        <b>持仓占比:</b> ${asset.percent_market}
+      `;
+      const tbody = document.getElementById('position-table').querySelector('tbody');
+      tbody.innerHTML = '';
+      stockMarketValueMap = {};
+      stockPercentMap = {};
+
+      // ---- 持仓排序 ----
+      // 1. 未知股票（无名字）放最下
+      // 2. 有名字但没有关联策略放最上
+      // 3. 其它按原顺序
+      // 4. 其它（有名字且有关联策略）按原顺序
+
+      // 新建带原顺序的数组
+      let withIndex = positions.map((pos, i) => ({ ...pos, _origIndex: i }));
+
+      // 查找关联策略
+      withIndex.forEach(pos => {
+        let relatedStrategies = [];
+        if (pos.stock_name) {
+          Object.entries(strategies).forEach(([strategyName, targets]) => {
+            if (targets.some(t => t.name === pos.stock_name)) {
+              relatedStrategies.push(strategyName);
+            }
+          });
+        }
+        pos._relatedStrategies = relatedStrategies;
+      });
+
+      // 排序逻辑
+      withIndex.sort((a, b) => {
+        // 未知股票放最下
+        const aUnknown = !a.stock_name;
+        const bUnknown = !b.stock_name;
+        if (aUnknown && !bUnknown) return 1;
+        if (!aUnknown && bUnknown) return -1;
+        if (aUnknown && bUnknown) return a._origIndex - b._origIndex;
+        // 有名字但无关联策略放最上
+        const aNoRel = a.stock_name && (!a._relatedStrategies || a._relatedStrategies.length === 0);
+        const bNoRel = b.stock_name && (!b._relatedStrategies || b._relatedStrategies.length === 0);
+        if (aNoRel && !bNoRel) return -1;
+        if (!aNoRel && bNoRel) return 1;
+        // 其它保持原顺序
+        return a._origIndex - b._origIndex;
+      });
+
+      withIndex.forEach(pos => {
+        const avg_price = (typeof pos.avg_price === 'number' && !isNaN(pos.avg_price)) ? pos.avg_price : null;
+        const percent = assetTotal && pos.market_value
+          ? ((pos.market_value / assetTotal) * 100).toFixed(2) + '%'
+          : '0%';
+
+        const relatedStrategies = pos._relatedStrategies || [];
+
+        tbody.innerHTML += `
+          <tr>
+            <td>${pos.stock_code || '-'}</td>
+            <td>${pos.stock_name || '-'}</td>
+            <td>${typeof pos.volume === 'number' ? pos.volume : '-'}</td>
+            <td>${typeof pos.can_use_volume === 'number' ? pos.can_use_volume : '-'}</td>
+            <td>${typeof pos.market_value === 'number' ? pos.market_value.toFixed(2) : '-'}</td>
+            <td>${avg_price !== null ? avg_price.toFixed(4) : '-'}</td>
+            <td>${percent}</td>
+            <td>${relatedStrategies.length > 0 ? relatedStrategies.join('、') : ''}</td>
+          </tr>
+        `;
+        if (pos.stock_name) {
+          stockMarketValueMap[pos.stock_name] = typeof pos.market_value === 'number' ? pos.market_value : 0;
+          stockPercentMap[pos.stock_name] = percent;
+        }
+      });
+    }
+
+    // ==== 策略维护 ====
+    const defaultStrategies = {
+      "美股策略": [
+        {name:"海外科技", default_amount: 11000, hold: false},
+        {name:"纳指9941", default_amount: 11000, hold: false},
+        {name:"纳指3100", default_amount: 11000, hold: false},
+        {name:"嘉实黄金", default_amount: 11000, hold: false},
+        {name:"美国消费", default_amount: 11000, hold: false},
+        {name:"嘉实原油", default_amount: 11000, hold: false},
+        {name:"黄金ETF", default_amount: 11000, hold: false},
+        {name:"黄金主题", default_amount: 11000, hold: false},
+        {name:"印度基金", default_amount: 11000, hold: false},
+        {name:"纳指生物科技", default_amount: 11000, hold: false},
+        {name:"原油易方达", default_amount: 11000, hold: false},
+        {name:"中概互联网", default_amount: 11000, hold: false},
+      ],
+      "黄金策略": [
+        {name:"黄金主题", default_amount: 11000, hold: false},
+        {name:"黄金ETF", default_amount: 11000, hold: false},
+        {name:"黄金LOF", default_amount: 11000, hold: false},
+        {name:"嘉实黄金", default_amount: 11000, hold: false},
+        {name:"标普医疗", default_amount: 11000, hold: false},
+        {name:"美国消费", default_amount: 11000, hold: false},
+        {name:"美国精选", default_amount: 11000, hold: false},
+        {name:"国泰商品", default_amount: 11000, hold: false},
+        {name:"嘉实原油", default_amount: 11000, hold: false},
+        {name:"标普信息科技", default_amount: 11000, hold: false},
+        {name:"印度基金", default_amount: 11000, hold: false},
+        {name:"黄金主题", default_amount: 11000, hold: false},
+      ],
+      "国债策略": [
+        {name:"30年国债", default_amount: 190000, hold: false},
+        {name:"30年国债指数", default_amount: 130000, hold: false},
+        {name:"可转债", default_amount: 80000, hold: false},
+      ],
+    };
+    let strategies = getSavedStrategies();
+    function getSavedStrategies() {
+      try {
+        const saved = localStorage.getItem('strategies');
+        if (saved) return JSON.parse(saved);
+      } catch (e) {}
+      return JSON.parse(JSON.stringify(defaultStrategies));
+    }
+    function saveStrategies() {
+      localStorage.setItem('strategies', JSON.stringify(strategies));
+    }
+    const strategySelect = document.getElementById('strategy');
+    function renderStrategyOptions() {
+      strategySelect.innerHTML = '<option value="">请选择策略</option>';
+      Object.keys(strategies).forEach(s => {
+        const opt = document.createElement('option');
+        opt.value = s; opt.textContent = s;
+        strategySelect.appendChild(opt);
+      });
+    }
+    let plans = [];
+    let currentStrategy = "";
+
+    // ========== 标的操作相关 ==========
+    let editingTargetIdx = null; // 当前编辑的标的索引
+
+    function loadStrategy() {
+      const s = strategySelect.value;
+      if (!s) {
+        document.getElementById('targets-box').style.display = 'none';
+        currentStrategy = "";
+        return;
+      }
+      currentStrategy = s;
+      let targets = strategies[s];
+      targets = targets.slice().sort((a, b) => (a.hold === b.hold ? 0 : a.hold ? -1 : 1));
+      document.getElementById('targets-box').style.display = 'block';
+      const form = document.getElementById('targets-form');
+      form.innerHTML = `<table>
+        <tr>
+          <th>标的</th>
+          <th>市值</th>
+          <th>操作</th>
+          <th>金额</th>
+          <th>执行前持有</th>
+          <th>其他策略持有</th>
+          <th>标的维护</th>
+        </tr>
+        ${
+          targets.map((t, i) => {
+            const other = getOtherHold(s, t.name);
+            const marketValue = stockMarketValueMap[t.name] || 0;
+            return `
+              <tr>
+                <td>${t.name}</td>
+                <td>${marketValue.toFixed(2)}</td>
+                <td>
+                  <select id="target-action-${i}">
+                    <option value="">请选择</option>
+                    <option value="买">买入</option>
+                    <option value="卖">卖出</option>
+                  </select>
+                </td>
+                <td>
+                  <input type="number" id="target-value-${i}" class="input-short" min="0" placeholder="${t.default_amount}"/>
+                </td>
+                <td>
+                  <span id="hold-status-${i}" class="${t.hold ? 'hold-yes':'hold-no'}">${t.hold ? '持有':'未持有'}</span>
+                </td>
+                <td>
+                  ${other.length > 0 ? `<span class="hold-other">${other.join("、")}</span>` : '<span style="color:#aaa;">无</span>'}
+                </td>
+                <td>
+                  <button class="target-ops-btn" onclick="showEditTargetModal(${i})">修改</button>
+                  <button class="target-ops-btn danger" onclick="showDeleteTargetModal(${i})">删除</button>
+                </td>
+              </tr>
+            `;
+          }).join("")
+        }
+      </table>`;
+      window.sorted_targets = targets;
+    }
+    function getOtherHold(currentStrategyName, targetName) {
+      let result = [];
+      Object.entries(strategies).forEach(([sname, arr]) => {
+        if (sname === currentStrategyName) return;
+        arr.forEach(t => {
+          if (t.name === targetName && t.hold) result.push(sname);
+        });
+      });
+      return result;
+    }
+    function addPlan() {
+      const s = currentStrategy;
+      if (!s) return;
+      const targets = window.sorted_targets || strategies[s];
+      let hasChange = false;
+      targets.forEach((t, i) => {
+        const action = document.getElementById(`target-action-${i}`).value;
+        if (action) {
+          hasChange = true;
+          let value = document.getElementById(`target-value-${i}`).value.trim();
+          value = value !== "" ? parseFloat(value) : t.default_amount;
+          const originalIndex = strategies[s].findIndex(st => t.name === st.name);
+          const holdBefore = t.hold;
+          const otherHold = getOtherHold(s, t.name);
+          plans.push({
+            strategy: s,
+            index: originalIndex,
+            target: t.name,
+            action,
+            value,
+            holdBefore,
+            holdAfter: null,
+            otherHold: [...otherHold]
+          });
+          document.getElementById(`target-action-${i}`).value = "";
+          document.getElementById(`target-value-${i}`).value = "";
+        }
+      });
+      if (!hasChange) {
+        showToast('未选择任何标的变更！', '#e74c3c');
+        return;
+      }
+      renderPlans();
+    }
+    function getHoldAfter(strategy, index, action) {
+      if (action === "买") return true;
+      if (action === "卖") return false;
+      return strategies[strategy][index].hold;
+    }
+    function getOtherHoldAfter(currentStrategyName, targetName, thisPlan) {
+      let result = [];
+      Object.entries(strategies).forEach(([sname, arr]) => {
+        if (sname === currentStrategyName) return;
+        arr.forEach((t, idx) => {
+          if (t.name === targetName) {
+            const plan = plans.find(p => p.strategy === sname && p.target === targetName);
+            let hold = t.hold;
+            if (plan) {
+              hold = getHoldAfter(plan.strategy, plan.index, plan.action);
+            }
+            if (hold) result.push(sname);
+          }
+        });
+      });
+      return result;
+    }
+    function renderPlans() {
+      const tbody = document.getElementById('plans-table').querySelector('tbody');
+      tbody.innerHTML = '';
+      plans.forEach((p, idx) => {
+        const holdAfter = getHoldAfter(p.strategy, p.index, p.action);
+        plans[idx].holdAfter = holdAfter;
+        const otherAfter = getOtherHoldAfter(p.strategy, p.target, p);
+        // 执行占比
+        let ratio = assetTotal ? (p.value / assetTotal * 100) : 0;
+        let percentText = ratio.toFixed(2) + "%";
+        // 持仓百分比
+        let percentHold = stockPercentMap[p.target] || "0%";
+        tbody.innerHTML += `
+          <tr>
+            <td>${p.strategy}</td>
+            <td>${p.target}</td>
+            <td>${p.action}</td>
+            <td>${p.value}</td>
+            <td>${percentText}</td>
+            <td>${percentHold}</td>
+            <td><span class="${p.holdBefore?'hold-yes':'hold-no'}">${p.holdBefore?'持有':'未持有'}</span></td>
+            <td><span class="${holdAfter?'hold-yes':'hold-no'}">${holdAfter?'持有':'未持有'}</span></td>
+            <td>
+              ${otherAfter.length > 0 ? `<span class="hold-other">${otherAfter.join("、")}</span>` : '<span style="color:#aaa;">无</span>'}
+            </td>
+            <td><button onclick="deletePlan(${idx})">删除</button></td>
+          </tr>
+        `;
+      });
+    }
+    window.deletePlan = function(idx) {
+      plans.splice(idx, 1);
+      renderPlans();
+    }
+
+    // 导出时展示当前总资产/现金/市值和执行后结果，再输出JSON
+    function exportPlan() {
+      if (plans.length === 0) {
+        showToast('没有计划可导出', '#e74c3c');
+        return;
+      }
+      let sell_stocks_info = [];
+      let buy_stocks_info = [];
+      let sellSum = 0, buySum = 0;
+      plans.forEach(p => {
+        let ratio = assetTotal ? (p.value / assetTotal * 100) : 0;
+        ratio = +ratio.toFixed(2);
+        if (p.action === "买") {
+          buy_stocks_info.push({
+            name: p.target,
+            ratio: ratio
+          });
+          buySum += Number(p.value);
+        } else if (p.action === "卖") {
+          sell_stocks_info.push({
+            name: p.target,
+            ratio: ratio
+          });
+          sellSum += Number(p.value);
+        }
+      });
+      let cashNow = typeof cash === "number" ? cash : 0;
+      let marketNow = typeof marketValue === "number" ? marketValue : 0;
+      let totalNow = typeof assetTotal === "number" ? assetTotal : 0;
+      let cashAfter = cashNow + sellSum - buySum;
+      let marketAfter = marketNow - sellSum + buySum;
+      let totalAfter = cashAfter + marketAfter;
+      let summaryNow = `当前总资产：${totalNow.toFixed(2)}，可用资金：${cashNow.toFixed(2)}，持仓市值：${marketNow.toFixed(2)}`;
+      let summaryResult = `执行后可用资金：${cashAfter.toFixed(2)}，持仓市值：${marketAfter.toFixed(2)}，总资产：${totalAfter.toFixed(2)}`;
+      let exportBox = document.getElementById('export-box');
+      exportBox.style.display = 'block';
+      document.getElementById('export-summary-info').textContent = summaryNow;
+      document.getElementById('export-summary-result').textContent = summaryResult;
+      const out = JSON.stringify({
+        sell_stocks_info,
+        buy_stocks_info
+      }, null, 2);
+      document.getElementById('export-json').textContent = out;
+      showToast('导出成功');
+    }
+
+    function approvePlan() {
+      if (plans.length === 0) {
+        showToast('无计划可执行', '#e74c3c');
+        return;
+      }
+      plans.forEach(p => {
+        const arr = strategies[p.strategy];
+        if (arr && arr[p.index]) {
+          if (p.action === "买") arr[p.index].hold = true;
+          if (p.action === "卖") arr[p.index].hold = false;
+        }
+      });
+      saveStrategies();
+      showToast('已根据计划执行持有状态更新！');
+      loadStrategy();
+      renderPlans();
+    }
+
+    function approvePlanAndCopy() {
+      approvePlan();
+      copyExportJson();
+    }
+
+    function copyExportJson() {
+      const content = document.getElementById('export-json').textContent;
+      if (!content) return;
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(content).then(
+          () => { showToast("已复制到剪贴板！", "#67c23a"); },
+          () => { fallbackCopyTextToClipboard(content); }
+        );
+      } else {
+        fallbackCopyTextToClipboard(content);
+      }
+    }
+    function fallbackCopyTextToClipboard(text) {
+      const textarea = document.createElement("textarea");
+      textarea.value = text;
+      document.body.appendChild(textarea);
+      textarea.select();
+      try {
+        document.execCommand('copy');
+        showToast("已复制到剪贴板！", "#67c23a");
+      } catch (err) {
+        showToast("复制失败，请手动复制。", "#e74c3c");
+      }
+      document.body.removeChild(textarea);
+    }
+
+    // ================ 模态弹窗功能 ===================
+    function showSupplementModal() {
+      let newStrategies = [];
+      let newStocks = [];
+      Object.entries(defaultStrategies).forEach(([sname, arr]) => {
+        if (!strategies[sname]) {
+          newStrategies.push(sname);
+        } else {
+          const existNames = strategies[sname].map(t => t.name);
+          arr.forEach(newStock => {
+            if (!existNames.includes(newStock.name)) {
+              newStocks.push(`${sname} - ${newStock.name}`);
+            }
+          });
+        }
+      });
+      let msg = "将会补充defaultStrategies中的所有新策略和新标的，已存在的不会被覆盖。是否继续？";
+      if (newStrategies.length === 0 && newStocks.length === 0) {
+        msg = "没有需要补充的新策略或新标的。";
+      } else {
+        if (newStrategies.length > 0) {
+          msg += "<br><br><b>新增策略：</b><br>" + newStrategies.join("<br>");
+        }
+        if (newStocks.length > 0) {
+          msg += "<br><br><b>新增标的：</b><br>" + newStocks.join("<br>");
+        }
+      }
+      document.getElementById('supplement-modal-body').innerHTML = msg;
+      document.getElementById('supplement-modal').style.display = 'block';
+    }
+    function hideSupplementModal() {
+      document.getElementById('supplement-modal').style.display = 'none';
+    }
+    function doSupplementStrategies() {
+      let changed = false;
+      Object.entries(defaultStrategies).forEach(([sname, arr]) => {
+        if (!strategies[sname]) {
+          strategies[sname] = JSON.parse(JSON.stringify(arr));
+          changed = true;
+        } else {
+          const existNames = strategies[sname].map(t => t.name);
+          arr.forEach(newStock => {
+            if (!existNames.includes(newStock.name)) {
+              strategies[sname].push(JSON.parse(JSON.stringify(newStock)));
+              changed = true;
+            }
+          });
+        }
+      });
+      saveStrategies();
+      renderStrategyOptions();
+      if (strategySelect.value) loadStrategy();
+      renderPlans();
+      hideSupplementModal();
+      if (changed) {
+        showToast('已补充所有新策略和新标的！');
+      } else {
+        showToast('没有需要补充的新策略或新标的。', '#e74c3c');
+      }
+    }
+    function showClearModal() {
+      document.getElementById('clear-modal').style.display = 'block';
+    }
+    function hideClearModal() {
+      document.getElementById('clear-modal').style.display = 'none';
+    }
+    function doClearLocalStorage() {
+      Object.values(strategies).forEach(arr => {
+        arr.forEach(item => item.hold = false);
+      });
+      plans = [];
+      saveStrategies();
+      renderStrategyOptions();
+      loadStrategy();
+      renderPlans();
+      hideClearModal();
+      showToast('已清空所有持有状态和变更计划，策略和标的已保留。');
+    }
+    function showDeleteStrategyModal() {
+      const s = strategySelect.value;
+      if (!s) {
+        showToast('请先选择策略', '#e74c3c');
+        return;
+      }
+      let msg = `确定要删除策略 <b>${s}</b> 吗？<br>该操作不可恢复，所有该策略下的标的和持有状态也将被删除。`;
+      document.getElementById('delete-strategy-body').innerHTML = msg;
+      document.getElementById('delete-strategy-modal').style.display = 'block';
+    }
+    function hideDeleteStrategyModal() {
+      document.getElementById('delete-strategy-modal').style.display = 'none';
+    }
+    function doDeleteStrategy() {
+      const s = strategySelect.value;
+      if (!s) return;
+      delete strategies[s];
+      saveStrategies();
+      plans = plans.filter(p => p.strategy !== s);
+      renderStrategyOptions();
+      strategySelect.value = "";
+      loadStrategy();
+      renderPlans();
+      hideDeleteStrategyModal();
+      showToast('策略已删除！');
+    }
+    function showAddStrategyModal() {
+      document.getElementById('add-strategy-name').value = "";
+      document.getElementById('add-strategy-modal').style.display = 'block';
+    }
+    function hideAddStrategyModal() {
+      document.getElementById('add-strategy-modal').style.display = 'none';
+    }
+    function doAddStrategy() {
+      const name = document.getElementById('add-strategy-name').value.trim();
+      if (!name) {
+        showToast("请输入策略名称", "#e74c3c");
+        return;
+      }
+      if (strategies[name]) {
+        showToast("策略已存在", "#e74c3c");
+        return;
+      }
+      strategies[name] = [];
+      saveStrategies();
+      renderStrategyOptions();
+      hideAddStrategyModal();
+      strategySelect.value = name;
+      loadStrategy();
+      showToast("新增策略成功");
+    }
+
+    // ---------- 新增/编辑标的 ----------
+    function showAddTargetModal() {
+      if (!strategySelect.value) {
+        showToast("请先选择策略", "#e74c3c");
+        return;
+      }
+      editingTargetIdx = null;
+      document.getElementById('add-target-modal-title').textContent = "新增标的";
+      document.getElementById('add-target-name').value = "";
+      document.getElementById('add-target-amount').value = "";
+      document.getElementById('add-target-confirm-btn').textContent = "新增";
+      document.getElementById('add-target-confirm-btn').onclick = doAddTarget;
+      document.getElementById('add-target-modal').style.display = 'block';
+    }
+    function showEditTargetModal(idx) {
+      const s = strategySelect.value;
+      if (!s) return;
+      editingTargetIdx = idx;
+      const t = strategies[s][idx];
+      document.getElementById('add-target-modal-title').textContent = "修改标的";
+      document.getElementById('add-target-name').value = t.name;
+      document.getElementById('add-target-amount').value = t.default_amount;
+      document.getElementById('add-target-confirm-btn').textContent = "保存";
+      document.getElementById('add-target-confirm-btn').onclick = doEditTarget;
+      document.getElementById('add-target-modal').style.display = 'block';
+    }
+    function hideAddTargetModal() {
+      document.getElementById('add-target-modal').style.display = 'none';
+    }
+    function doAddTarget() {
+      const strategy = strategySelect.value;
+      const name = document.getElementById('add-target-name').value.trim();
+      const amount = parseFloat(document.getElementById('add-target-amount').value.trim());
+      if (!name) {
+        showToast("请输入标的名称", "#e74c3c");
+        return;
+      }
+      if (!amount || amount <= 0) {
+        showToast("请输入有效的默认买入金额", "#e74c3c");
+        return;
+      }
+      if (strategies[strategy].find(t => t.name === name)) {
+        showToast("标的已存在", "#e74c3c");
+        return;
+      }
+      strategies[strategy].push({name, default_amount: amount, hold: false});
+      saveStrategies();
+      loadStrategy();
+      hideAddTargetModal();
+      showToast("新增标的成功");
+    }
+    function doEditTarget() {
+      const s = strategySelect.value;
+      if (editingTargetIdx === null || !s) return;
+      const arr = strategies[s];
+      const name = document.getElementById('add-target-name').value.trim();
+      const amount = parseFloat(document.getElementById('add-target-amount').value.trim());
+      if (!name) {
+        showToast("请输入标的名称", "#e74c3c");
+        return;
+      }
+      if (!amount || amount <= 0) {
+        showToast("请输入有效的默认买入金额", "#e74c3c");
+        return;
+      }
+      if (arr.some((t, i) => t.name === name && i !== editingTargetIdx)) {
+        showToast("标的名称已存在", "#e74c3c");
+        return;
+      }
+      arr[editingTargetIdx].name = name;
+      arr[editingTargetIdx].default_amount = amount;
+      saveStrategies();
+      loadStrategy();
+      hideAddTargetModal();
+      showToast("标的修改成功");
+    }
+
+    // ---------- 删除标的 ----------
+    let deletingTargetIdx = null;
+    function showDeleteTargetModal(idx) {
+      const s = strategySelect.value;
+      if (!s) return;
+      deletingTargetIdx = idx;
+      const t = strategies[s][idx];
+      document.getElementById('delete-target-body').innerHTML = `确定要删除标的 <b>${t.name}</b> 吗？<br>该操作不可恢复。`;
+      document.getElementById('delete-target-modal').style.display = 'block';
+    }
+    function hideDeleteTargetModal() {
+      document.getElementById('delete-target-modal').style.display = 'none';
+    }
+    function doDeleteTarget() {
+      const s = strategySelect.value;
+      if (deletingTargetIdx === null || !s) return;
+      strategies[s].splice(deletingTargetIdx, 1);
+      saveStrategies();
+      loadStrategy();
+      hideDeleteTargetModal();
+      showToast("标的已删除");
+    }
+
+    function toggleToolboxDropdown(e) {
+      var dropdown = document.getElementById('toolbox-dropdown');
+      dropdown.style.display = dropdown.style.display === 'flex' ? 'none' : 'flex';
+      dropdown.style.flexDirection = 'column';
+      document.addEventListener('mousedown', onToolboxOutsideClick, false);
+    }
+    function hideToolboxDropdown() {
+      var dropdown = document.getElementById('toolbox-dropdown');
+      dropdown.style.display = 'none';
+      document.removeEventListener('mousedown', onToolboxOutsideClick, false);
+    }
+    function onToolboxOutsideClick(e) {
+      var toolbox = document.getElementById('toolbox-btn');
+      var dropdown = document.getElementById('toolbox-dropdown');
+      if (!dropdown.contains(e.target) && !toolbox.contains(e.target)) {
+        hideToolboxDropdown();
+      }
+    }
+    function showChangeDefaultAmountModal() {
+      const s = strategySelect.value;
+      if (!s) {
+        showToast('请先选择策略', '#e74c3c');
+        return;
+      }
+      const arr = strategies[s];
+      let html = "";
+      if (!arr || arr.length === 0) {
+        html = "<div>当前策略没有标的可以配置。</div>";
+      } else {
+        html = '<form id="change-default-amount-form">';
+        arr.forEach((item, idx) => {
+          html += `
+            <div class="modal-input">
+              <label style="display:inline-block;width:110px;">${item.name}：</label>
+              <input type="number" min="1" style="width:120px;" id="change-default-amount-${idx}" value="${item.default_amount}"/>
+            </div>
+          `;
+        });
+        html += '</form>';
+      }
+      document.getElementById('change-default-amount-body').innerHTML = html;
+      document.getElementById('change-default-amount-modal').style.display = 'block';
+    }
+    function hideChangeDefaultAmountModal() {
+      document.getElementById('change-default-amount-modal').style.display = 'none';
+    }
+    function doChangeDefaultAmount() {
+      const s = strategySelect.value;
+      if (!s) return;
+      const arr = strategies[s];
+      let changed = false;
+      arr.forEach((item, idx) => {
+        const val = document.getElementById(`change-default-amount-${idx}`).value.trim();
+        if (val !== "" && !isNaN(val) && Number(val) > 0) {
+          const newVal = Number(val);
+          if (item.default_amount !== newVal) {
+            item.default_amount = newVal;
+            changed = true;
+          }
+        }
+      });
+      saveStrategies();
+      hideChangeDefaultAmountModal();
+      loadStrategy();
+      if (changed) {
+        showToast('已更新所有标的默认金额！');
+      } else {
+        showToast('未做任何修改。', '#e74c3c');
+      }
+    }
+
+    // =========== 定时自动刷新持仓 ===========
+    let refreshInterval = 60; // 秒
+    let remain = refreshInterval;
+    function updateRefreshTimer() {
+      document.getElementById('refresh-timer').textContent = '自动刷新: ' + remain + 's';
+    }
+    function startAutoRefresh() {
+      remain = refreshInterval;
+      updateRefreshTimer();
+      setInterval(() => {
+        remain--;
+        if (remain <= 0) {
+          loadAccountInfo();
+          remain = refreshInterval;
+        }
+        updateRefreshTimer();
+      }, 1000);
+    }
+
+    window.onload = function() {
+      loadAccountInfo();
+      renderStrategyOptions();
+      if (strategySelect.value) loadStrategy();
+      renderPlans();
+      startAutoRefresh();
+    }
+  </script>
+</body>
+</html>

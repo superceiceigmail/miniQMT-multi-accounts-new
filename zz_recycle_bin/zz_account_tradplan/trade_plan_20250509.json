@@ -1,0 +1,67 @@
+{
+    "sell": [
+        {
+            "name": "标普信息科技",
+            "lots": 99999,
+            "actual_lots": 2800,
+            "code": "161128.SZ"
+        },
+        {
+            "name": "纳斯达克100",
+            "lots": 99999,
+            "actual_lots": 2800,
+            "code": "161130.SZ"
+        },
+        {
+            "name": "标普500",
+            "lots": 99999,
+            "actual_lots": 3500,
+            "code": "161125.SZ"
+        },
+        {
+            "name": "中概互联220",
+            "lots": 99999,
+            "actual_lots": 5400,
+            "code": "513220.SH"
+        },
+        {
+            "name": "纳指3100",
+            "lots": 55555,
+            "actual_lots": 6000,
+            "code": "513100.SH"
+        },
+        {
+            "name": "纳指9941",
+            "lots": 99999,
+            "actual_lots": 10200,
+            "code": "159941.SZ"
+        }
+    ],
+    "buy": [
+        {
+            "name": "30年国债指数",
+            "amount": 30000,
+            "code": "511130.SH"
+        },
+        {
+            "name": "标普医疗",
+            "amount": 16400,
+            "code": "161126.SZ"
+        },
+        {
+            "name": "嘉实黄金",
+            "amount": 9200,
+            "code": "160719.SZ"
+        },
+        {
+            "name": "美国精选",
+            "amount": 16400,
+            "code": "160140.SZ"
+        },
+        {
+            "name": "美国消费",
+            "amount": 16400,
+            "code": "162415.SZ"
+        }
+    ]
+}

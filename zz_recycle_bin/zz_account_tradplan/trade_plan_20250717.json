@@ -1,0 +1,34 @@
+{
+    "sell": [
+        {
+            "name": "美国消费",
+            "lots": 99999,
+            "actual_lots": 7100,
+            "code": "162415.SZ"
+        },
+        {
+            "name": "30年国债",
+            "lots": 100,
+            "actual_lots": 100,
+            "code": "511090.SH"
+        },
+        {
+            "name": "30年国债指数",
+            "lots": 99999,
+            "actual_lots": 2600,
+            "code": "511130.SH"
+        }
+    ],
+    "buy": [
+        {
+            "name": "印度基金",
+            "amount": 11000,
+            "code": "164824.SZ"
+        },
+        {
+            "name": "印度基金",
+            "amount": 11000,
+            "code": "164824.SZ"
+        }
+    ]
+}

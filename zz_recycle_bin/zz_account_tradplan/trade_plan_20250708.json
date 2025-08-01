@@ -1,0 +1,50 @@
+{
+    "sell": [
+        {
+            "name": "30年国债",
+            "lots": 66666,
+            "actual_lots": 900,
+            "code": "511090.SH"
+        },
+        {
+            "name": "30年国债指数",
+            "lots": 99999,
+            "actual_lots": 900,
+            "code": "511130.SH"
+        },
+        {
+            "name": "印度基金",
+            "lots": 55555,
+            "actual_lots": 6600,
+            "code": "164824.SZ"
+        },
+        {
+            "name": "标普信息科技",
+            "lots": 55555,
+            "actual_lots": 2000,
+            "code": "161128.SZ"
+        }
+    ],
+    "buy": [
+        {
+            "name": "标普医疗",
+            "amount": 11000,
+            "code": "161126.SZ"
+        },
+        {
+            "name": "美国精选",
+            "amount": 11000,
+            "code": "160140.SZ"
+        },
+        {
+            "name": "纳指生物科技",
+            "amount": 20000,
+            "code": "513290.SH"
+        },
+        {
+            "name": "国开债",
+            "amount": 200000,
+            "code": "159649.SZ"
+        }
+    ]
+}
