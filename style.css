@@ -1,0 +1,189 @@
+.strategy-related-hold {
+  color: #20b04d;
+  font-weight: bold;
+}
+body { font-family: Arial, sans-serif; margin: 40px; background: #f7f7f7;}
+.container { background: #fff; padding: 24px; border-radius: 8px; max-width: 1080px; margin: auto; box-shadow: 0 2px 10px #ccc;}
+h2 { margin-top: 0; }
+select, input, button { font-size: 16px; margin: 4px 0; }
+table { width: 100%; border-collapse: collapse; margin-bottom: 16px;}
+th, td { border: 1px solid #ddd; padding: 6px 10px; text-align: left;}
+th { background: #f0f0f0;}
+.plan-box { background: #eef; padding: 12px; border-radius: 6px; margin-top: 16px;}
+.btn { background: #409eff; color: #fff; border: none; padding: 8px 18px; border-radius: 4px; cursor: pointer;}
+.btn:active { background: #2369b6;}
+.input-short { width: 90px; }
+pre { word-break: break-all; }
+.hold-yes { color: green; font-weight: bold;}
+.hold-no { color: darkred; font-weight: bold;}
+.hold-other { color: #ffa500; font-weight: bold;}
+.danger { background: #e74c3c; }
+.danger:active { background: #d62717; }
+.modal-mask {
+  position: fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.35); z-index:9999; display:none;
+}
+.modal-content {
+  background: #fff; border-radius: 8px; max-width: 350px; margin: 180px auto; padding: 28px 24px 16px 24px; box-shadow: 0 4px 24px #3337; position: relative;
+}
+.modal-title { font-size: 18px; font-weight: bold; margin-bottom: 16px; }
+.modal-btns { text-align:center; margin-top: 22px;}
+.modal-btns button { margin:0 18px; font-size: 16px;}
+.modal-danger { background: #e74c3c; color: #fff;}
+.modal-danger:active { background: #d62717;}
+.modal-success { background: #409eff; color: #fff;}
+.modal-success:active { background: #2369b6;}
+.modal-input { margin-bottom: 12px;}
+.toolbox {
+  float: right;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.toolbox-icon-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  margin-left: 10px;
+  outline: none;
+}
+.toolbox-icon-btn svg {
+  width: 26px;
+  height: 26px;
+  fill: #888;
+  transition: fill .2s;
+  vertical-align: middle;
+}
+.toolbox-icon-btn:active svg,
+.toolbox-icon-btn:hover svg {
+  fill: #409eff;
+}
+.toolbox-dropdown {
+  position: absolute;
+  right: 0;
+  top: 38px;
+  background: #fff;
+  border: 1px solid #eee;
+  box-shadow: 0 2px 12px #3332;
+  border-radius: 6px;
+  min-width: 190px;
+  z-index: 10001;
+  display: none;
+  flex-direction: column;
+  padding: 8px 0;
+}
+.toolbox-dropdown button {
+  background: none;
+  color: #333;
+  border: none;
+  width: 100%;
+  text-align: left;
+  padding: 10px 18px;
+  font-size: 15px;
+  cursor: pointer;
+}
+.toolbox-dropdown button:hover {
+  background: #eef;
+  color: #409eff;
+}
+.toolbox-dropdown .danger {
+  color: #e74c3c;
+}
+.toolbox-dropdown .danger:hover {
+  background: #fdeaea;
+  color: #d62717;
+}
+.copy-btn {
+  background: #67c23a;
+  color: #fff;
+  border: none;
+  padding: 8px 18px;
+  border-radius: 4px;
+  cursor: pointer;
+  margin-left: 12px;
+}
+.copy-btn:active {
+  background: #49a127;
+}
+.error { color: red; font-weight: bold;}
+.export-summary {
+  font-weight: bold;
+  margin: 8px 0 10px 0;
+  color: #2369b6;
+}
+.split-btn {
+  display: inline-flex;
+  align-items: center;
+}
+.split-btn .copy-btn {
+  margin-left: 0;
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+  border-left: 1px solid #fff;
+  padding-left: 14px;
+  padding-right: 14px;
+  background: #5fbe55;
+}
+.split-btn .copy-btn:active {
+  background: #479e39;
+}
+.split-btn .btn {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+#toast {
+  display:none;
+  position: fixed;
+  z-index: 99999;
+  top: 40px;
+  right: 40px;
+  min-width: 160px;
+  max-width: 90vw;
+  padding: 12px 24px;
+  background: #409eff;
+  color: #fff;
+  border-radius: 6px;
+  box-shadow: 0 2px 16px #3334;
+  font-size: 17px;
+  opacity: 0;
+  transition: opacity 0.3s;
+  pointer-events: none;
+  text-align: center;
+  word-break: break-all;
+}
+.jump-btn-box {
+  text-align: right;
+  margin-top: 28px;
+  margin-bottom: 0px;
+}
+.jump-btn {
+  background: #e1a84a;
+  color: #fff;
+  border: none;
+  padding: 9px 22px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 17px;
+  margin-top: 2px;
+  margin-right: 2px;
+  transition: background 0.2s;
+}
+.jump-btn:active, .jump-btn:hover {
+  background: #d08a01;
+}
+/* 新增：标的操作按钮 */
+.target-ops-btn {
+  background: #409eff;
+  color: #fff;
+  border: none;
+  padding: 4px 10px;
+  border-radius: 4px;
+  margin: 0 2px;
+  cursor: pointer;
+  font-size: 14px;
+}
+.target-ops-btn:active { background: #2369b6; }
+.target-ops-btn.danger {
+  background: #e74c3c;
+}
+.target-ops-btn.danger:active { background: #d62717; }

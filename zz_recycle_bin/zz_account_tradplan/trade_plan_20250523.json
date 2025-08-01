@@ -1,0 +1,46 @@
+{
+    "sell": [
+        {
+            "name": "30年国债",
+            "lots": 99999,
+            "actual_lots": 400,
+            "code": "511090.SH"
+        },
+        {
+            "name": "30年国债指数",
+            "lots": 99999,
+            "actual_lots": 400,
+            "code": "511130.SH"
+        },
+        {
+            "name": "标普信息科技",
+            "lots": 99999,
+            "actual_lots": 3500,
+            "code": "161128.SZ"
+        },
+        {
+            "name": "嘉实黄金",
+            "lots": 99999,
+            "actual_lots": 4800,
+            "code": "160719.SZ"
+        },
+        {
+            "name": "纳指9941",
+            "lots": 99999,
+            "actual_lots": 7000,
+            "code": "159941.SZ"
+        }
+    ],
+    "buy": [
+        {
+            "name": "国开债券",
+            "amount": 200000,
+            "code": "159651.SZ"
+        },
+        {
+            "name": "嘉实原油",
+            "amount": 8820,
+            "code": "160723.SZ"
+        }
+    ]
+}
