@@ -18,7 +18,7 @@ from processor.trade_plan_generation import print_trade_plan
 from processor.orders_reorder_tool import reorder_orders
 from preprocessing.qmt_connector import ensure_qmt_and_connect
 from preprocessing.trade_time_checker import check_trade_time
-from preprocessing.daily_restart_checker import check_and_restart
+from preprocessing.qmt_daily_restart_checker import check_and_restart
 import argparse
 import signal
 import sys

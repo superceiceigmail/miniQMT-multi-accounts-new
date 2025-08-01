@@ -5,9 +5,9 @@ import time
 import json
 from datetime import datetime
 
-from preprocessing.restart_tool import restart_self
+from preprocessing.self_restart_tool import restart_self
 
-def restart_program(program_name, program_path):
+def qmt_restart_program(program_name, program_path):
     """
     关闭指定任务并打开指定程序。
     """
