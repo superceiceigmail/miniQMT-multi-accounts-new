@@ -3,7 +3,11 @@
         {
             "name": "30年国债",
             "lots": 99999,
+<<<<<<< HEAD
             "actual_lots": 0,
+=======
+            "actual_lots": 2100,
+>>>>>>> 235dce32f998ec64d0f9bb77bbfc4e0bd1799da7
             "code": "511090.SH"
         }
     ],

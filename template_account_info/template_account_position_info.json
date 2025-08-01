@@ -5,15 +5,26 @@
     "volume": 6200,
     "can_use_volume": 6200,
     "avg_price": 1.5998064516129031,
+<<<<<<< HEAD
     "market_value": 9802.199999999999
+=======
+    "market_value": 10037.8
+>>>>>>> 235dce32f998ec64d0f9bb77bbfc4e0bd1799da7
   },
   {
     "stock_code": "511090.SH",
     "stock_name": "30年国债",
+<<<<<<< HEAD
     "volume": 0,
     "can_use_volume": 0,
     "avg_price": null,
     "market_value": 0.0
+=======
+    "volume": 2100,
+    "can_use_volume": 2100,
+    "avg_price": 123.09709523809524,
+    "market_value": 259358.40000000002
+>>>>>>> 235dce32f998ec64d0f9bb77bbfc4e0bd1799da7
   },
   {
     "stock_code": "511880.SH",
@@ -21,7 +32,11 @@
     "volume": 300,
     "can_use_volume": 300,
     "avg_price": 100.76666666666667,
+<<<<<<< HEAD
     "market_value": 30231.899999999998
+=======
+    "market_value": 30232.2
+>>>>>>> 235dce32f998ec64d0f9bb77bbfc4e0bd1799da7
   },
   {
     "stock_code": "513100.SH",
@@ -29,7 +44,11 @@
     "volume": 14900,
     "can_use_volume": 14900,
     "avg_price": 1.523194630872483,
+<<<<<<< HEAD
     "market_value": 24987.3
+=======
+    "market_value": 25389.6
+>>>>>>> 235dce32f998ec64d0f9bb77bbfc4e0bd1799da7
   },
   {
     "stock_code": "513300.SH",
@@ -37,7 +56,11 @@
     "volume": 1000,
     "can_use_volume": 1000,
     "avg_price": 1.965,
+<<<<<<< HEAD
     "market_value": 2094.0
+=======
+    "market_value": 2127.0
+>>>>>>> 235dce32f998ec64d0f9bb77bbfc4e0bd1799da7
   },
   {
     "stock_code": "518880.SH",
@@ -45,7 +68,11 @@
     "volume": 1400,
     "can_use_volume": 1400,
     "avg_price": 7.8525,
+<<<<<<< HEAD
     "market_value": 10288.6
+=======
+    "market_value": 10290.0
+>>>>>>> 235dce32f998ec64d0f9bb77bbfc4e0bd1799da7
   },
   {
     "stock_code": "131990.SZ",
@@ -61,7 +88,11 @@
     "volume": 10700,
     "can_use_volume": 10700,
     "avg_price": 0.9304672897196262,
+<<<<<<< HEAD
     "market_value": 9769.1
+=======
+    "market_value": 9737.0
+>>>>>>> 235dce32f998ec64d0f9bb77bbfc4e0bd1799da7
   },
   {
     "stock_code": "159681.SZ",
@@ -69,7 +100,11 @@
     "volume": 10800,
     "can_use_volume": 10800,
     "avg_price": 0.9334629629629629,
+<<<<<<< HEAD
     "market_value": 11124.0
+=======
+    "market_value": 11167.2
+>>>>>>> 235dce32f998ec64d0f9bb77bbfc4e0bd1799da7
   },
   {
     "stock_code": "159941.SZ",
@@ -77,7 +112,11 @@
     "volume": 25500,
     "can_use_volume": 25500,
     "avg_price": 1.234243137254902,
+<<<<<<< HEAD
     "market_value": 32079.0
+=======
+    "market_value": 32614.500000000004
+>>>>>>> 235dce32f998ec64d0f9bb77bbfc4e0bd1799da7
   },
   {
     "stock_code": "160140.SZ",
@@ -85,7 +124,11 @@
     "volume": 7800,
     "can_use_volume": 7800,
     "avg_price": 1.2696410256410258,
+<<<<<<< HEAD
     "market_value": 9804.6
+=======
+    "market_value": 9921.6
+>>>>>>> 235dce32f998ec64d0f9bb77bbfc4e0bd1799da7
   },
   {
     "stock_code": "160723.SZ",
@@ -93,7 +136,11 @@
     "volume": 13800,
     "can_use_volume": 13800,
     "avg_price": 1.5165528985507246,
+<<<<<<< HEAD
     "market_value": 20851.800000000003
+=======
+    "market_value": 20907.0
+>>>>>>> 235dce32f998ec64d0f9bb77bbfc4e0bd1799da7
   },
   {
     "stock_code": "161116.SZ",
@@ -101,7 +148,11 @@
     "volume": 7600,
     "can_use_volume": 7600,
     "avg_price": 1.3149065789473686,
+<<<<<<< HEAD
     "market_value": 9788.800000000001
+=======
+    "market_value": 9804.0
+>>>>>>> 235dce32f998ec64d0f9bb77bbfc4e0bd1799da7
   },
   {
     "stock_code": "161129.SZ",
@@ -109,7 +160,11 @@
     "volume": 18400,
     "can_use_volume": 18400,
     "avg_price": 1.1902717391304347,
+<<<<<<< HEAD
     "market_value": 22852.8
+=======
+    "market_value": 22944.800000000003
+>>>>>>> 235dce32f998ec64d0f9bb77bbfc4e0bd1799da7
   },
   {
     "stock_code": "162415.SZ",
@@ -117,7 +172,11 @@
     "volume": 3619,
     "can_use_volume": 3619,
     "avg_price": 2.857529704338215,
+<<<<<<< HEAD
     "market_value": 10292.436
+=======
+    "market_value": 10520.433
+>>>>>>> 235dce32f998ec64d0f9bb77bbfc4e0bd1799da7
   },
   {
     "stock_code": "164701.SZ",
@@ -125,6 +184,10 @@
     "volume": 6300,
     "can_use_volume": 6300,
     "avg_price": 1.349793650793651,
+<<<<<<< HEAD
     "market_value": 8631.0
+=======
+    "market_value": 8656.2
+>>>>>>> 235dce32f998ec64d0f9bb77bbfc4e0bd1799da7
   }
 ]
