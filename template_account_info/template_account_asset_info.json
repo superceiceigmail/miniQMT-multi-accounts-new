@@ -1,20 +1,10 @@
 {
   "account_id": "8886006288",
-<<<<<<< HEAD
   "cash": 403003.26,
   "frozen_cash": 0.0,
-  "market_value": 212597.53599999996,
-  "total_asset": 650307.0,
+  "market_value": 212479.798,
+  "total_asset": 650189.26,
   "percent_cash": "62.0%",
   "percent_frozen": "0.0%",
   "percent_market": "32.7%"
-=======
-  "cash": 144073.26,
-  "frozen_cash": 0.0,
-  "market_value": 473707.733,
-  "total_asset": 652487.16,
-  "percent_cash": "22.1%",
-  "percent_frozen": "0.0%",
-  "percent_market": "72.6%"
->>>>>>> 235dce32f998ec64d0f9bb77bbfc4e0bd1799da7
 }

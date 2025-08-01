@@ -4,11 +4,8 @@ import psutil
 import time
 import json
 from datetime import datetime
-<<<<<<< HEAD
-from preprocessing.restart_tool import restart_self
-=======
 
->>>>>>> 235dce32f998ec64d0f9bb77bbfc4e0bd1799da7
+from preprocessing.restart_tool import restart_self
 
 def restart_program(program_name, program_path):
     """
@@ -30,10 +27,8 @@ def restart_program(program_name, program_path):
         print(f"程序 {program_name} 已成功启动。")
         print(f"请输入账号信息，20秒后将继续连接。")
         time.sleep(20)
-<<<<<<< HEAD
         restart_self()  # 彻底重启main.py进程
-=======
->>>>>>> 235dce32f998ec64d0f9bb77bbfc4e0bd1799da7
+
     else:
         print(f"路径 {program_path} 不存在，无法启动程序！")
 
@@ -57,20 +52,16 @@ def check_and_restart(config_path):
     file_date = config.get("last_run_date", "")
     if file_date != today_date:
         print(f"执行重启操作:最后启动日为 {file_date}，非当天日期 {today_date}，")
-<<<<<<< HEAD
-=======
-        restart_program(config["program_name"], config["program_path"])
->>>>>>> 235dce32f998ec64d0f9bb77bbfc4e0bd1799da7
+
         # 更新json中的last_run_date
         config["last_run_date"] = today_date
         with open(config_path, 'w', encoding='utf-8') as f:
             json.dump(config, f, ensure_ascii=False, indent=2)  # type: ignore
-<<<<<<< HEAD
+
         restart_program(config["program_name"], config["program_path"])
-=======
->>>>>>> 235dce32f998ec64d0f9bb77bbfc4e0bd1799da7
+
     else:
-        print(f"跳过重启操作：最后启动日为 {file_date}，与当天日期 {today_date} 相同。")
+        print(f"跳过重启操作：最后启动日为 {file_date}，与当天日期 {today_date} 完全相同。")
 
 
 # 主程序入口（测试用）

@@ -1,19 +1,7 @@
 import time
 import json
-<<<<<<< HEAD
-from preprocessing.restart_tool import restart_self
-=======
-import sys
-import os
 
-def restart_self():
-    """
-    重启本main.py进程（原地拉起同参数的自己）
-    """
-    print("正在重启main.py本进程...")
-    python = sys.executable
-    os.execl(python, python, *sys.argv)
->>>>>>> 235dce32f998ec64d0f9bb77bbfc4e0bd1799da7
+from preprocessing.restart_tool import restart_self
 
 def ensure_qmt_and_connect(config_path, xt_trader, logger=None, connect_max_retry=3, wait_after_qmt=15):
     """
