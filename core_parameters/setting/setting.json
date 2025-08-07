@@ -1,9 +1,30 @@
 {
   "sell_stocks_info": [
     {
-      "name": "30年国债",
-      "ratio": 39.86
+      "name": "可转债",
+      "ratio": 19.67
+    },
+    {
+      "name": "标普信息科技",
+      "ratio": 1.69
+    },
+    {
+      "name": "原油易方达",
+      "ratio": 1.69
     }
   ],
-  "buy_stocks_info": []
+  "buy_stocks_info": [
+    {
+      "name": "黄金主题",
+      "ratio": 1.69
+    },
+    {
+      "name": "30年国债",
+      "ratio": 10.76
+    },
+    {
+      "name": "30年国债指数",
+      "ratio": 2.15
+    }
+  ]
 }

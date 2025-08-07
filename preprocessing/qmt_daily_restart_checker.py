@@ -5,33 +5,7 @@ import time
 import json
 from datetime import datetime
 
-from preprocessing.self_restart_tool import restart_self
-
-def qmt_restart_program(program_name, program_path):
-    """
-    关闭指定任务并打开指定程序。
-    """
-    # 1. 关闭任务
-    for process in psutil.process_iter(['pid', 'name']):
-        if process.info['name'] == program_name:
-            print(f"正在关闭任务: {program_name} (PID: {process.info['pid']})")
-            process.terminate()
-            process.wait()
-            print(f"任务 {program_name} 已关闭。")
-    # 2. 等待一段时间确保任务完全关闭
-    time.sleep(2)
-    # 3. 打开程序
-    if os.path.exists(program_path):
-        print(f"正在打开程序: {program_path}")
-        subprocess.Popen(program_path, shell=True)
-        print(f"程序 {program_name} 已成功启动。")
-        print(f"请输入账号信息，20秒后将继续连接。")
-        time.sleep(20)
-        restart_self()  # 彻底重启main.py进程
-
-    else:
-        print(f"路径 {program_path} 不存在，无法启动程序！")
-
+from preprocessing.self_restart_tool import qmt_restart_program,restart_self
 
 def check_and_restart(config_path):
     """
@@ -58,7 +32,7 @@ def check_and_restart(config_path):
         with open(config_path, 'w', encoding='utf-8') as f:
             json.dump(config, f, ensure_ascii=False, indent=2)  # type: ignore
 
-        restart_program(config["program_name"], config["program_path"])
+        qmt_restart_program(config["program_name"], config["program_path"])
 
     else:
         print(f"跳过重启操作：最后启动日为 {file_date}，与当天日期 {today_date} 完全相同。")

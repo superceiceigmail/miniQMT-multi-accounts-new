@@ -4,10 +4,10 @@
   "program_name": "XtMiniQmt.exe",
   "path_qmt": "D:\\gjqmt\\userdata_mini",
   "program_path": "D:\\gjqmt\\bin.x64\\XtMiniQmt.exe",
-  "last_run_date": "20250801",
-  "sell_time": "19:24:58",
-  "check_time_first": "19:30:03",
-  "buy_time": "19:30:09",
-  "check_time_second": "19:30:22",
+  "last_run_date": "20250807",
+  "sell_time": "09:24:58",
+  "check_time_first": "09:30:03",
+  "buy_time": "09:30:09",
+  "check_time_second": "09:30:22",
   "proportion": "100%"
 }
