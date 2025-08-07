@@ -17,7 +17,7 @@ from utils.stock_code_mapper import load_stock_codes, generate_reverse_mapping
 from processor.trade_plan_generation import print_trade_plan
 from processor.orders_reorder_tool import reorder_orders
 from preprocessing.qmt_connector import ensure_qmt_and_connect
-from preprocessing.trade_time_checker import check_trade_time
+from preprocessing.trade_time_checker import check_trade_times
 from preprocessing.qmt_daily_restart_checker import check_and_restart
 import argparse
 import signal
@@ -175,13 +175,8 @@ def main():
 
     # 检查交易时间是否合理
     logging.info("开始进行交易时间检查")
-    if not check_trade_time(sell_time):
-        return
-    if not check_trade_time(buy_time):
-        return
-    if not check_trade_time(check_time_first):
-        return
-    if not check_trade_time(check_time_second):
+    trade_times = [sell_time, buy_time, check_time_first, check_time_second]
+    if not check_trade_times(trade_times):
         return
 
     # 读取初始交易倾向

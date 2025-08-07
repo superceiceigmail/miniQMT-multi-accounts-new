@@ -3,36 +3,36 @@
         {
             "name": "可转债",
             "lots": 99999,
-            "actual_lots": 9800,
+            "actual_lots": 0,
             "code": "511380.SH"
         },
         {
             "name": "标普信息科技",
             "lots": 99999,
-            "actual_lots": 2000,
+            "actual_lots": 0,
             "code": "161128.SZ"
         },
         {
             "name": "原油易方达",
             "lots": 99999,
-            "actual_lots": 9300,
+            "actual_lots": 0,
             "code": "161129.SZ"
         }
     ],
     "buy": [
         {
             "name": "黄金主题",
-            "amount": 10995,
+            "amount": 11008,
             "code": "161116.SZ"
         },
         {
             "name": "30年国债",
-            "amount": 70009,
+            "amount": 70090,
             "code": "511090.SH"
         },
         {
             "name": "30年国债指数",
-            "amount": 13988,
+            "amount": 14005,
             "code": "511130.SH"
         }
     ]
