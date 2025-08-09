@@ -2,6 +2,7 @@ import time
 import json
 import logging
 import os
+from xtquant import xtdata
 from datetime import datetime
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
@@ -117,24 +118,24 @@ def parse_args():
 def handle_exit(signum, frame):
     global account_name
     logging.info(f"[main.py][账户:{account_name}] 收到终止信号({signum})，主进程pid={os.getpid()} 开始清理子进程")
-    print(f"[main.py][账户:{account_name}] 收到终止信号({signum})，主进程pid={os.getpid()} 开始清理子进程")
+    logging.info(f"[main.py][账户:{account_name}] 收到终止信号({signum})，主进程pid={os.getpid()} 开始清理子进程")
     try:
         parent = psutil.Process(os.getpid())
         children = parent.children(recursive=True)
         for child in children:
             logging.info(f"[main.py][账户:{account_name}] 终止子进程 {child.pid} {child.name()}")
-            print(f"[main.py][账户:{account_name}] 终止子进程 {child.pid} {child.name()}")
+            logging.info(f"[main.py][账户:{account_name}] 终止子进程 {child.pid} {child.name()}")
             child.terminate()
         gone, alive = psutil.wait_procs(children, timeout=5)
         for p in alive:
             logging.warning(f"[main.py][账户:{account_name}] 强制kill未退出的进程 {p.pid} {p.name()}")
-            print(f"[main.py][账户:{account_name}] 强制kill未退出的进程 {p.pid} {p.name()}")
+            logging.info(f"[main.py][账户:{account_name}] 强制kill未退出的进程 {p.pid} {p.name()}")
             p.kill()
     except Exception as e:
         logging.error(f"[main.py][账户:{account_name}] 终止子进程异常: {e}")
-        print(f"[main.py][账户:{account_name}] 终止子进程异常: {e}")
+        logging.info(f"[main.py][账户:{account_name}] 终止子进程异常: {e}")
     logging.info(f"[main.py][账户:{account_name}] 主进程即将退出。")
-    print(f"[main.py][账户:{account_name}] 主进程即将退出。")
+    logging.info(f"[main.py][账户:{account_name}] 主进程即将退出。")
     logging.shutdown()
     sys.exit(0)
 
@@ -142,17 +143,23 @@ def load_json_file(path):
     with open(path, 'r', encoding='utf-8') as f:
         return json.load(f)
 
+# 持仓打印任务函数
+def print_positions_task(xt_trader, account_id, reverse_mapping, account_asset_info):
+    logging.info(f"\n--- 定时打印持仓任务 --- 当前时间：{datetime.now().strftime('%Y-%m-%d %H:%M:%S')} ---")
+    positions = print_positions(xt_trader, account_id, reverse_mapping, account_asset_info)
+    logging.info(f"持仓信息: {positions}")
+
 def main():
     # 日志启动
     setup_logging()
-    print("")
-    print("================================ 启动代码 ================================")
+    logging.info("")
+    logging.info("================================ 启动代码 ================================")
     args = parse_args()
     global account_name
     account_name = args.account
     config_path = ACCOUNT_CONFIG_MAP.get(account_name)
     if not config_path:
-        print(f"找不到账户 {account_name} 的配置文件")
+        logging.info(f"找不到账户 {account_name} 的配置文件")
         logging.error(f"[main.py][账户:{account_name}] 找不到账户配置文件")
         return
     config = load_json_file(config_path)
@@ -240,8 +247,8 @@ def main():
     )
     time.sleep(5)
 
-    print("")
-    print("================================布置定时任务================================")
+    logging.info("")
+    logging.info("================================布置定时任务================================")
     scheduler = BackgroundScheduler()
     # 卖出任务时间
     sell_hour, sell_minute, sell_second = map(int, sell_time.split(":"))
@@ -292,6 +299,56 @@ def main():
     )
     logging.info(f"撤单和重下任务（第二次）已定时在 {check_time_second} 执行！")
 
+    # 定时打印持仓任务时间（14:55:00）
+    scheduler.add_job(
+        print_positions_task,
+        trigger=CronTrigger(hour=14, minute=55, second=0),
+        args=[xt_trader, account_id, reverse_mapping, account_asset_info],
+        id="print_positions_task",
+        replace_existing=True
+    )
+    logging.info("定时持仓打印任务已定时在 14:55:00 执行！")
+
+    stock_list = ['600001.SH', '000001.SZ']
+    period = '1d'
+    start_time = '2024-01-01'
+    end_time = ''
+
+    # 补充下载行情数据
+    for code in stock_list:
+        logging.info(f"开始下载 {code} 的历史行情数据...")
+        xtdata.download_history_data(
+            code,
+            period=period,
+            start_time=start_time,
+            end_time=end_time,
+            incrementally=True
+        )
+        logging.info(f"{code} 下载完成。")
+
+    # 或用批量接口
+    def on_progress(data):
+        logging.info(f"下载进度: {data}")
+
+    time.sleep(2)  # 等待落地
+
+    data = xtdata.get_local_data(
+        field_list=[],  # 全部字段
+        stock_list=stock_list,
+        period=period,
+        start_time='',
+        end_time='',
+        count=-1
+    )
+
+    logging.info(f"数据字段: {list(data.keys())}")
+    for code in stock_list:
+        df = data[code]
+        logging.info(f"\n===== {code} DataFrame =====")
+        logging.info(f"index (字段): {list(df.index)}")
+        logging.info(f"columns (日期): {list(df.columns)[:10]}")
+        logging.info(f"head:\n{df.head()}")
+
     scheduler.start()
 
     # 注册信号处理器，保证kill时能优雅退出
@@ -311,6 +368,7 @@ def main():
         scheduler.shutdown()
         xt_trader.stop()
         logging.info("交易线程已停止。")
+
 
 if __name__ == "__main__":
     main()
