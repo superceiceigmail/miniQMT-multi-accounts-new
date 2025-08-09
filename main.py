@@ -182,9 +182,12 @@ def main():
 
     # 检查交易时间是否合理
     logging.info("开始进行交易时间检查")
-    trade_times = [sell_time, buy_time, check_time_first, check_time_second]
-    if not check_trade_times(trade_times):
+    trade_times = [sell_time, check_time_first, buy_time, check_time_second]
+    ok, trade_times = check_trade_times(trade_times)
+    if not ok:
         return
+    # 若时间被重设，更新变量
+    sell_time, check_time_first, buy_time,check_time_second = trade_times
 
     # 读取初始交易倾向
     setting_data = load_json_file('core_parameters/setting/setting.json')
