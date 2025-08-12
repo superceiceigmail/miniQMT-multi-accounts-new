@@ -25,6 +25,10 @@ import signal
 import sys
 import psutil
 
+# 在任何日志初始化之前，确保标准输出/错误使用 UTF-8，避免编码问题
+from utils.log_utils import ensure_utf8_stdio
+ensure_utf8_stdio()
+
 # 全局账户名变量，用于日志标识
 account_name = None
 
@@ -311,46 +315,6 @@ def main():
         replace_existing=True
     )
     logging.info("定时持仓打印任务已定时在 14:55:00 执行！")
-
-    stock_list = ['600001.SH', '511090.SH']
-    period = '1d'
-    start_time = '2024-01-01'
-    end_time = ''
-
-    # 补充下载行情数据
-    for code in stock_list:
-        logging.info(f"开始下载 {code} 的历史行情数据...")
-        xtdata.download_history_data(
-            code,
-            period=period,
-            start_time=start_time,
-            end_time=end_time,
-            incrementally=True
-        )
-        logging.info(f"{code} 下载完成。")
-
-    # 或用批量接口
-    def on_progress(data):
-        logging.info(f"下载进度: {data}")
-
-    time.sleep(2)  # 等待落地
-
-    data = xtdata.get_local_data(
-        field_list=[],  # 全部字段
-        stock_list=stock_list,
-        period=period,
-        start_time='',
-        end_time='',
-        count=-1
-    )
-
-    logging.info(f"数据字段: {list(data.keys())}")
-    for code in stock_list:
-        df = data[code]
-        logging.info(f"\n===== {code} DataFrame =====")
-        logging.info(f"index (字段): {list(df.index)}")
-        logging.info(f"columns (日期): {list(df.columns)[:10]}")
-        logging.info(f"head:\n{df.head()}")
 
     scheduler.start()
 

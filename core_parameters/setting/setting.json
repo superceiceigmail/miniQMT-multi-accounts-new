@@ -1,18 +1,22 @@
 {
   "sell_stocks_info": [
     {
-      "name": "30年国债指数",
-      "ratio": 19.93
+      "name": "黄金主题",
+      "ratio": 0.77
     },
     {
-      "name": "美国精选",
-      "ratio": 1.69
+      "name": "美国消费",
+      "ratio": 0.77
+    },
+    {
+      "name": "可转债",
+      "ratio": 24.98
     }
   ],
   "buy_stocks_info": [
     {
-      "name": "标普医疗",
-      "ratio": 1.69
+      "name": "创业板50",
+      "ratio": 1.53
     }
   ]
 }
