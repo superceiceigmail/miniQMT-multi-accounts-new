@@ -1,0 +1,34 @@
+{
+    "sell": [
+        {
+            "name": "30年国债",
+            "lots": 99999,
+            "actual_lots": 0,
+            "code": "511090.SH"
+        },
+        {
+            "name": "30年国债指数",
+            "lots": 99999,
+            "actual_lots": 200,
+            "code": "511130.SH"
+        },
+        {
+            "name": "纳指生物科技",
+            "lots": 99999,
+            "actual_lots": 0,
+            "code": "513290.SH"
+        }
+    ],
+    "buy": [
+        {
+            "name": "可转债",
+            "amount": 160100,
+            "code": "511380.SH"
+        },
+        {
+            "name": "美国消费",
+            "amount": 9977,
+            "code": "162415.SZ"
+        }
+    ]
+}

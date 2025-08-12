@@ -67,7 +67,7 @@ def print_trade_plan(
     buy_names = set([x["name"] for x in merged_buy])
     both = sell_names & buy_names
     if both:
-        print(f"⚠️ 严重警告：以下股票既在买入又在卖出计划：{', '.join(both)}")
+        print(f"【严重错误】：以下股票既在买入又在卖出计划：{', '.join(both)}")
 
     # 步骤2：打印原始卖出计划
     print("原始卖出计划：")
@@ -128,9 +128,9 @@ def print_trade_plan(
         actual_lots = 0
         # 先检查持仓
         if can_use_volume == 0:
-            print(f"⚠️ 严重警告：【{name}】当前没有可用持仓量！")
+            print(f"【严重错误】【严重错误】 严重错误：【{name}】当前没有可用持仓量！")
         elif market_value == 0:
-            print(f"⚠️ 严重警告：【{name}】当前市值为0，无法计算卖出金额！")
+            print(f"【严重错误】【严重错误】 严重错误：【{name}】当前市值为0，无法计算卖出金额！")
         else:
             # 判断操作金额和市值关系
             ratio_mv = stock_op_money / market_value if market_value > 0 else 0
@@ -142,7 +142,7 @@ def print_trade_plan(
             elif ratio_mv > 1.2:
                 actual_lots = can_use_volume // 100 * 100
                 sell_money = market_value
-                print(f"⚠️ 当前操作金额大于市值120%，卖掉全部可用持仓量{actual_lots}，但警告：仓位不足，难以支持卖出")
+                print(f"[警告] 当前操作金额大于市值120%，卖掉全部可用持仓量{actual_lots}，但警告：仓位不足，难以支持卖出")
             else:
                 # 按金额算手数
                 if avg_price > 0:
@@ -153,7 +153,7 @@ def print_trade_plan(
                 else:
                     actual_lots = 0
                     sell_money = 0
-                    print(f"⚠️ 无法获取均价，无法计算卖出数量")
+                    print(f"【严重错误】【严重错误】 无法获取均价，无法计算卖出数量")
             sell_total_money += sell_money
         # 统计
         sell_plan.append({
@@ -176,7 +176,7 @@ def print_trade_plan(
         code = stock_code_dict.get(name)
         norm_code = normalize_code(code)
         if not norm_code:  # 这里新增
-            print(f"❌ 严重错误：买入计划中【{name}】没有找到有效股票代码，请检查stock_code_dict或输入配置！")
+            print(f"【严重错误】【严重错误】：买入计划中【{name}】没有找到有效股票代码，请检查stock_code_dict或输入配置！")
             raise ValueError(f"买入计划中【{name}】没有找到有效股票代码，程序终止。")
         op_money = op_asset * ratio
         buy_total_money += op_money
@@ -195,7 +195,7 @@ def print_trade_plan(
     print(f"可用资金：{cash:.2f}，预计卖出回笼资金：{sell_total_money:.2f}，预计买入资金：{buy_total_money:.2f}")
     print(f"可用+卖出-买入后资金余额：{total_available:.2f}")
     if total_available < 0:
-        print(f"❌❌❌ 资金不足警告：预计可用资金不足以支持整体交易计划，缺口 {abs(total_available):.2f}")
+        print(f"【严重错误】【严重错误】 资金不足警告：预计可用资金不足以支持整体交易计划，缺口 {abs(total_available):.2f}")
 
     # 步骤6：保存计划
     if not trade_plan_file:

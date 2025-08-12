@@ -1,17 +1,18 @@
 {
-  "sell_stocks_info": [],
-  "buy_stocks_info": [
-    {
-      "name": "美国消费",
-      "ratio": 1.69
-    },
-    {
-      "name": "30年国债",
-      "ratio": 2.3
-    },
+  "sell_stocks_info": [
     {
       "name": "30年国债指数",
-      "ratio": 2.3
+      "ratio": 19.93
+    },
+    {
+      "name": "美国精选",
+      "ratio": 1.69
+    }
+  ],
+  "buy_stocks_info": [
+    {
+      "name": "标普医疗",
+      "ratio": 1.69
     }
   ]
 }

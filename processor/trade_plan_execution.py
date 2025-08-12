@@ -64,7 +64,7 @@ def execute_trade_plan(trader, account, trade_plan, action=None):
                 current_price = full_tick[stock]['lastPrice']
                 instrument_detail = xtdata.get_instrument_detail(stock)
                 if not instrument_detail:
-                    print(f"⚠️ 未能获取 {stock} 的详细信息，跳过卖单")
+                    print(f"【严重报错】【严重报错】 未能获取 {stock} 的详细信息，跳过卖单")
                     continue
                 price_tick = instrument_detail.get('PriceTick')
                 adjusted_price = current_price - price_tick * tick_offset
@@ -76,7 +76,7 @@ def execute_trade_plan(trader, account, trade_plan, action=None):
                         'strategy_name', stock)
                     print(f"{stock} 卖单已提交，异步委托序列号: {async_seq}")
             except Exception as e:
-                print(f"❌ 卖单执行异常: {sell_item.get('name', stock)}，错误信息: {e}")
+                print(f"【严重报错】【严重报错】 卖单执行异常: {sell_item.get('name', stock)}，错误信息: {e}")
                 continue
 
     if action in (None, "all", "buy"):
@@ -93,7 +93,7 @@ def execute_trade_plan(trader, account, trade_plan, action=None):
                 current_price = full_tick[stock]['lastPrice']
                 instrument_detail = xtdata.get_instrument_detail(stock)
                 if not instrument_detail:
-                    print(f"⚠️ 未能获取 {stock} 的详细信息，跳过买单")
+                    print(f"【严重报错】【严重报错】 未能获取 {stock} 的详细信息，跳过买单")
                     continue
                 price_tick = instrument_detail.get('PriceTick')
                 adjusted_price = current_price + price_tick * tick_offset
@@ -108,7 +108,7 @@ def execute_trade_plan(trader, account, trade_plan, action=None):
                         'strategy_name', stock)
                     print(f"{stock} 买单已提交，异步委托序列号: {async_seq}")
             except Exception as e:
-                print(f"❌ 买单执行异常: {buy_item.get('name', stock)}，错误信息: {e}")
+                print(f"【严重报错】【严重报错】 买单执行异常: {buy_item.get('name', stock)}，错误信息: {e}")
                 continue
 
 if __name__ == '__main__':

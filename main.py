@@ -312,7 +312,7 @@ def main():
     )
     logging.info("定时持仓打印任务已定时在 14:55:00 执行！")
 
-    stock_list = ['600001.SH', '000001.SZ']
+    stock_list = ['600001.SH', '511090.SH']
     period = '1d'
     start_time = '2024-01-01'
     end_time = ''
