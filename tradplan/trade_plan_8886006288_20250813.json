@@ -15,14 +15,14 @@
         {
             "name": "可转债",
             "lots": 99999,
-            "actual_lots": 12200,
+            "actual_lots": 0,
             "code": "511380.SH"
         }
     ],
     "buy": [
         {
             "name": "创业板50",
-            "amount": 9979,
+            "amount": 10000,
             "code": "159949.SZ"
         }
     ]

@@ -153,6 +153,100 @@ def print_positions_task(xt_trader, account_id, reverse_mapping, account_asset_i
     positions = print_positions(xt_trader, account_id, reverse_mapping, account_asset_info)
     logging.info(f"持仓信息: {positions}")
 
+def buy_all_funds_to_511880(xt_trader, account_id):
+    logging.info(f"\n--- 9:33 资金全买入银华日利 --- 当前时间：{datetime.now().strftime('%Y-%m-%d %H:%M:%S')} ---")
+    try:
+        account = StockAccount(account_id)
+        account_info = xt_trader.query_stock_asset(account)
+        available_cash = float(getattr(account_info, "m_dCash", 0.0))
+        if available_cash <= 100:  # 留一点小余量防止买入失败
+            logging.info("可用资金太少，不进行买入。")
+            return
+        from xtquant.xttype import _XTCONST_
+        # 查价格
+        from xtquant import xtdata
+        tick = xtdata.get_full_tick(["511880.SH"])["511880.SH"]
+        price = tick.get("lastPrice") or tick.get("askPrice", [None])[0]
+        if not price or price <= 0:
+            logging.error("无法获取511880.SH买入价格！")
+            return
+        detail = xtdata.get_instrument_detail("511880.SH") or {}
+        board_lot = 100  # 强制用100做单位
+        volume = int(available_cash // price // board_lot) * board_lot
+        logging.info(
+            f"买入银华日利时：可用资金={available_cash}，价格={price}，最小单位(board_lot)={board_lot}，实际买入量(volume)={volume}")
+        if volume <= 0:
+            logging.info("资金不足以买入最小单位，跳过。")
+            return
+        async_seq = xt_trader.order_stock_async(
+            account, "511880.SH", _XTCONST_.STOCK_BUY, volume, _XTCONST_.FIX_PRICE, price, "auto_yinhuarili", "511880.SH"
+        )
+        logging.info(f"已委托买入银华日利 {volume} 股，单价 {price}，异步号 {async_seq}")
+    except Exception as e:
+        logging.error(f"买入511880异常: {e}")
+
+def sell_all_511880(xt_trader, account_id):
+    logging.info(f"\n--- 14:29 卖出全部银华日利 --- 当前时间：{datetime.now().strftime('%Y-%m-%d %H:%M:%S')} ---")
+    try:
+        account = StockAccount(account_id)
+        positions = xt_trader.query_stock_positions(account)
+        pos = None
+        for p in positions:
+            if getattr(p, "stock_code", "") == "511880.SH":
+                pos = p
+                break
+        if not pos or int(getattr(pos, "m_nCanUseVolume", 0)) <= 0:
+            logging.info("未持有银华日利或无可卖数量，跳过。")
+            return
+        can_sell = int(getattr(pos, "m_nCanUseVolume", 0))
+        from xtquant.xttype import _XTCONST_
+        from xtquant import xtdata
+        tick = xtdata.get_full_tick(["511880.SH"])["511880.SH"]
+        price = tick.get("lastPrice") or tick.get("bidPrice", [None])[0]
+        detail = xtdata.get_instrument_detail("511880.SH") or {}
+        board_lot = int(detail.get("MinVolume", 10))
+        volume = (can_sell // board_lot) * board_lot
+        if volume <= 0:
+            logging.info("银华日利可卖数量不足最小单位，跳过。")
+            return
+        async_seq = xt_trader.order_stock_async(
+            account, "511880.SH", _XTCONST_.STOCK_SELL, volume, _XTCONST_.FIX_PRICE, price, "auto_yinhuarili", "511880.SH"
+        )
+        logging.info(f"已委托卖出银华日利 {volume} 股，单价 {price}，异步号 {async_seq}")
+    except Exception as e:
+        logging.error(f"卖出511880异常: {e}")
+
+def buy_all_funds_to_131810(xt_trader, account_id):
+    logging.info(f"\n--- 14:55 资金全买入国债逆回购 --- 当前时间：{datetime.now().strftime('%Y-%m-%d %H:%M:%S')} ---")
+    try:
+        account = StockAccount(account_id)
+        account_info = xt_trader.query_stock_asset(account)
+        available_cash = float(getattr(account_info, "m_dCash", 0.0))
+        if available_cash <= 100:
+            logging.info("可用资金太少，不进行买入。")
+            return
+        from xtquant.xttype import _XTCONST_
+        from xtquant import xtdata
+        tick = xtdata.get_full_tick(["131810.SZ"])["131810.SZ"]
+        price = tick.get("lastPrice") or tick.get("askPrice", [None])[0]
+        if not price or price <= 0:
+            logging.error("无法获取131810.SZ买入价格！")
+            return
+        detail = xtdata.get_instrument_detail("131810.SZ") or {}
+        board_lot = 1000  # 国债逆回购强制用1000做单位
+        volume = int(available_cash // price // board_lot) * board_lot
+        logging.info(
+            f"买入131810时：可用资金={available_cash}，价格={price}，最小单位(board_lot)={board_lot}，实际买入量(volume)={volume}")
+        if volume <= 0:
+            logging.info("资金不足以买入最小单位，跳过。")
+            return
+        async_seq = xt_trader.order_stock_async(
+            account, "131810.SZ", _XTCONST_.STOCK_BUY, volume, _XTCONST_.FIX_PRICE, price, "auto_guozhai", "131810.SZ"
+        )
+        logging.info(f"已委托买入国债逆回购 {volume} 股，单价 {price}，异步号 {async_seq}")
+    except Exception as e:
+        logging.error(f"买入131810异常: {e}")
+
 def main():
     # 日志启动
     setup_logging()
@@ -309,13 +403,39 @@ def main():
     # 定时打印持仓任务时间（14:55:00）
     scheduler.add_job(
         print_positions_task,
-        trigger=CronTrigger(hour=14, minute=55, second=0),
+        trigger=CronTrigger(hour=14, minute=58, second=0),
         args=[xt_trader, account_id, reverse_mapping, account_asset_info],
         id="print_positions_task",
         replace_existing=True
     )
-    logging.info("定时持仓打印任务已定时在 14:55:00 执行！")
+    logging.info("定时持仓打印任务已定时在 14:58:00 执行！")
+    # 在 main() 内 scheduler.start() 前加定时任务：
+    scheduler.add_job(
+        buy_all_funds_to_511880,
+        trigger=CronTrigger(hour=9, minute=31, second=0),
+        args=[xt_trader, account_id],
+        id="auto_buy_511880",
+        replace_existing=True
+    )
+    logging.info("自动买入银华日利任务已定时在 09:31:00 执行！")
 
+    scheduler.add_job(
+        sell_all_511880,
+        trigger=CronTrigger(hour=14, minute=56, second=0),
+        args=[xt_trader, account_id],
+        id="auto_sell_511880",
+        replace_existing=True
+    )
+    logging.info("自动卖出银华日利任务已定时在 14:56:00 执行！")
+    # 在main()里scheduler.start()前加定时任务
+    scheduler.add_job(
+        buy_all_funds_to_131810,
+        trigger=CronTrigger(hour=14, minute=58, second=0),
+        args=[xt_trader, account_id],
+        id="auto_buy_131810",
+        replace_existing=True
+    )
+    logging.info("自动买入国债逆回购任务已定时在 14:58:00 执行！")
     scheduler.start()
 
     # 注册信号处理器，保证kill时能优雅退出

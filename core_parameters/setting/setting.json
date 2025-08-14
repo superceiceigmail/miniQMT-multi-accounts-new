@@ -1,21 +1,9 @@
 {
   "sell_stocks_info": [
-    {
-      "name": "黄金主题",
-      "ratio": 0.77
-    },
-    {
-      "name": "美国消费",
-      "ratio": 0.77
-    },
-    {
-      "name": "可转债",
-      "ratio": 24.98
-    }
   ],
   "buy_stocks_info": [
     {
-      "name": "创业板50",
+      "name": "30年国债",
       "ratio": 1.53
     }
   ]
