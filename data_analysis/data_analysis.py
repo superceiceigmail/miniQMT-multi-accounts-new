@@ -3,13 +3,15 @@ from xtquant.xttrader import XtQuantTrader, XtQuantTraderCallback
 from xtquant import xtdata
 import time
 
+
 # ======= 固定miniQMT参数 =======
 SESSION_ID = 8886006288
 ACCOUNT_ID = "8886006288"
 PATH_QMT = r"D:\gjqmt\userdata_mini"
 
+
 # ==== 股票列表、周期、时间区间 ====
-STOCK_LIST = ['511880.SH']
+STOCK_LIST = ['600119.SH']
 PERIODS = ['1d', '1h']  # 日线和小时线
 START_TIME = '2020-01-01'
 END_TIME = ''
@@ -107,6 +109,8 @@ def analyze_local_data():
                         logging.info(f"{code} {period} 最新收盘价({latest_date}): {latest_close}")
                 else:
                     logging.info(f"{code} {period} 字段 {field} 数据为空")
+
+
 
 def main():
     logging.info("======= 数据分析脚本启动 =======")

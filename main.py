@@ -3,7 +3,7 @@ import json
 import logging
 import os
 from xtquant import xtdata
-from datetime import datetime
+from datetime import datetime, timedelta
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
 
@@ -32,6 +32,12 @@ ensure_utf8_stdio()
 # 全局账户名变量，用于日志标识
 account_name = None
 
+# ========= 配置：银华日利（511880）自动交易时间 =========
+# 只需修改这两个时间（时,分,秒），检查任务会自动在其后20秒触发
+AUTO_BUY_511880_TIME = (9, 31, 0)    # 自动买入银华日利时间
+AUTO_SELL_511880_TIME = (14, 56, 0)  # 自动卖出银华日利时间
+
+
 class MyXtQuantTraderCallback(XtQuantTraderCallback):
     def on_disconnected(self):
         logging.error(f"{datetime.now()} - 连接断开")
@@ -50,6 +56,7 @@ class MyXtQuantTraderCallback(XtQuantTraderCallback):
     def on_account_status(self, status):
         logging.info(f"{datetime.now()} - 账户状态回调")
 
+
 def setup_logging():
     log_folder = "./zz_log"
     os.makedirs(log_folder, exist_ok=True)
@@ -66,6 +73,7 @@ def setup_logging():
     logging.getLogger("apscheduler").setLevel(logging.WARNING)
     logging.info("日志记录启动")
 
+
 def load_trade_plan(file_path):
     try:
         with open(file_path, 'r', encoding='utf-8') as f:
@@ -76,10 +84,21 @@ def load_trade_plan(file_path):
         logging.error(f"❌ 无法加载交易计划文件 `{file_path}`: {e}")
         return None
 
+
 def cancel_and_reorder_task(xt_trader, account_id, reverse_mapping, check_time):
     cancel_orders(xt_trader, account_id, reverse_mapping)
     time.sleep(6)
     reorder_orders(xt_trader, account_id, reverse_mapping)
+
+
+# 通用：给定时分秒，返回 +delta 秒后的时分秒（处理进位/跨天）
+def add_seconds_to_hms(h: int, m: int, s: int, delta: int = 20):
+    total = (h * 3600 + m * 60 + s + delta) % (24 * 3600)
+    nh = total // 3600
+    nm = (total % 3600) // 60
+    ns = total % 60
+    return nh, nm, ns
+
 
 def sell_execution_task(xt_trader, account_id, trade_plan_file):
     logging.info(f"\n--- 卖出任务 --- 当前时间：{datetime.now().strftime('%Y-%m-%d %H:%M:%S')} ---")
@@ -94,6 +113,7 @@ def sell_execution_task(xt_trader, account_id, trade_plan_file):
     except Exception as e:
         logging.error(f"❌ 卖出任务执行失败: {e}")
 
+
 def buy_execution_task(xt_trader, account_id, trade_plan_file):
     logging.info(f"\n--- 买入任务 --- 当前时间：{datetime.now().strftime('%Y-%m-%d %H:%M:%S')} ---")
     try:
@@ -107,6 +127,7 @@ def buy_execution_task(xt_trader, account_id, trade_plan_file):
     except Exception as e:
         logging.error(f"❌ 买入任务执行失败: {e}")
 
+
 # 配置账户缩写
 ACCOUNT_CONFIG_MAP = {
     "shu": "core_parameters/account/8886006288.json",
@@ -114,10 +135,12 @@ ACCOUNT_CONFIG_MAP = {
     # 更多账户
 }
 
+
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('-a', '--account', required=True, help='账户别名或ID')
     return parser.parse_args()
+
 
 def handle_exit(signum, frame):
     global account_name
@@ -143,9 +166,11 @@ def handle_exit(signum, frame):
     logging.shutdown()
     sys.exit(0)
 
+
 def load_json_file(path):
     with open(path, 'r', encoding='utf-8') as f:
         return json.load(f)
+
 
 # 持仓打印任务函数
 def print_positions_task(xt_trader, account_id, reverse_mapping, account_asset_info):
@@ -153,8 +178,9 @@ def print_positions_task(xt_trader, account_id, reverse_mapping, account_asset_i
     positions = print_positions(xt_trader, account_id, reverse_mapping, account_asset_info)
     logging.info(f"持仓信息: {positions}")
 
+
 def buy_all_funds_to_511880(xt_trader, account_id):
-    logging.info(f"\n--- 9:33 资金全买入银华日利 --- 当前时间：{datetime.now().strftime('%Y-%m-%d %H:%M:%S')} ---")
+    logging.info(f"\n--- 自动买入银华日利 --- 当前时间：{datetime.now().strftime('%Y-%m-%d %H:%M:%S')} ---")
     try:
         account = StockAccount(account_id)
         account_info = xt_trader.query_stock_asset(account)
@@ -164,7 +190,6 @@ def buy_all_funds_to_511880(xt_trader, account_id):
             return
         from xtquant.xttype import _XTCONST_
         # 查价格
-        from xtquant import xtdata
         tick = xtdata.get_full_tick(["511880.SH"])["511880.SH"]
         price = tick.get("lastPrice") or tick.get("askPrice", [None])[0]
         if not price or price <= 0:
@@ -185,8 +210,9 @@ def buy_all_funds_to_511880(xt_trader, account_id):
     except Exception as e:
         logging.error(f"买入511880异常: {e}")
 
+
 def sell_all_511880(xt_trader, account_id):
-    logging.info(f"\n--- 14:29 卖出全部银华日利 --- 当前时间：{datetime.now().strftime('%Y-%m-%d %H:%M:%S')} ---")
+    logging.info(f"\n--- 自动卖出银华日利 --- 当前时间：{datetime.now().strftime('%Y-%m-%d %H:%M:%S')} ---")
     try:
         account = StockAccount(account_id)
         positions = xt_trader.query_stock_positions(account)
@@ -200,7 +226,6 @@ def sell_all_511880(xt_trader, account_id):
             return
         can_sell = int(getattr(pos, "m_nCanUseVolume", 0))
         from xtquant.xttype import _XTCONST_
-        from xtquant import xtdata
         tick = xtdata.get_full_tick(["511880.SH"])["511880.SH"]
         price = tick.get("lastPrice") or tick.get("bidPrice", [None])[0]
         detail = xtdata.get_instrument_detail("511880.SH") or {}
@@ -216,36 +241,6 @@ def sell_all_511880(xt_trader, account_id):
     except Exception as e:
         logging.error(f"卖出511880异常: {e}")
 
-def buy_all_funds_to_131810(xt_trader, account_id):
-    logging.info(f"\n--- 14:55 资金全买入国债逆回购 --- 当前时间：{datetime.now().strftime('%Y-%m-%d %H:%M:%S')} ---")
-    try:
-        account = StockAccount(account_id)
-        account_info = xt_trader.query_stock_asset(account)
-        available_cash = float(getattr(account_info, "m_dCash", 0.0))
-        if available_cash <= 100:
-            logging.info("可用资金太少，不进行买入。")
-            return
-        from xtquant.xttype import _XTCONST_
-        from xtquant import xtdata
-        tick = xtdata.get_full_tick(["131810.SZ"])["131810.SZ"]
-        price = tick.get("lastPrice") or tick.get("askPrice", [None])[0]
-        if not price or price <= 0:
-            logging.error("无法获取131810.SZ买入价格！")
-            return
-        detail = xtdata.get_instrument_detail("131810.SZ") or {}
-        board_lot = 1000  # 国债逆回购强制用1000做单位
-        volume = int(available_cash // price // board_lot) * board_lot
-        logging.info(
-            f"买入131810时：可用资金={available_cash}，价格={price}，最小单位(board_lot)={board_lot}，实际买入量(volume)={volume}")
-        if volume <= 0:
-            logging.info("资金不足以买入最小单位，跳过。")
-            return
-        async_seq = xt_trader.order_stock_async(
-            account, "131810.SZ", _XTCONST_.STOCK_BUY, volume, _XTCONST_.FIX_PRICE, price, "auto_guozhai", "131810.SZ"
-        )
-        logging.info(f"已委托买入国债逆回购 {volume} 股，单价 {price}，异步号 {async_seq}")
-    except Exception as e:
-        logging.error(f"买入131810异常: {e}")
 
 def main():
     # 日志启动
@@ -285,7 +280,7 @@ def main():
     if not ok:
         return
     # 若时间被重设，更新变量
-    sell_time, check_time_first, buy_time,check_time_second = trade_times
+    sell_time, check_time_first, buy_time, check_time_second = trade_times
 
     # 读取初始交易倾向
     setting_data = load_json_file('core_parameters/setting/setting.json')
@@ -303,7 +298,7 @@ def main():
     xt_trader.register_callback(callback)
     xt_trader.start()
 
-    #检查当天是否启动过miniQMT
+    # 检查当天是否启动过miniQMT
     check_and_restart(config_path)
     # 自动重连并自动重启main.py
     ensure_qmt_and_connect(config_path, xt_trader, logger=logging)
@@ -360,7 +355,7 @@ def main():
     # 撤单重下任务时间（第二次）
     check2_hour, check2_minute, check2_second = map(int, check_time_second.split(":"))
 
-    # 卖出任务定时
+    # 卖出任务定时（计划）
     scheduler.add_job(
         sell_execution_task,
         trigger=CronTrigger(hour=sell_hour, minute=sell_minute, second=sell_second),
@@ -370,7 +365,7 @@ def main():
     )
     logging.info(f"卖出任务已定时在 {sell_time} 执行！")
 
-    # 买入任务定时
+    # 买入任务定时（计划）
     scheduler.add_job(
         buy_execution_task,
         trigger=CronTrigger(hour=buy_hour, minute=buy_minute, second=buy_second),
@@ -380,7 +375,7 @@ def main():
     )
     logging.info(f"买入任务已定时在 {buy_time} 执行！")
 
-    # 撤单重下任务（第一次）
+    # 撤单重下任务（第一次，计划）
     scheduler.add_job(
         cancel_and_reorder_task,
         trigger=CronTrigger(hour=check1_hour, minute=check1_minute, second=check1_second),
@@ -390,7 +385,7 @@ def main():
     )
     logging.info(f"撤单和重下任务（第一次）已定时在 {check_time_first} 执行！")
 
-    # 撤单重下任务（第二次）
+    # 撤单重下任务（第二次，计划）
     scheduler.add_job(
         cancel_and_reorder_task,
         trigger=CronTrigger(hour=check2_hour, minute=check2_minute, second=check2_second),
@@ -400,42 +395,61 @@ def main():
     )
     logging.info(f"撤单和重下任务（第二次）已定时在 {check_time_second} 执行！")
 
-    # 定时打印持仓任务时间（14:55:00）
+    # 定时打印持仓任务时间（14:59:00）
     scheduler.add_job(
         print_positions_task,
-        trigger=CronTrigger(hour=14, minute=58, second=0),
+        trigger=CronTrigger(hour=14, minute=59, second=0),
         args=[xt_trader, account_id, reverse_mapping, account_asset_info],
         id="print_positions_task",
         replace_existing=True
     )
-    logging.info("定时持仓打印任务已定时在 14:58:00 执行！")
-    # 在 main() 内 scheduler.start() 前加定时任务：
+    logging.info("定时持仓打印任务已定时在 14:59:00 执行！")
+
+    # ========= 银华日利自动交易 + “交易后20秒检查”（时间自动关联） =========
+    # 自动买入银华日利
+    buy_h, buy_m, buy_s = AUTO_BUY_511880_TIME
     scheduler.add_job(
         buy_all_funds_to_511880,
-        trigger=CronTrigger(hour=9, minute=31, second=0),
+        trigger=CronTrigger(hour=buy_h, minute=buy_m, second=buy_s),
         args=[xt_trader, account_id],
         id="auto_buy_511880",
         replace_existing=True
     )
-    logging.info("自动买入银华日利任务已定时在 09:31:00 执行！")
+    logging.info(f"自动买入银华日利任务已定时在 {buy_h:02d}:{buy_m:02d}:{buy_s:02d} 执行！")
 
+    # 自动买入后的 +20 秒检查
+    buy_chk_h, buy_chk_m, buy_chk_s = add_seconds_to_hms(buy_h, buy_m, buy_s, 20)
+    scheduler.add_job(
+        cancel_and_reorder_task,
+        trigger=CronTrigger(hour=buy_chk_h, minute=buy_chk_m, second=buy_chk_s),
+        args=[xt_trader, account_id, reverse_mapping, f"{buy_chk_h:02d}:{buy_chk_m:02d}:{buy_chk_s:02d}"],
+        id="check_after_511880_buy",
+        replace_existing=True
+    )
+    logging.info(f"银华日利买入后20秒检查任务已定时在 {buy_chk_h:02d}:{buy_chk_m:02d}:{buy_chk_s:02d} 执行！")
+
+    # 自动卖出银华日利
+    sell_h, sell_m, sell_s = AUTO_SELL_511880_TIME
     scheduler.add_job(
         sell_all_511880,
-        trigger=CronTrigger(hour=14, minute=56, second=0),
+        trigger=CronTrigger(hour=sell_h, minute=sell_m, second=sell_s),
         args=[xt_trader, account_id],
         id="auto_sell_511880",
         replace_existing=True
     )
-    logging.info("自动卖出银华日利任务已定时在 14:56:00 执行！")
-    # 在main()里scheduler.start()前加定时任务
+    logging.info(f"自动卖出银华日利任务已定时在 {sell_h:02d}:{sell_m:02d}:{sell_s:02d} 执行！")
+
+    # 自动卖出后的 +20 秒检查
+    sell_chk_h, sell_chk_m, sell_chk_s = add_seconds_to_hms(sell_h, sell_m, sell_s, 20)
     scheduler.add_job(
-        buy_all_funds_to_131810,
-        trigger=CronTrigger(hour=14, minute=58, second=0),
-        args=[xt_trader, account_id],
-        id="auto_buy_131810",
+        cancel_and_reorder_task,
+        trigger=CronTrigger(hour=sell_chk_h, minute=sell_chk_m, second=sell_chk_s),
+        args=[xt_trader, account_id, reverse_mapping, f"{sell_chk_h:02d}:{sell_chk_m:02d}:{sell_chk_s:02d}"],
+        id="check_after_511880_sell",
         replace_existing=True
     )
-    logging.info("自动买入国债逆回购任务已定时在 14:58:00 执行！")
+    logging.info(f"银华日利卖出后20秒检查任务已定时在 {sell_chk_h:02d}:{sell_chk_m:02d}:{sell_chk_s:02d} 执行！")
+
     scheduler.start()
 
     # 注册信号处理器，保证kill时能优雅退出

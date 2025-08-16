@@ -1,19 +1,11 @@
 [
   {
-    "stock_code": "511880.SH",
-    "stock_name": "银华日利",
-    "volume": 4200,
-    "can_use_volume": 4200,
-    "avg_price": 100.78461904761906,
-    "market_value": 423297.0
-  },
-  {
     "stock_code": "513100.SH",
     "stock_name": "纳指3100",
     "volume": 14900,
     "can_use_volume": 14900,
     "avg_price": 1.523194630872483,
-    "market_value": 25553.5
+    "market_value": 25657.8
   },
   {
     "stock_code": "513300.SH",
@@ -21,7 +13,15 @@
     "volume": 1000,
     "can_use_volume": 1000,
     "avg_price": 1.965,
-    "market_value": 2137.0
+    "market_value": 2143.0000000000005
+  },
+  {
+    "stock_code": "588080.SH",
+    "stock_name": "未知股票",
+    "volume": 8800,
+    "can_use_volume": 8800,
+    "avg_price": 1.1265681818181816,
+    "market_value": 9952.8
   },
   {
     "stock_code": "131990.SZ",
@@ -37,7 +37,7 @@
     "volume": 100,
     "can_use_volume": 100,
     "avg_price": 1.2309999999999999,
-    "market_value": 119.7
+    "market_value": 120.9
   },
   {
     "stock_code": "159941.SZ",
@@ -45,23 +45,15 @@
     "volume": 17700,
     "can_use_volume": 17700,
     "avg_price": 1.2292542372881357,
-    "market_value": 22815.3
-  },
-  {
-    "stock_code": "159949.SZ",
-    "stock_name": "创业板50",
-    "volume": 8900,
-    "can_use_volume": 8900,
-    "avg_price": 1.0967977528089887,
-    "market_value": 10146.000000000002
+    "market_value": 22903.8
   },
   {
     "stock_code": "159967.SZ",
     "stock_name": "创成长",
-    "volume": 19500,
-    "can_use_volume": 19500,
-    "avg_price": 0.5112564102564102,
-    "market_value": 10023.0
+    "volume": 18900,
+    "can_use_volume": 18900,
+    "avg_price": 0.5272645502645502,
+    "market_value": 9998.1
   },
   {
     "stock_code": "160719.SZ",
@@ -69,15 +61,15 @@
     "volume": 12900,
     "can_use_volume": 12900,
     "avg_price": 1.620736434108527,
-    "market_value": 20846.4
+    "market_value": 20769.0
   },
   {
     "stock_code": "161116.SZ",
     "stock_name": "黄金主题",
-    "volume": 27000,
-    "can_use_volume": 27000,
-    "avg_price": 1.3178848148148148,
-    "market_value": 35397.0
+    "volume": 23200,
+    "can_use_volume": 23200,
+    "avg_price": 1.3216245689655173,
+    "market_value": 30252.800000000003
   },
   {
     "stock_code": "161126.SZ",
@@ -85,15 +77,15 @@
     "volume": 6300,
     "can_use_volume": 6300,
     "avg_price": 1.7337936507936507,
-    "market_value": 11138.4
+    "market_value": 11232.900000000001
   },
   {
     "stock_code": "162415.SZ",
     "stock_name": "美国消费",
-    "volume": 9219,
-    "can_use_volume": 9219,
-    "avg_price": 2.8807137433561123,
-    "market_value": 27131.517
+    "volume": 10819,
+    "can_use_volume": 10819,
+    "avg_price": 2.8914224974581755,
+    "market_value": 32035.058999999997
   },
   {
     "stock_code": "164701.SZ",
@@ -101,7 +93,7 @@
     "volume": 6300,
     "can_use_volume": 6300,
     "avg_price": 1.349793650793651,
-    "market_value": 8769.6
+    "market_value": 8725.5
   },
   {
     "stock_code": "164824.SZ",
@@ -109,6 +101,6 @@
     "volume": 5700,
     "can_use_volume": 5700,
     "avg_price": 1.482877192982456,
-    "market_value": 8464.5
+    "market_value": 8418.9
   }
 ]
