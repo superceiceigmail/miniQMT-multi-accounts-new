@@ -5,6 +5,8 @@ import psutil
 import json
 import os
 
+
+
 # 账户配置
 ACCOUNT_CONFIG_MAP = {
     "shu": "core_parameters/account/8886006288.json",
@@ -33,7 +35,7 @@ def read_output(account_name, proc):
 def start_account(account_name):
     if account_name in account_processes and account_processes[account_name].poll() is None:
         return "🟢 运行中", account_outputs[account_name]
-    cmd = ["python", main_script, "-a", account_name]
+    cmd = ["python", "-u", main_script, "-a", account_name]
     try:
         proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
         account_processes[account_name] = proc

@@ -1,3 +1,4 @@
+
 import time
 import json
 import logging
@@ -25,6 +26,9 @@ import signal
 import sys
 import psutil
 
+print("main.py really started", flush=True)
+
+
 # 在任何日志初始化之前，确保标准输出/错误使用 UTF-8，避免编码问题
 from utils.log_utils import ensure_utf8_stdio
 ensure_utf8_stdio()
@@ -34,7 +38,7 @@ account_name = None
 
 # ========= 配置：银华日利（511880）自动交易时间 =========
 # 只需修改这两个时间（时,分,秒），检查任务会自动在其后20秒触发
-AUTO_BUY_511880_TIME = (9, 31, 0)    # 自动买入银华日利时间
+AUTO_BUY_511880_TIME = (9, 33, 0)    # 自动买入银华日利时间
 AUTO_SELL_511880_TIME = (14, 56, 0)  # 自动卖出银华日利时间
 
 
@@ -67,7 +71,7 @@ def setup_logging():
         format="%(asctime)s - %(levelname)s - %(message)s",
         handlers=[
             logging.FileHandler(log_file, mode='a', encoding='utf-8'),
-            logging.StreamHandler()
+            logging.StreamHandler(sys.stdout)
         ]
     )
     logging.getLogger("apscheduler").setLevel(logging.WARNING)
@@ -245,6 +249,8 @@ def sell_all_511880(xt_trader, account_id):
 def main():
     # 日志启动
     setup_logging()
+    print("=== print test ===", flush=True)
+    logging.info("this is a logging.info test")
     logging.info("")
     logging.info("================================ 启动代码 ================================")
     args = parse_args()
@@ -404,8 +410,8 @@ def main():
         replace_existing=True
     )
     logging.info("定时持仓打印任务已定时在 14:59:00 执行！")
+    # ========= 银华日利自动交易 + “交易后20秒检查”（自动推算） =========
 
-    # ========= 银华日利自动交易 + “交易后20秒检查”（时间自动关联） =========
     # 自动买入银华日利
     buy_h, buy_m, buy_s = AUTO_BUY_511880_TIME
     scheduler.add_job(
@@ -417,16 +423,16 @@ def main():
     )
     logging.info(f"自动买入银华日利任务已定时在 {buy_h:02d}:{buy_m:02d}:{buy_s:02d} 执行！")
 
-    # 自动买入后的 +20 秒检查
-    buy_chk_h, buy_chk_m, buy_chk_s = add_seconds_to_hms(buy_h, buy_m, buy_s, 20)
+    # 自动买入后的 +20 秒检查（自动推算）
+    chk_buy_h, chk_buy_m, chk_buy_s = add_seconds_to_hms(buy_h, buy_m, buy_s, 20)
     scheduler.add_job(
         cancel_and_reorder_task,
-        trigger=CronTrigger(hour=buy_chk_h, minute=buy_chk_m, second=buy_chk_s),
-        args=[xt_trader, account_id, reverse_mapping, f"{buy_chk_h:02d}:{buy_chk_m:02d}:{buy_chk_s:02d}"],
+        trigger=CronTrigger(hour=chk_buy_h, minute=chk_buy_m, second=chk_buy_s),
+        args=[xt_trader, account_id, reverse_mapping, f"{chk_buy_h:02d}:{chk_buy_m:02d}:{chk_buy_s:02d}"],
         id="check_after_511880_buy",
         replace_existing=True
     )
-    logging.info(f"银华日利买入后20秒检查任务已定时在 {buy_chk_h:02d}:{buy_chk_m:02d}:{buy_chk_s:02d} 执行！")
+    logging.info(f"银华日利买入后20秒检查任务已定时在 {chk_buy_h:02d}:{chk_buy_m:02d}:{chk_buy_s:02d} 执行！")
 
     # 自动卖出银华日利
     sell_h, sell_m, sell_s = AUTO_SELL_511880_TIME
@@ -439,16 +445,16 @@ def main():
     )
     logging.info(f"自动卖出银华日利任务已定时在 {sell_h:02d}:{sell_m:02d}:{sell_s:02d} 执行！")
 
-    # 自动卖出后的 +20 秒检查
-    sell_chk_h, sell_chk_m, sell_chk_s = add_seconds_to_hms(sell_h, sell_m, sell_s, 20)
+    # 自动卖出后的 +20 秒检查（自动推算）
+    chk_sell_h, chk_sell_m, chk_sell_s = add_seconds_to_hms(sell_h, sell_m, sell_s, 20)
     scheduler.add_job(
         cancel_and_reorder_task,
-        trigger=CronTrigger(hour=sell_chk_h, minute=sell_chk_m, second=sell_chk_s),
-        args=[xt_trader, account_id, reverse_mapping, f"{sell_chk_h:02d}:{sell_chk_m:02d}:{sell_chk_s:02d}"],
+        trigger=CronTrigger(hour=chk_sell_h, minute=chk_sell_m, second=chk_sell_s),
+        args=[xt_trader, account_id, reverse_mapping, f"{chk_sell_h:02d}:{chk_sell_m:02d}:{chk_sell_s:02d}"],
         id="check_after_511880_sell",
         replace_existing=True
     )
-    logging.info(f"银华日利卖出后20秒检查任务已定时在 {sell_chk_h:02d}:{sell_chk_m:02d}:{sell_chk_s:02d} 执行！")
+    logging.info(f"银华日利卖出后20秒检查任务已定时在 {chk_sell_h:02d}:{chk_sell_m:02d}:{chk_sell_s:02d} 执行！")
 
     scheduler.start()
 

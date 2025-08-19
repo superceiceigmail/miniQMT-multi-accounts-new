@@ -1,22 +1,9 @@
 {
   "sell_stocks_info": [
     {
-      "name": "黄金主题",
-      "ratio": 1.68
-    },
-    {
-      "name": "美国消费",
-      "ratio": 1.68
+      "name": "可转债",
+      "ratio": 16.8
     }
   ],
-  "buy_stocks_info": [
-    {
-      "name": "嘉实原油",
-      "ratio": 1.68
-    },
-    {
-      "name": "黄金ETF",
-      "ratio": 1.68
-    }
-  ]
+  "buy_stocks_info": []
 }

@@ -1,4 +1,3 @@
-
 // Toast提示
 function showToast(msg, color) {
   var toast = document.getElementById('toast');
@@ -24,7 +23,6 @@ async function loadNameVsCode() {
     nameVsCode = {};
   }
 }
-// ...原有代码省略...
 
 // ==== 账户持仓信息 ====
 // 新增工具函数：统计参考市值
@@ -421,18 +419,42 @@ function exportPlan() {
   let cashAfter = cashNow + sellSum - buySum;
   let marketAfter = marketNow - sellSum + buySum;
   let totalAfter = cashAfter + marketAfter;
-  let summaryNow = `当前总资产：${totalNow.toFixed(2)}，可用资金：${cashNow.toFixed(2)}，持仓市值：${marketNow.toFixed(2)}`;
-  let summaryResult = `执行后可用资金：${cashAfter.toFixed(2)}，持仓市值：${marketAfter.toFixed(2)}，总资产：${totalAfter.toFixed(2)}`;
+  // 用span包裹并加id，便于高亮
+  let summaryNow = `当前总资产：<span id="total-asset">${totalNow.toFixed(2)}</span>，可用资金：<span id="cash">${cashNow.toFixed(2)}</span>，持仓市值：<span id="position-value">${marketNow.toFixed(2)}</span>`;
+  let summaryResult = `执行后可用资金：<span id="after-cash">${cashAfter.toFixed(2)}</span>，持仓市值：<span id="after-position-value">${marketAfter.toFixed(2)}</span>，总资产：<span id="after-total-asset">${totalAfter.toFixed(2)}</span>`;
   let exportBox = document.getElementById('export-box');
   exportBox.style.display = 'block';
-  document.getElementById('export-summary-info').textContent = summaryNow;
-  document.getElementById('export-summary-result').textContent = summaryResult;
+  document.getElementById('export-summary-info').innerHTML = summaryNow;
+  document.getElementById('export-summary-result').innerHTML = summaryResult;
   const out = JSON.stringify({
     sell_stocks_info,
     buy_stocks_info
   }, null, 2);
   document.getElementById('export-json').textContent = out;
   showToast('导出成功');
+  highlightNegativeFunds();
+}
+
+// 高亮可用资金为负时的所有summary字段
+function highlightNegativeFunds() {
+  const afterCashElem = document.getElementById('after-cash');
+  if (!afterCashElem) return;
+  const afterCash = parseFloat(afterCashElem.textContent.replace(/,/g, ''));
+  const ids = [
+    'total-asset', 'cash', 'position-value',
+    'after-cash', 'after-position-value', 'after-total-asset'
+  ];
+  if (afterCash < 0) {
+    ids.forEach(id => {
+      const elem = document.getElementById(id);
+      if (elem) elem.style.color = 'red';
+    });
+  } else {
+    ids.forEach(id => {
+      const elem = document.getElementById(id);
+      if (elem) elem.style.color = '';
+    });
+  }
 }
 
 function approvePlan() {
