@@ -401,15 +401,15 @@ def main():
     )
     logging.info(f"撤单和重下任务（第二次）已定时在 {check_time_second} 执行！")
 
-    # 定时打印持仓任务时间（14:59:00）
+    # 定时打印持仓任务时间（09:35:00）
     scheduler.add_job(
         print_positions_task,
-        trigger=CronTrigger(hour=14, minute=59, second=0),
+        trigger=CronTrigger(hour=9, minute=35, second=0),
         args=[xt_trader, account_id, reverse_mapping, account_asset_info],
         id="print_positions_task",
         replace_existing=True
     )
-    logging.info("定时持仓打印任务已定时在 14:59:00 执行！")
+    logging.info("定时持仓打印任务已定时在 9:35:00 执行！")
     # ========= 银华日利自动交易 + “交易后20秒检查”（自动推算） =========
 
     # 自动买入银华日利

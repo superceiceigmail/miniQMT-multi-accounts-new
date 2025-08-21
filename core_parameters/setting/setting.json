@@ -1,8 +1,12 @@
 {
   "sell_stocks_info": [
     {
-      "name": "可转债",
-      "ratio": 16.8
+      "name": "印度基金",
+      "ratio": 1.68
+    },
+    {
+      "name": "美国消费",
+      "ratio": 1.53
     }
   ],
   "buy_stocks_info": []
