@@ -1,7 +1,8 @@
 import time
 import json
+import logging
 
-from preprocessing.self_restart_tool import qmt_restart_program,restart_self
+from preprocessing.self_restart_tool import qmt_restart_program, restart_self
 
 def ensure_qmt_and_connect(config_path, xt_trader, logger=None, connect_max_retry=3, wait_after_qmt=15):
     """
@@ -10,7 +11,7 @@ def ensure_qmt_and_connect(config_path, xt_trader, logger=None, connect_max_retr
     def log(msg):
         if logger:
             logger.info(msg)
-        print(msg)
+        logging.info(msg)
 
     # 延迟import，保证与你的 daily_restart_checker/restart_program 不冲突
     while True:

@@ -1,17 +1,19 @@
-import os
-import sys
-import logging
-import time
-import json
-import argparse
-import signal
-from datetime import datetime
-import traceback
-import psutil
+try:
+    import os
+    import sys
+    import logging
+    import time
+    import json
+    import argparse
+    import signal
+    from datetime import datetime
+    import traceback
+    import psutil
+    from utils.log_utils import ensure_utf8_stdio, setup_logging
+except Exception as err:
+    # 删除: fatal_import_error.log 相关代码
+    raise
 
-from utils.log_utils import ensure_utf8_stdio, setup_logging
-
-# 业务相关模块
 from xtquant import xtdata
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
@@ -28,23 +30,6 @@ from processor.orders_reorder_tool import reorder_orders
 from preprocessing.qmt_connector import ensure_qmt_and_connect
 from preprocessing.trade_time_checker import check_trade_times
 from preprocessing.qmt_daily_restart_checker import check_and_restart
-
-print("sys.executable =", sys.executable, flush=True)
-print("sys.argv =", sys.argv, flush=True)
-print("os.getcwd() =", os.getcwd(), flush=True)
-print("os.environ[\"PATH\"] =", os.environ.get("PATH"), flush=True)
-
-def excepthook(exc_type, exc_value, exc_tb):
-    err_txt = ''.join(traceback.format_exception(exc_type, exc_value, exc_tb))
-    with open("fatal_error.log", "a", encoding="utf-8") as f:
-        f.write(err_txt + "\n")
-    print("Uncaught exception:", err_txt, flush=True)
-
-sys.excepthook = excepthook
-
-print("main.py really started", flush=True)
-ensure_utf8_stdio()
-setup_logging(console=True, file=True)  # 确保日志输出到stdout和文件
 
 # ========== 配置 ==========
 AUTO_BUY_511880_TIME = (9, 33, 0)
@@ -103,17 +88,27 @@ def handle_exit(signum, frame):
     sys.exit(0)
 
 def load_json_file(path):
-    with open(path, 'r', encoding='utf-8') as f:
-        return json.load(f)
+    abs_path = os.path.abspath(path)
+    logging.debug(f"准备打开文件: {abs_path}")
+    try:
+        with open(abs_path, 'r', encoding='utf-8') as f:
+            logging.debug("文件已打开，准备解析 JSON")
+            data = json.load(f)
+            logging.debug("JSON 解析完成")
+            return data
+    except Exception as e:
+        logging.error(f"读取JSON文件失败: {abs_path}, 错误: {e}")
+        raise
 
 def load_trade_plan(file_path):
+    abs_path = os.path.abspath(file_path)
     try:
-        with open(file_path, 'r', encoding='utf-8') as f:
+        with open(abs_path, 'r', encoding='utf-8') as f:
             trade_plan = json.load(f)
-        logging.info(f"交易计划已从文件 `{file_path}` 加载: {trade_plan}")
+        logging.info(f"交易计划已从文件 `{abs_path}` 加载")
         return trade_plan
     except Exception as e:
-        logging.error(f"❌ 无法加载交易计划文件 `{file_path}`: {e}")
+        logging.error(f"❌ 无法加载交易计划文件 `{abs_path}`: {e}")
         return None
 
 def cancel_and_reorder_task(xt_trader, account_id, reverse_mapping, check_time):
@@ -129,7 +124,7 @@ def add_seconds_to_hms(h: int, m: int, s: int, delta: int = 20):
     return nh, nm, ns
 
 def sell_execution_task(xt_trader, account_id, trade_plan_file):
-    logging.info(f"\n--- 卖出任务 --- 当前时间：{datetime.now().strftime('%Y-%m-%d %H:%M:%S')} ---")
+    logging.info(f"--- 卖出任务 --- 当前时间：{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     try:
         trade_plan = load_trade_plan(trade_plan_file)
         if not trade_plan:
@@ -142,7 +137,7 @@ def sell_execution_task(xt_trader, account_id, trade_plan_file):
         logging.error(f"❌ 卖出任务执行失败: {e}")
 
 def buy_execution_task(xt_trader, account_id, trade_plan_file):
-    logging.info(f"\n--- 买入任务 --- 当前时间：{datetime.now().strftime('%Y-%m-%d %H:%M:%S')} ---")
+    logging.info(f"--- 买入任务 --- 当前时间：{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     try:
         trade_plan = load_trade_plan(trade_plan_file)
         if not trade_plan:
@@ -155,12 +150,12 @@ def buy_execution_task(xt_trader, account_id, trade_plan_file):
         logging.error(f"❌ 买入任务执行失败: {e}")
 
 def print_positions_task(xt_trader, account_id, reverse_mapping, account_asset_info):
-    logging.info(f"\n--- 定时打印持仓任务 --- 当前时间：{datetime.now().strftime('%Y-%m-%d %H:%M:%S')} ---")
+    logging.info(f"--- 定时打印持仓任务 --- 当前时间：{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     positions = print_positions(xt_trader, account_id, reverse_mapping, account_asset_info)
     logging.info(f"持仓信息: {positions}")
 
 def buy_all_funds_to_511880(xt_trader, account_id):
-    logging.info(f"\n--- 自动买入银华日利 --- 当前时间：{datetime.now().strftime('%Y-%m-%d %H:%M:%S')} ---")
+    logging.info(f"--- 自动买入银华日利 --- 当前时间：{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     try:
         account = StockAccount(account_id)
         account_info = xt_trader.query_stock_asset(account)
@@ -189,7 +184,7 @@ def buy_all_funds_to_511880(xt_trader, account_id):
         logging.error(f"买入511880异常: {e}")
 
 def sell_all_511880(xt_trader, account_id):
-    logging.info(f"\n--- 自动卖出银华日利 --- 当前时间：{datetime.now().strftime('%Y-%m-%d %H:%M:%S')} ---")
+    logging.info(f"--- 自动卖出银华日利 --- 当前时间：{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     try:
         account = StockAccount(account_id)
         positions = xt_trader.query_stock_positions(account)
@@ -219,25 +214,36 @@ def sell_all_511880(xt_trader, account_id):
 
 # ========== 主入口 ==========
 def main():
-    print("=== print test ===", flush=True)
-    logging.info("this is a logging.info test")
-    logging.info("================================ 启动代码 ================================")
-    args = parse_args()
-    global account_name
-    account_name = args.account
+    ensure_utf8_stdio()
+    setup_logging(console=True, file=True)
+    logging.info(f"sys.argv = {sys.argv}")
+    try:
+        args = parse_args()
+        logging.info(f"账户参数解析成功: {args.account}")
+    except SystemExit as e:
+        logging.error(f"parse_args() SystemExit: {e}")
+        raise
+    try:
+        global account_name
+        account_name = args.account
+    except Exception as e:
+        logging.error(f"exception at account_name = args.account: {e}")
+        logging.error(traceback.format_exc())
+
     config_path = ACCOUNT_CONFIG_MAP.get(account_name)
     if not config_path:
-        logging.info(f"找不到账户 {account_name} 的配置文件")
-        logging.error(f"[main.py][账户:{account_name}] 找不到账户配置文件")
+        logging.error("找不到账户")
         return
-    config = load_json_file(config_path)
+    try:
+        config = load_json_file(config_path)
+        logging.info(f"账户配置加载成功: {config_path}")
+    except Exception as e:
+        logging.error(f"加载 config_path 出错：{e}")
+        logging.error(traceback.format_exc())
+        return
+
     # 打印账户信息
-    logging.info("开始读取账户信息")
-    logging.info(f"  账户号     : {config['account_id']}")
-    logging.info(f"  卖出时间    : {config['sell_time']}")
-    logging.info(f"  买入时间    : {config['buy_time']}")
-    logging.info(f"  首次检查    : {config['check_time_first']}")
-    logging.info(f"  二次检查    : {config['check_time_second']}")
+    logging.info(f"账户号: {config['account_id']} 卖出时间: {config['sell_time']} 买入时间: {config['buy_time']} 首次检查: {config['check_time_first']} 二次检查: {config['check_time_second']}")
 
     # 赋值
     path_qmt = config['path_qmt']
@@ -248,14 +254,11 @@ def main():
     check_time_first = config['check_time_first']
     check_time_second = config['check_time_second']
 
-    # 检查交易时间是否合理
-    logging.info("开始进行交易时间检查")
+    # 检查交易时间是否合理（仅打印错误，不中断主流程）
     trade_times = [sell_time, check_time_first, buy_time, check_time_second]
-    ok, trade_times = check_trade_times(trade_times)
-    if not ok:
-        return
-    # 若时间被重设，更新变量
-    sell_time, check_time_first, buy_time, check_time_second = trade_times
+    ok, checked_times, msg_list = check_trade_times(trade_times)
+    for msg in msg_list:
+        logging.error(msg)
 
     # 读取初始交易倾向
     setting_data = load_json_file('core_parameters/setting/setting.json')
@@ -275,7 +278,7 @@ def main():
     check_and_restart(config_path)
     ensure_qmt_and_connect(config_path, xt_trader, logger=logging)
 
-    logging.info(f"开始加载股票代码")
+    logging.info("开始加载股票代码")
     stock_code_file_path = r"core_parameters/stocks/core_stock_code.json"
     full_code_file_path = r"utils/stocks_code_search_tool/stocks_data/name_vs_code.json"
     try:
@@ -285,15 +288,13 @@ def main():
         def get_stock_code(name):
             return stock_code_dict.get(name) or full_name2code.get(name)
         reverse_mapping = generate_reverse_mapping(stock_code_dict)
-        logging.info("股票代码加载完成！")
+        logging.info("股票代码加载成功")
     except Exception as e:
         logging.error(f"❌ 加载股票代码失败: {e}")
         xt_trader.stop()
         return
 
     account_asset_info = print_account_asset(xt_trader, account_id)
-    if account_asset_info:
-        total_asset, cash, frozen_cash, market_value, percent_cash, percent_frozen, percent_market = account_asset_info
     positions = print_positions(xt_trader, account_id, reverse_mapping, account_asset_info)
     print_trade_plan(
         config=config,
@@ -306,7 +307,7 @@ def main():
         trade_plan_file=trade_plan_file
     )
     time.sleep(5)
-    logging.info("================================布置定时任务================================")
+    logging.info("布置定时任务")
     scheduler = BackgroundScheduler()
     sell_hour, sell_minute, sell_second = map(int, sell_time.split(":"))
     buy_hour, buy_minute, buy_second = map(int, buy_time.split(":"))
@@ -320,7 +321,7 @@ def main():
         id="sell_execution_task",
         replace_existing=True
     )
-    logging.info(f"卖出任务已定时在 {sell_time} 执行！")
+    logging.info(f"卖出任务定时: {sell_time}")
 
     scheduler.add_job(
         buy_execution_task,
@@ -329,7 +330,7 @@ def main():
         id="buy_execution_task",
         replace_existing=True
     )
-    logging.info(f"买入任务已定时在 {buy_time} 执行！")
+    logging.info(f"买入任务定时: {buy_time}")
 
     scheduler.add_job(
         cancel_and_reorder_task,
@@ -338,7 +339,7 @@ def main():
         id="cancel_and_reorder_task_first",
         replace_existing=True
     )
-    logging.info(f"撤单和重下任务（第一次）已定时在 {check_time_first} 执行！")
+    logging.info(f"撤单和重下任务1定时: {check_time_first}")
 
     scheduler.add_job(
         cancel_and_reorder_task,
@@ -347,7 +348,7 @@ def main():
         id="cancel_and_reorder_task_second",
         replace_existing=True
     )
-    logging.info(f"撤单和重下任务（第二次）已定时在 {check_time_second} 执行！")
+    logging.info(f"撤单和重下任务2定时: {check_time_second}")
 
     scheduler.add_job(
         print_positions_task,
@@ -356,7 +357,7 @@ def main():
         id="print_positions_task",
         replace_existing=True
     )
-    logging.info("定时持仓打印任务已定时在 9:35:00 执行！")
+    logging.info("定时持仓打印任务定时: 9:35:00")
 
     # 银华日利自动交易任务
     buy_h, buy_m, buy_s = AUTO_BUY_511880_TIME
@@ -367,7 +368,7 @@ def main():
         id="auto_buy_511880",
         replace_existing=True
     )
-    logging.info(f"自动买入银华日利任务已定时在 {buy_h:02d}:{buy_m:02d}:{buy_s:02d} 执行！")
+    logging.info(f"自动买入银华日利任务定时: {buy_h:02d}:{buy_m:02d}:{buy_s:02d}")
 
     chk_buy_h, chk_buy_m, chk_buy_s = add_seconds_to_hms(buy_h, buy_m, buy_s, 20)
     scheduler.add_job(
@@ -377,7 +378,7 @@ def main():
         id="check_after_511880_buy",
         replace_existing=True
     )
-    logging.info(f"银华日利买入后20秒检查任务已定时在 {chk_buy_h:02d}:{chk_buy_m:02d}:{chk_buy_s:02d} 执行！")
+    logging.info(f"银华日利买入后20秒检查任务定时: {chk_buy_h:02d}:{chk_buy_m:02d}:{chk_buy_s:02d}")
 
     sell_h, sell_m, sell_s = AUTO_SELL_511880_TIME
     scheduler.add_job(
@@ -387,7 +388,7 @@ def main():
         id="auto_sell_511880",
         replace_existing=True
     )
-    logging.info(f"自动卖出银华日利任务已定时在 {sell_h:02d}:{sell_m:02d}:{sell_s:02d} 执行！")
+    logging.info(f"自动卖出银华日利任务定时: {sell_h:02d}:{sell_m:02d}:{sell_s:02d}")
 
     chk_sell_h, chk_sell_m, chk_sell_s = add_seconds_to_hms(sell_h, sell_m, sell_s, 20)
     scheduler.add_job(
@@ -397,7 +398,7 @@ def main():
         id="check_after_511880_sell",
         replace_existing=True
     )
-    logging.info(f"银华日利卖出后20秒检查任务已定时在 {chk_sell_h:02d}:{chk_sell_m:02d}:{chk_sell_s:02d} 执行！")
+    logging.info(f"银华日利卖出后20秒检查任务定时: {chk_sell_h:02d}:{chk_sell_m:02d}:{chk_sell_s:02d}")
 
     scheduler.start()
 
@@ -411,7 +412,6 @@ def main():
 
     try:
         while True:
-            #print("main.py still alive", flush=True)
             time.sleep(5)
     except (KeyboardInterrupt, SystemExit):
         logging.info("程序被手动终止。")
@@ -424,7 +424,7 @@ if __name__ == "__main__":
     try:
         main()
     except Exception as e:
-
-        with open("fatal_error.log", "a", encoding="utf-8") as f:
-            f.write(''.join(traceback.format_exception(type(e), e, e.__traceback__)))
+        err_txt = ''.join(traceback.format_exception(type(e), e, e.__traceback__))
+        # 删除: fatal_error.log 相关代码
+        logging.error(err_txt)
         raise

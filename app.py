@@ -1,10 +1,10 @@
 from flask import Flask, request, jsonify
-import sys
 import os
+import sys
 import json
 import subprocess
 import threading
-print("flask sys.executable", sys.executable)
+
 app = Flask(__name__)
 
 # 账户配置
@@ -20,13 +20,12 @@ main_script = "main.py"
 
 SETTING_PATH = "core_parameters/setting/setting.json"
 
+# ------------------------ 工具函数 ------------------------
+
 def read_output(account_name, proc):
-    """
-    持续读取子进程stdout，将日志累计到 account_outputs
-    """
+    """持续读取子进程stdout，将日志累计到 account_outputs"""
     try:
         for line in proc.stdout:
-            # 确保每次都追加，内容大时可考虑定长队列
             account_outputs[account_name] += line
     except Exception:
         pass
@@ -37,6 +36,7 @@ def read_output(account_name, proc):
             pass
 
 def start_account_backend(account_name):
+    """启动账户进程"""
     if account_name in account_processes and account_processes[account_name].poll() is None:
         return "🟢 运行中", account_outputs[account_name]
     cmd = ["python", "-u", main_script, "-a", account_name]
@@ -48,7 +48,7 @@ def start_account_backend(account_name):
             text=True,
             bufsize=1,
             cwd=os.path.abspath(os.path.dirname(main_script)),
-            creationflags=subprocess.CREATE_NEW_CONSOLE  # 关键
+            creationflags=getattr(subprocess, "CREATE_NEW_CONSOLE", 0)
         )
         account_processes[account_name] = proc
         account_status[account_name] = "运行中"
@@ -61,9 +61,7 @@ def start_account_backend(account_name):
         return f"🔴 启动失败: {e}", account_outputs[account_name]
 
 def stop_account_backend(account_name):
-    """
-    停止指定账户的 main.py 子进程
-    """
+    """停止账户进程"""
     import psutil
     proc = account_processes.get(account_name)
     if proc and proc.poll() is None:
@@ -98,8 +96,14 @@ def get_status_backend(account_name):
 def get_output_backend(account_name):
     return account_outputs[account_name]
 
+# ------------------------ 接口路由 ------------------------
+
 @app.route('/setting/save', methods=['POST'])
 def save_setting():
+    """
+    保存 setting.json
+    POST body: {"json_text": "<用户粘贴的json字符串>"}
+    """
     try:
         data = request.get_json()
         json_text = data.get('json_text', '').strip()
@@ -115,6 +119,9 @@ def save_setting():
 
 @app.route('/accounts/list', methods=['GET'])
 def accounts_list():
+    """
+    获取所有账户信息及状态
+    """
     account_list = []
     for name in ACCOUNT_CONFIG_MAP:
         account_list.append({
@@ -126,41 +133,68 @@ def accounts_list():
 
 @app.route("/account/start", methods=["POST"])
 def api_account_start():
-    data = request.get_json()
+    """
+    启动账户进程
+    POST body: {"account_name": "shu"}
+    """
+    data = request.get_json() or {}
     account_name = data.get("account_name")
-    if account_name not in ACCOUNT_CONFIG_MAP:
-        return jsonify({"success": False, "msg": f"未知账户: {account_name}"}), 400
+    if not account_name or account_name not in ACCOUNT_CONFIG_MAP:
+        return jsonify({"success": False, "msg": "账户名无效"}), 400
     status, output = start_account_backend(account_name)
-    return jsonify({"success": True, "status": status, "output": output})
+    return jsonify({"success": "运行中" in status, "status": status, "output": output})
 
 @app.route("/account/stop", methods=["POST"])
 def api_account_stop():
-    data = request.get_json()
+    """
+    停止账户进程
+    POST body: {"account_name": "shu"}
+    """
+    data = request.get_json() or {}
     account_name = data.get("account_name")
-    if account_name not in ACCOUNT_CONFIG_MAP:
-        return jsonify({"success": False, "msg": f"未知账户: {account_name}"}), 400
+    if not account_name or account_name not in ACCOUNT_CONFIG_MAP:
+        return jsonify({"success": False, "msg": "账户名无效"}), 400
     status, output = stop_account_backend(account_name)
-    return jsonify({"success": True, "status": status, "output": output})
+    return jsonify({"success": "已停止" in status, "status": status, "output": output})
 
 @app.route("/account/status", methods=["GET"])
 def api_account_status():
+    """
+    获取账户运行状态
+    GET params: account_name=shu
+    """
     account_name = request.args.get("account_name")
-    if account_name not in ACCOUNT_CONFIG_MAP:
-        return jsonify({"success": False, "msg": f"未知账户: {account_name}"}), 400
+    if not account_name or account_name not in ACCOUNT_CONFIG_MAP:
+        return jsonify({"success": False, "msg": "账户名无效"}), 400
     status = get_status_backend(account_name)
     return jsonify({"success": True, "status": status})
 
 @app.route("/account/output", methods=["GET"])
 def api_account_output():
+    """
+    获取账户进程输出日志
+    GET params: account_name=shu
+    """
     account_name = request.args.get("account_name")
-    if account_name not in ACCOUNT_CONFIG_MAP:
-        return jsonify({"success": False, "msg": f"未知账户: {account_name}"}), 400
+    if not account_name or account_name not in ACCOUNT_CONFIG_MAP:
+        return jsonify({"success": False, "msg": "账户名无效"}), 400
     output = get_output_backend(account_name)
     return jsonify({"success": True, "output": output})
 
 @app.route("/")
 def hello():
-    return "Flask is running! Endpoints: /accounts/list (GET), /setting/save (POST), /account/start (POST), /account/stop (POST), /account/status (GET), /account/output (GET)"
+    """
+    根路径提示
+    """
+    return (
+        "Flask is running! Endpoints:<br>"
+        "/accounts/list (GET)<br>"
+        "/setting/save (POST)<br>"
+        "/account/start (POST)<br>"
+        "/account/stop (POST)<br>"
+        "/account/status (GET)<br>"
+        "/account/output (GET)<br>"
+    )
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=7860, debug=True)

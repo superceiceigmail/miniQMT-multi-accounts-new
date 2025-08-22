@@ -91,6 +91,9 @@ def emit(logger: logging.Logger, msg: str, level: str = "info", collector: Optio
     若传入 collector，则同时收集文本。
     """
     lvl = level.lower()
+    # 新增print，调试期很方便
+    # print(f"[{level.upper()}] {msg}", flush=True)  # 如需极简调试可启用
+
     if lvl == "error":
         logger.error(msg)
     elif lvl == "warning":

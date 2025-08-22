@@ -1,5 +1,5 @@
 from xtquant.xttype import StockAccount
-
+import logging
 
 def cancel_orders(trader, account_id, code_to_name_dict):
     """
@@ -12,11 +12,11 @@ def cancel_orders(trader, account_id, code_to_name_dict):
     orders = trader.query_stock_orders(account)
 
     if not orders:
-        print("没有委托数据返回")
+        logging.warning("没有委托数据返回")
     else:
-        print("当前委托情况：")
-        print(f"{'订单编号':<12}{'柜台合同编号':<12}{'报单时间':<12}{'股票名称':<12}{'股票代码':<12}{'委托方向':<8}{'委托量':<8}{'成交量':<8}{'委托价格':<8}{'状态':<10}")
-        print("-" * 120)
+        logging.info("当前委托情况：")
+        logging.info(f"{'订单编号':<12}{'柜台合同编号':<12}{'报单时间':<12}{'股票名称':<12}{'股票代码':<12}{'委托方向':<8}{'委托量':<8}{'成交量':<8}{'委托价格':<8}{'状态':<10}")
+        logging.info("-" * 120)
 
         for order in orders:
             order_id = order.order_id
@@ -50,15 +50,15 @@ def cancel_orders(trader, account_id, code_to_name_dict):
             }
             status_name = status_dict.get(status, "未知状态")
 
-            print(f"{order_id:<12}{order_sysid:<12}{order_time:<12}{stock_name:<12}{stock_code:<12}"
-                  f"{order_type:<8}{order_volume:<8}{traded_volume:<8}{price:<8.2f}{status_name:<10}")
+            logging.info(f"{order_id:<12}{order_sysid:<12}{order_time:<12}{stock_name:<12}{stock_code:<12}"
+                         f"{order_type:<8}{order_volume:<8}{traded_volume:<8}{price:<8.2f}{status_name:<10}")
 
             if status in {50, 55}:
                 market = 0  # 需根据实际情况设置
                 cancel_result = trader.cancel_order_stock_sysid_async(account, market, order_sysid)
                 if cancel_result > 0:
-                    print(f"合同编号 {order_sysid} 的异步撤单请求已成功发出，请等待撤单反馈。")
+                    logging.info(f"合同编号 {order_sysid} 的异步撤单请求已成功发出，请等待撤单反馈。")
                 else:
-                    print(f"合同编号 {order_sysid} 的异步撤单请求失败，请检查原因。")
+                    logging.warning(f"合同编号 {order_sysid} 的异步撤单请求失败，请检查原因。")
 
-        print("-" * 120)
+        logging.info("-" * 120)

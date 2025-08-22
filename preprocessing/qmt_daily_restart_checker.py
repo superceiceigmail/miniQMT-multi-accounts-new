@@ -3,9 +3,10 @@ import subprocess
 import psutil
 import time
 import json
+import logging
 from datetime import datetime
 
-from preprocessing.self_restart_tool import qmt_restart_program,restart_self
+from preprocessing.self_restart_tool import qmt_restart_program, restart_self
 
 def check_and_restart(config_path):
     """
@@ -14,18 +15,18 @@ def check_and_restart(config_path):
     today_date = datetime.now().strftime('%Y%m%d')
     # 加载账户配置
     if not os.path.exists(config_path):
-        print(f"账户配置文件 {config_path} 不存在，无法检查和重启！")
+        logging.warning(f"账户配置文件 {config_path} 不存在，无法检查和重启！")
         return
     with open(config_path, 'r', encoding='utf-8') as f:
         config = json.load(f)
     # 检查必须字段
     for key in ("program_name", "program_path"):
         if key not in config:
-            print(f"账户配置文件 {config_path} 缺少字段 {key}，请补全！")
+            logging.warning(f"账户配置文件 {config_path} 缺少字段 {key}，请补全！")
             return
     file_date = config.get("last_run_date", "")
     if file_date != today_date:
-        print(f"执行重启操作:最后启动日为 {file_date}，非当天日期 {today_date}，")
+        logging.info(f"执行重启操作: 最后启动日为 {file_date}，非当天日期 {today_date}，")
 
         # 更新json中的last_run_date
         config["last_run_date"] = today_date
@@ -35,7 +36,7 @@ def check_and_restart(config_path):
         qmt_restart_program(config["program_name"], config["program_path"])
 
     else:
-        print(f"跳过重启操作：最后启动日为 {file_date}，与当天日期 {today_date} 完全相同。")
+        logging.info(f"跳过重启操作：最后启动日为 {file_date}，与当天日期 {today_date} 完全相同。")
 
 
 # 主程序入口（测试用）

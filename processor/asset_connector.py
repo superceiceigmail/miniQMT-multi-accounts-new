@@ -2,6 +2,7 @@ from xtquant.xttype import StockAccount
 from tabulate import tabulate
 import os
 import json
+import logging
 
 def print_account_asset(trader, account_id):
     """
@@ -17,7 +18,7 @@ def print_account_asset(trader, account_id):
     asset = trader.query_stock_asset(account)
 
     if not asset:
-        print("没有资产数据返回")
+        logging.warning("没有资产数据返回")
         return None
     else:
         cash = asset.cash
@@ -70,16 +71,16 @@ def print_account_asset(trader, account_id):
             f"{market_value:.2f}",
             f"{total_asset:.2f}",
         ]]
-        print("                                                                         ")
-        print("================================账户资产信息================================")
-        print(tabulate(table, headers, tablefmt="github", stralign="center"))
-        print()
+        logging.info("                                                                         ")
+        logging.info("================================账户资产信息================================")
+        logging.info("\n" + tabulate(table, headers, tablefmt="github", stralign="center"))
+        logging.info("")  # 空行
         # 各项占比可视化
         percent_table = [
             ["可用金额占比",   bar_cash,   percent_cash],
             ["冻结金额占比",   bar_frozen, percent_frozen],
             ["持仓市值占比",   bar_market, percent_market]
         ]
-        print(tabulate(percent_table, headers=["类型", "占比可视化", "占比"], tablefmt="github", stralign="center"))
+        logging.info("\n" + tabulate(percent_table, headers=["类型", "占比可视化", "占比"], tablefmt="github", stralign="center"))
 
         return total_asset, cash, frozen_cash, market_value, percent_cash, percent_frozen, percent_market

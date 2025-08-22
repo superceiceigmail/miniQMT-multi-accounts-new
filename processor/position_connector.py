@@ -3,6 +3,7 @@ import math
 from tabulate import tabulate
 import os
 import json
+import logging
 
 def print_positions(trader, account_id, code_to_name_dict, account_asset_info):
     """
@@ -33,7 +34,7 @@ def print_positions(trader, account_id, code_to_name_dict, account_asset_info):
         return x
 
     if not positions:
-        print("没有持仓数据返回")
+        logging.warning("没有持仓数据返回")
     else:
         for position in positions:
             stock_code = position.stock_code
@@ -82,8 +83,8 @@ def print_positions(trader, account_id, code_to_name_dict, account_asset_info):
             with open(save_path, "w", encoding="utf-8") as f:
                 json.dump(positions_list, f, ensure_ascii=False, indent=2)
 
-        print("                                                                         ")
-        print("================================账户持仓信息================================")
-        print(tabulate(table, headers, tablefmt="github", stralign="center"))
+        logging.info("                                                                         ")
+        logging.info("================================账户持仓信息================================")
+        logging.info("\n" + tabulate(table, headers, tablefmt="github", stralign="center"))
 
     return positions
