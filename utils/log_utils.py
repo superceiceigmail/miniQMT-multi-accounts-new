@@ -37,21 +37,20 @@ def setup_logging(
     backup_count: int = 7,
 ) -> logging.Logger:
     """
-    初始化根日志。若已初始化过不会重复添加 handler。
+    初始化根日志。若已初始化过会先清空 handler，再添加新 handler。
     返回 root logger。
     """
     root = logging.getLogger()
     root.setLevel(level)
 
-    # 避免重复添加 handler
-    if root.handlers:
-        return root
+    # 清空所有旧的 handler，确保不会有重复/失效
+    while root.handlers:
+        root.handlers.pop()
 
     formatter = logging.Formatter(fmt=fmt, datefmt=datefmt)
 
     if file:
         os.makedirs(log_dir, exist_ok=True)
-        # 按日期命名
         from datetime import datetime
         filename = datetime.now().strftime(filename_pattern)
         file_path = os.path.join(log_dir, filename)

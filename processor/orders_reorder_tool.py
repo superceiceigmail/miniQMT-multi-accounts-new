@@ -1,10 +1,32 @@
 from xtquant.xttype import StockAccount
 from xtquant import xtconstant, xtdata
 from datetime import datetime, timedelta
+import os
+import json
+
+def _get_today_reorder_record_file():
+    today_str = datetime.now().strftime("%Y%m%d")
+    return f"reorder_record_{today_str}.json"
+
+def load_reorder_record():
+    fname = _get_today_reorder_record_file()
+    if os.path.exists(fname):
+        try:
+            with open(fname, 'r', encoding='utf-8') as f:
+                return set(json.load(f))
+        except Exception:
+            return set()
+    return set()
+
+def save_reorder_record(record_set):
+    fname = _get_today_reorder_record_file()
+    with open(fname, 'w', encoding='utf-8') as f:
+        json.dump(list(record_set), f)
 
 def reorder_orders(trader, account_id, code_to_name_dict, window_min=10, price_offset_tick=2, min_hand=100):
     """
     对指定账户近window_min分钟内已撤单/部撤的订单，自动重下未成交部分。
+    仅对当天未重下过的撤单号进行重下，防止重复重下。
     买入：最新价+price_offset_tick*tick，卖出：最新价-price_offset_tick*tick
     仅重下剩余大于min_hand的部分
     """
@@ -14,13 +36,15 @@ def reorder_orders(trader, account_id, code_to_name_dict, window_min=10, price_o
         print("没有委托数据返回")
         return
 
-    print(f"\n=== 最近{window_min}分钟内已撤销委托重下 ===")
+    print(f"\n=== 最近{window_min}分钟内未重下过的已撤销委托重下 ===")
     print(f"{'订单编号':<12}{'柜台合同编号':<12}{'时间':<19}{'股票名称':<12}{'股票代码':<12}{'方向':<6}"
           f"{'委托量':<8}{'成交':<8}{'价格':<8}{'状态':<8}")
     print("-" * 110)
 
     cancelled_status_set = {53, 54}   # 53:部撤, 54:已撤
     now = datetime.now()
+    reordered = load_reorder_record()
+    record_changed = False
 
     for order in orders:
         # 兼容不同API字段
@@ -29,7 +53,6 @@ def reorder_orders(trader, account_id, code_to_name_dict, window_min=10, price_o
             continue
 
         order_time = getattr(order, "order_time", getattr(order, "m_nOrderTime", None))
-        # xtquant时间戳通常是秒
         try:
             order_time_obj = datetime.fromtimestamp(order_time)
         except Exception as e:
@@ -38,7 +61,7 @@ def reorder_orders(trader, account_id, code_to_name_dict, window_min=10, price_o
         if not (now - timedelta(minutes=window_min) <= order_time_obj <= now):
             continue
 
-        order_id = getattr(order, "order_id", getattr(order, "m_nOrderID", ''))
+        order_id = str(getattr(order, "order_id", getattr(order, "m_nOrderID", '')))
         order_sysid = getattr(order, "order_sysid", getattr(order, "m_strOrderSysID", ''))
         stock_code = getattr(order, "stock_code", getattr(order, "m_strStockCode", ''))
         stock_name = code_to_name_dict.get(stock_code.split('.')[0], '未知股票')
@@ -46,6 +69,11 @@ def reorder_orders(trader, account_id, code_to_name_dict, window_min=10, price_o
         order_volume = getattr(order, "order_volume", getattr(order, "m_nOrderVolume", 0))
         traded_volume = getattr(order, "traded_volume", getattr(order, "m_nTradedVolume", 0))
         price = getattr(order, "price", getattr(order, "m_dPrice", 0))
+
+        # 用order_id作为当天已重下的唯一标识
+        if order_id in reordered:
+            print(f"委托{order_id}今日已重下过，跳过。")
+            continue
 
         # 判断买卖方向
         if order_type == 23:
@@ -98,7 +126,11 @@ def reorder_orders(trader, account_id, code_to_name_dict, window_min=10, price_o
                 xtconstant.FIX_PRICE, adjusted_price,
                 'reorder_cancelled', f"reorder_{stock_code}")
             print(f"委托{order_id}已撤单且剩余{left_volume}已重下单，异步委托序列号: {async_seq}")
+            reordered.add(order_id)
+            record_changed = True
         except Exception as e:
             print(f"⚠️ 重下单失败: {e}")
 
+    if record_changed:
+        save_reorder_record(reordered)
     print("-" * 110)

@@ -1,13 +1,20 @@
-
+import os
+import sys
+import logging
 import time
 import json
-import logging
-import os
+import argparse
+import signal
+from datetime import datetime
+import traceback
+import psutil
+
+from utils.log_utils import ensure_utf8_stdio, setup_logging
+
+# 业务相关模块
 from xtquant import xtdata
-from datetime import datetime, timedelta
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
-
 from xtquant.xttrader import XtQuantTrader, XtQuantTraderCallback
 from xtquant.xttype import StockAccount
 
@@ -21,27 +28,37 @@ from processor.orders_reorder_tool import reorder_orders
 from preprocessing.qmt_connector import ensure_qmt_and_connect
 from preprocessing.trade_time_checker import check_trade_times
 from preprocessing.qmt_daily_restart_checker import check_and_restart
-import argparse
-import signal
-import sys
-import psutil
+
+print("sys.executable =", sys.executable, flush=True)
+print("sys.argv =", sys.argv, flush=True)
+print("os.getcwd() =", os.getcwd(), flush=True)
+print("os.environ[\"PATH\"] =", os.environ.get("PATH"), flush=True)
+
+def excepthook(exc_type, exc_value, exc_tb):
+    err_txt = ''.join(traceback.format_exception(exc_type, exc_value, exc_tb))
+    with open("fatal_error.log", "a", encoding="utf-8") as f:
+        f.write(err_txt + "\n")
+    print("Uncaught exception:", err_txt, flush=True)
+
+sys.excepthook = excepthook
 
 print("main.py really started", flush=True)
-
-
-# 在任何日志初始化之前，确保标准输出/错误使用 UTF-8，避免编码问题
-from utils.log_utils import ensure_utf8_stdio
 ensure_utf8_stdio()
+setup_logging(console=True, file=True)  # 确保日志输出到stdout和文件
 
-# 全局账户名变量，用于日志标识
+# ========== 配置 ==========
+AUTO_BUY_511880_TIME = (9, 33, 0)
+AUTO_SELL_511880_TIME = (14, 56, 0)
+
+ACCOUNT_CONFIG_MAP = {
+    "shu": "core_parameters/account/8886006288.json",
+    "1234": "core_parameters/account/1234567890.json",
+    # 更多账户...
+}
+
 account_name = None
 
-# ========= 配置：银华日利（511880）自动交易时间 =========
-# 只需修改这两个时间（时,分,秒），检查任务会自动在其后20秒触发
-AUTO_BUY_511880_TIME = (9, 33, 0)    # 自动买入银华日利时间
-AUTO_SELL_511880_TIME = (14, 56, 0)  # 自动卖出银华日利时间
-
-
+# ========== 日志回调 ==========
 class MyXtQuantTraderCallback(XtQuantTraderCallback):
     def on_disconnected(self):
         logging.error(f"{datetime.now()} - 连接断开")
@@ -60,23 +77,34 @@ class MyXtQuantTraderCallback(XtQuantTraderCallback):
     def on_account_status(self, status):
         logging.info(f"{datetime.now()} - 账户状态回调")
 
+# ========== 工具函数 ==========
+def parse_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-a', '--account', required=True, help='账户别名或ID')
+    return parser.parse_args()
 
-def setup_logging():
-    log_folder = "./zz_log"
-    os.makedirs(log_folder, exist_ok=True)
-    log_date = datetime.now().strftime('%Y%m%d')
-    log_file = os.path.join(log_folder, f"log_{log_date}.log")
-    logging.basicConfig(
-        level=logging.INFO,
-        format="%(asctime)s - %(levelname)s - %(message)s",
-        handlers=[
-            logging.FileHandler(log_file, mode='a', encoding='utf-8'),
-            logging.StreamHandler(sys.stdout)
-        ]
-    )
-    logging.getLogger("apscheduler").setLevel(logging.WARNING)
-    logging.info("日志记录启动")
+def handle_exit(signum, frame):
+    global account_name
+    logging.info(f"[main.py][账户:{account_name}] 收到终止信号({signum})，主进程pid={os.getpid()} 开始清理子进程")
+    try:
+        parent = psutil.Process(os.getpid())
+        children = parent.children(recursive=True)
+        for child in children:
+            logging.info(f"[main.py][账户:{account_name}] 终止子进程 {child.pid} {child.name()}")
+            child.terminate()
+        gone, alive = psutil.wait_procs(children, timeout=5)
+        for p in alive:
+            logging.warning(f"[main.py][账户:{account_name}] 强制kill未退出的进程 {p.pid} {p.name()}")
+            p.kill()
+    except Exception as e:
+        logging.error(f"[main.py][账户:{account_name}] 终止子进程异常: {e}")
+    logging.info(f"[main.py][账户:{account_name}] 主进程即将退出。")
+    logging.shutdown()
+    sys.exit(0)
 
+def load_json_file(path):
+    with open(path, 'r', encoding='utf-8') as f:
+        return json.load(f)
 
 def load_trade_plan(file_path):
     try:
@@ -88,21 +116,17 @@ def load_trade_plan(file_path):
         logging.error(f"❌ 无法加载交易计划文件 `{file_path}`: {e}")
         return None
 
-
 def cancel_and_reorder_task(xt_trader, account_id, reverse_mapping, check_time):
     cancel_orders(xt_trader, account_id, reverse_mapping)
     time.sleep(6)
     reorder_orders(xt_trader, account_id, reverse_mapping)
 
-
-# 通用：给定时分秒，返回 +delta 秒后的时分秒（处理进位/跨天）
 def add_seconds_to_hms(h: int, m: int, s: int, delta: int = 20):
     total = (h * 3600 + m * 60 + s + delta) % (24 * 3600)
     nh = total // 3600
     nm = (total % 3600) // 60
     ns = total % 60
     return nh, nm, ns
-
 
 def sell_execution_task(xt_trader, account_id, trade_plan_file):
     logging.info(f"\n--- 卖出任务 --- 当前时间：{datetime.now().strftime('%Y-%m-%d %H:%M:%S')} ---")
@@ -117,7 +141,6 @@ def sell_execution_task(xt_trader, account_id, trade_plan_file):
     except Exception as e:
         logging.error(f"❌ 卖出任务执行失败: {e}")
 
-
 def buy_execution_task(xt_trader, account_id, trade_plan_file):
     logging.info(f"\n--- 买入任务 --- 当前时间：{datetime.now().strftime('%Y-%m-%d %H:%M:%S')} ---")
     try:
@@ -131,57 +154,10 @@ def buy_execution_task(xt_trader, account_id, trade_plan_file):
     except Exception as e:
         logging.error(f"❌ 买入任务执行失败: {e}")
 
-
-# 配置账户缩写
-ACCOUNT_CONFIG_MAP = {
-    "shu": "core_parameters/account/8886006288.json",
-    "1234": "core_parameters/account/1234567890.json",
-    # 更多账户
-}
-
-
-def parse_args():
-    parser = argparse.ArgumentParser()
-    parser.add_argument('-a', '--account', required=True, help='账户别名或ID')
-    return parser.parse_args()
-
-
-def handle_exit(signum, frame):
-    global account_name
-    logging.info(f"[main.py][账户:{account_name}] 收到终止信号({signum})，主进程pid={os.getpid()} 开始清理子进程")
-    logging.info(f"[main.py][账户:{account_name}] 收到终止信号({signum})，主进程pid={os.getpid()} 开始清理子进程")
-    try:
-        parent = psutil.Process(os.getpid())
-        children = parent.children(recursive=True)
-        for child in children:
-            logging.info(f"[main.py][账户:{account_name}] 终止子进程 {child.pid} {child.name()}")
-            logging.info(f"[main.py][账户:{account_name}] 终止子进程 {child.pid} {child.name()}")
-            child.terminate()
-        gone, alive = psutil.wait_procs(children, timeout=5)
-        for p in alive:
-            logging.warning(f"[main.py][账户:{account_name}] 强制kill未退出的进程 {p.pid} {p.name()}")
-            logging.info(f"[main.py][账户:{account_name}] 强制kill未退出的进程 {p.pid} {p.name()}")
-            p.kill()
-    except Exception as e:
-        logging.error(f"[main.py][账户:{account_name}] 终止子进程异常: {e}")
-        logging.info(f"[main.py][账户:{account_name}] 终止子进程异常: {e}")
-    logging.info(f"[main.py][账户:{account_name}] 主进程即将退出。")
-    logging.info(f"[main.py][账户:{account_name}] 主进程即将退出。")
-    logging.shutdown()
-    sys.exit(0)
-
-
-def load_json_file(path):
-    with open(path, 'r', encoding='utf-8') as f:
-        return json.load(f)
-
-
-# 持仓打印任务函数
 def print_positions_task(xt_trader, account_id, reverse_mapping, account_asset_info):
     logging.info(f"\n--- 定时打印持仓任务 --- 当前时间：{datetime.now().strftime('%Y-%m-%d %H:%M:%S')} ---")
     positions = print_positions(xt_trader, account_id, reverse_mapping, account_asset_info)
     logging.info(f"持仓信息: {positions}")
-
 
 def buy_all_funds_to_511880(xt_trader, account_id):
     logging.info(f"\n--- 自动买入银华日利 --- 当前时间：{datetime.now().strftime('%Y-%m-%d %H:%M:%S')} ---")
@@ -189,18 +165,16 @@ def buy_all_funds_to_511880(xt_trader, account_id):
         account = StockAccount(account_id)
         account_info = xt_trader.query_stock_asset(account)
         available_cash = float(getattr(account_info, "m_dCash", 0.0))
-        if available_cash <= 100:  # 留一点小余量防止买入失败
+        if available_cash <= 100:
             logging.info("可用资金太少，不进行买入。")
             return
         from xtquant.xttype import _XTCONST_
-        # 查价格
         tick = xtdata.get_full_tick(["511880.SH"])["511880.SH"]
         price = tick.get("lastPrice") or tick.get("askPrice", [None])[0]
         if not price or price <= 0:
             logging.error("无法获取511880.SH买入价格！")
             return
-        detail = xtdata.get_instrument_detail("511880.SH") or {}
-        board_lot = 100  # 强制用100做单位
+        board_lot = 100
         volume = int(available_cash // price // board_lot) * board_lot
         logging.info(
             f"买入银华日利时：可用资金={available_cash}，价格={price}，最小单位(board_lot)={board_lot}，实际买入量(volume)={volume}")
@@ -213,7 +187,6 @@ def buy_all_funds_to_511880(xt_trader, account_id):
         logging.info(f"已委托买入银华日利 {volume} 股，单价 {price}，异步号 {async_seq}")
     except Exception as e:
         logging.error(f"买入511880异常: {e}")
-
 
 def sell_all_511880(xt_trader, account_id):
     logging.info(f"\n--- 自动卖出银华日利 --- 当前时间：{datetime.now().strftime('%Y-%m-%d %H:%M:%S')} ---")
@@ -232,8 +205,7 @@ def sell_all_511880(xt_trader, account_id):
         from xtquant.xttype import _XTCONST_
         tick = xtdata.get_full_tick(["511880.SH"])["511880.SH"]
         price = tick.get("lastPrice") or tick.get("bidPrice", [None])[0]
-        detail = xtdata.get_instrument_detail("511880.SH") or {}
-        board_lot = int(detail.get("MinVolume", 10))
+        board_lot = 100
         volume = (can_sell // board_lot) * board_lot
         if volume <= 0:
             logging.info("银华日利可卖数量不足最小单位，跳过。")
@@ -245,13 +217,10 @@ def sell_all_511880(xt_trader, account_id):
     except Exception as e:
         logging.error(f"卖出511880异常: {e}")
 
-
+# ========== 主入口 ==========
 def main():
-    # 日志启动
-    setup_logging()
     print("=== print test ===", flush=True)
     logging.info("this is a logging.info test")
-    logging.info("")
     logging.info("================================ 启动代码 ================================")
     args = parse_args()
     global account_name
@@ -295,8 +264,6 @@ def main():
 
     # 设定交易计划执行日期为当天
     trade_date = datetime.now().strftime('%Y-%m-%d')
-
-    # 设定交易计划文件保存地址
     trade_plan_file = f'./tradplan/trade_plan_{account_id}_{trade_date.replace("-", "")}.json'
 
     xt_trader = XtQuantTrader(path_qmt, session_id)
@@ -306,23 +273,17 @@ def main():
 
     # 检查当天是否启动过miniQMT
     check_and_restart(config_path)
-    # 自动重连并自动重启main.py
     ensure_qmt_and_connect(config_path, xt_trader, logger=logging)
 
     logging.info(f"开始加载股票代码")
     stock_code_file_path = r"core_parameters/stocks/core_stock_code.json"
     full_code_file_path = r"utils/stocks_code_search_tool/stocks_data/name_vs_code.json"
     try:
-        # 加载常用组（名称->代码）
         stock_code_dict = load_json_file(stock_code_file_path)
-        # 加载全量组（代码->名称），并生成反向映射（名称->代码）
         code2name = load_json_file(full_code_file_path)
-        # 生成全量名称->代码字典
         full_name2code = {v: k for k, v in code2name.items()}
-        # 合成一个查询函数
         def get_stock_code(name):
             return stock_code_dict.get(name) or full_name2code.get(name)
-        # 反向映射用于持仓打印等
         reverse_mapping = generate_reverse_mapping(stock_code_dict)
         logging.info("股票代码加载完成！")
     except Exception as e:
@@ -330,13 +291,10 @@ def main():
         xt_trader.stop()
         return
 
-    # 打印账户情况
     account_asset_info = print_account_asset(xt_trader, account_id)
     if account_asset_info:
         total_asset, cash, frozen_cash, market_value, percent_cash, percent_frozen, percent_market = account_asset_info
-    # 打印持仓情况
     positions = print_positions(xt_trader, account_id, reverse_mapping, account_asset_info)
-    # 打印交易计划
     print_trade_plan(
         config=config,
         account_asset_info=account_asset_info,
@@ -348,20 +306,13 @@ def main():
         trade_plan_file=trade_plan_file
     )
     time.sleep(5)
-
-    logging.info("")
     logging.info("================================布置定时任务================================")
     scheduler = BackgroundScheduler()
-    # 卖出任务时间
     sell_hour, sell_minute, sell_second = map(int, sell_time.split(":"))
-    # 买入任务时间
     buy_hour, buy_minute, buy_second = map(int, buy_time.split(":"))
-    # 撤单重下任务时间（第一次）
     check1_hour, check1_minute, check1_second = map(int, check_time_first.split(":"))
-    # 撤单重下任务时间（第二次）
     check2_hour, check2_minute, check2_second = map(int, check_time_second.split(":"))
 
-    # 卖出任务定时（计划）
     scheduler.add_job(
         sell_execution_task,
         trigger=CronTrigger(hour=sell_hour, minute=sell_minute, second=sell_second),
@@ -371,7 +322,6 @@ def main():
     )
     logging.info(f"卖出任务已定时在 {sell_time} 执行！")
 
-    # 买入任务定时（计划）
     scheduler.add_job(
         buy_execution_task,
         trigger=CronTrigger(hour=buy_hour, minute=buy_minute, second=buy_second),
@@ -381,7 +331,6 @@ def main():
     )
     logging.info(f"买入任务已定时在 {buy_time} 执行！")
 
-    # 撤单重下任务（第一次，计划）
     scheduler.add_job(
         cancel_and_reorder_task,
         trigger=CronTrigger(hour=check1_hour, minute=check1_minute, second=check1_second),
@@ -391,7 +340,6 @@ def main():
     )
     logging.info(f"撤单和重下任务（第一次）已定时在 {check_time_first} 执行！")
 
-    # 撤单重下任务（第二次，计划）
     scheduler.add_job(
         cancel_and_reorder_task,
         trigger=CronTrigger(hour=check2_hour, minute=check2_minute, second=check2_second),
@@ -401,7 +349,6 @@ def main():
     )
     logging.info(f"撤单和重下任务（第二次）已定时在 {check_time_second} 执行！")
 
-    # 定时打印持仓任务时间（09:35:00）
     scheduler.add_job(
         print_positions_task,
         trigger=CronTrigger(hour=9, minute=35, second=0),
@@ -410,9 +357,8 @@ def main():
         replace_existing=True
     )
     logging.info("定时持仓打印任务已定时在 9:35:00 执行！")
-    # ========= 银华日利自动交易 + “交易后20秒检查”（自动推算） =========
 
-    # 自动买入银华日利
+    # 银华日利自动交易任务
     buy_h, buy_m, buy_s = AUTO_BUY_511880_TIME
     scheduler.add_job(
         buy_all_funds_to_511880,
@@ -423,7 +369,6 @@ def main():
     )
     logging.info(f"自动买入银华日利任务已定时在 {buy_h:02d}:{buy_m:02d}:{buy_s:02d} 执行！")
 
-    # 自动买入后的 +20 秒检查（自动推算）
     chk_buy_h, chk_buy_m, chk_buy_s = add_seconds_to_hms(buy_h, buy_m, buy_s, 20)
     scheduler.add_job(
         cancel_and_reorder_task,
@@ -434,7 +379,6 @@ def main():
     )
     logging.info(f"银华日利买入后20秒检查任务已定时在 {chk_buy_h:02d}:{chk_buy_m:02d}:{chk_buy_s:02d} 执行！")
 
-    # 自动卖出银华日利
     sell_h, sell_m, sell_s = AUTO_SELL_511880_TIME
     scheduler.add_job(
         sell_all_511880,
@@ -445,7 +389,6 @@ def main():
     )
     logging.info(f"自动卖出银华日利任务已定时在 {sell_h:02d}:{sell_m:02d}:{sell_s:02d} 执行！")
 
-    # 自动卖出后的 +20 秒检查（自动推算）
     chk_sell_h, chk_sell_m, chk_sell_s = add_seconds_to_hms(sell_h, sell_m, sell_s, 20)
     scheduler.add_job(
         cancel_and_reorder_task,
@@ -458,7 +401,7 @@ def main():
 
     scheduler.start()
 
-    # 注册信号处理器，保证kill时能优雅退出
+    # 注册信号处理器
     signal.signal(signal.SIGTERM, handle_exit)
     signal.signal(signal.SIGINT, handle_exit)
     try:
@@ -468,7 +411,8 @@ def main():
 
     try:
         while True:
-            time.sleep(1)
+            #print("main.py still alive", flush=True)
+            time.sleep(5)
     except (KeyboardInterrupt, SystemExit):
         logging.info("程序被手动终止。")
     finally:
@@ -476,6 +420,11 @@ def main():
         xt_trader.stop()
         logging.info("交易线程已停止。")
 
-
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except Exception as e:
+
+        with open("fatal_error.log", "a", encoding="utf-8") as f:
+            f.write(''.join(traceback.format_exception(type(e), e, e.__traceback__)))
+        raise
