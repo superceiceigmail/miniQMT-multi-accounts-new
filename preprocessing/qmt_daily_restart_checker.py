@@ -6,7 +6,7 @@ import json
 import logging
 from datetime import datetime
 
-from preprocessing.self_restart_tool import qmt_restart_program, restart_self
+from preprocessing.self_restart_tool import qmt_restart_program
 
 def check_and_restart(config_path):
     """

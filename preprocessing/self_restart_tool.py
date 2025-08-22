@@ -11,7 +11,7 @@ def restart_self():
     """
     logging.info("正在重启main.py本进程...")
     python = sys.executable
-    os.execl(python, python, *sys.argv)
+    os.execv(python, [python] + sys.argv)
 
 def qmt_restart_program(program_name, program_path):
     """
@@ -31,8 +31,7 @@ def qmt_restart_program(program_name, program_path):
         logging.info(f"正在打开程序: {program_path}")
         subprocess.Popen(program_path, shell=True)
         logging.info(f"程序 {program_name} 已成功启动。")
-        logging.info(f"请输入账号信息，20秒后将继续连接。")
-        time.sleep(20)
-        restart_self()  # 彻底重启main.py进程
+        logging.info(f"请输入账号信息，30秒后将继续连接。")
+
     else:
         logging.warning(f"路径 {program_path} 不存在，无法启动程序！")

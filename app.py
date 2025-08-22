@@ -99,15 +99,15 @@ def get_status_backend(account_name):
 
 def get_output_backend(account_name):
     """
-    读取日志文件，从最后一个'===============程序开始执行================'行开始，展示到结尾
+    读取对应账户的日志文件
     """
-    log_file = get_today_log_path()
+    day_str = datetime.now().strftime("%Y%m%d")
+    log_file = os.path.join(LOG_DIR, f"log_{account_name}_{day_str}.log")
     if not os.path.exists(log_file):
         return ""
     start_marker = "===============程序开始执行================"
     with open(log_file, "r", encoding="utf-8", errors="ignore") as f:
         lines = f.readlines()
-    # 从最后一行往上找到最新一次start_marker
     marker_idx = None
     for idx in range(len(lines)-1, -1, -1):
         if start_marker in lines[idx]:
@@ -116,7 +116,6 @@ def get_output_backend(account_name):
     if marker_idx is not None:
         return "".join(lines[marker_idx:])
     else:
-        # 没有分割线就返回最后100行
         return "".join(lines[-100:])
 
 # ------------------------ 接口路由 ------------------------

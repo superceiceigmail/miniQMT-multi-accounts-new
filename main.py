@@ -11,7 +11,7 @@ try:
     import psutil
     from utils.log_utils import ensure_utf8_stdio, setup_logging
 except Exception as err:
-    # 删除: fatal_import_error.log 相关代码
+
     raise
 
 from xtquant import xtdata
@@ -214,27 +214,36 @@ def sell_all_511880(xt_trader, account_id):
 
 # ========== 主入口 ==========
 def main():
+    global account_name
+
     ensure_utf8_stdio()
-    setup_logging(console=True, file=True)
-    logging.info(f"===============程序开始执行================")
-    logging.info(f"sys.argv = {sys.argv}")
+
+    # 1. 先解析参数
     try:
         args = parse_args()
-        logging.info(f"账户参数解析成功: {args.account}")
-    except SystemExit as e:
-        logging.error(f"parse_args() SystemExit: {e}")
-        raise
-    try:
-        global account_name
         account_name = args.account
+    except SystemExit as e:
+        print(f"parse_args() SystemExit: {e}")
+        raise
     except Exception as e:
-        logging.error(f"exception at account_name = args.account: {e}")
-        logging.error(traceback.format_exc())
+        print(f"exception at account_name = args.account: {e}")
+        import traceback
+        print(traceback.format_exc())
+        raise
 
+    # 2. 日志初始化
+    setup_logging(console=True, file=True, account_name=account_name)
+    logging.info(f"===============程序开始执行================")
+    logging.info(f"sys.argv = {sys.argv}")
+    logging.info(f"账户参数解析成功: {account_name}")
+
+    # 3. 获取 config_path
     config_path = ACCOUNT_CONFIG_MAP.get(account_name)
     if not config_path:
         logging.error("找不到账户")
         return
+
+    # 4. 加载配置
     try:
         config = load_json_file(config_path)
         logging.info(f"账户配置加载成功: {config_path}")

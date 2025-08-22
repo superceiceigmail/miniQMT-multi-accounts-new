@@ -31,6 +31,7 @@ def setup_logging(
     console: bool = True,
     file: bool = True,
     filename_pattern: str = "log_%Y%m%d.log",
+    account_name: Optional[str] = None,
     fmt: str = DEFAULT_FMT,
     datefmt: str = DEFAULT_DATEFMT,
     max_bytes: int = 10 * 1024 * 1024,
@@ -38,6 +39,7 @@ def setup_logging(
 ) -> logging.Logger:
     """
     初始化根日志。若已初始化过会先清空 handler，再添加新 handler。
+    支持按账户名分日志文件。
     返回 root logger。
     """
     root = logging.getLogger()
@@ -52,6 +54,8 @@ def setup_logging(
     if file:
         os.makedirs(log_dir, exist_ok=True)
         from datetime import datetime
+        if account_name:
+            filename_pattern = f"log_{account_name}_%Y%m%d.log"
         filename = datetime.now().strftime(filename_pattern)
         file_path = os.path.join(log_dir, filename)
         fh = RotatingFileHandler(file_path, maxBytes=max_bytes, backupCount=backup_count, encoding="utf-8")

@@ -67,16 +67,16 @@
     "stock_code": "588080.SH",
     "stock_name": "未知股票",
     "volume": 16700,
-    "can_use_volume": 8900,
+    "can_use_volume": 16700,
     "avg_price": 1.1965149700598803,
     "market_value": 21626.5
   },
   {
     "stock_code": "131990.SZ",
     "stock_name": "未知股票",
-    "volume": 470,
+    "volume": 0,
     "can_use_volume": 0,
-    "avg_price": 100.00010638297873,
+    "avg_price": null,
     "market_value": 0.0
   },
   {
