@@ -216,6 +216,7 @@ def sell_all_511880(xt_trader, account_id):
 def main():
     ensure_utf8_stdio()
     setup_logging(console=True, file=True)
+    logging.info(f"===============程序开始执行================")
     logging.info(f"sys.argv = {sys.argv}")
     try:
         args = parse_args()
@@ -425,6 +426,5 @@ if __name__ == "__main__":
         main()
     except Exception as e:
         err_txt = ''.join(traceback.format_exception(type(e), e, e.__traceback__))
-        # 删除: fatal_error.log 相关代码
         logging.error(err_txt)
         raise

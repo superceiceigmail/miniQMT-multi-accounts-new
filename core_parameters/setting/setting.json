@@ -1,18 +1,4 @@
 {
-  "sell_stocks_info": [
-    {
-      "name": "十年国债",
-      "ratio": 15.31
-    }
-  ],
-  "buy_stocks_info": [
-    {
-      "name": "30年国债",
-      "ratio": 7.65
-    },
-    {
-      "name": "30年国债指数",
-      "ratio": 7.65
-    }
-  ]
+  "a": 1,
+  "b": 2
 }

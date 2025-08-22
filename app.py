@@ -4,6 +4,7 @@ import sys
 import json
 import subprocess
 import threading
+from datetime import datetime
 
 app = Flask(__name__)
 
@@ -15,30 +16,35 @@ ACCOUNT_CONFIG_MAP = {
 
 account_processes = {}
 account_status = {k: "未启动" for k in ACCOUNT_CONFIG_MAP}
-account_outputs = {k: "" for k in ACCOUNT_CONFIG_MAP}
 main_script = "main.py"
 
 SETTING_PATH = "core_parameters/setting/setting.json"
 
+# 日志目录和格式
+LOG_DIR = os.path.join(os.getcwd(), "zz_log")
+LOG_FILE_FMT = "log_%Y%m%d.log"
+
 # ------------------------ 工具函数 ------------------------
 
-def read_output(account_name, proc):
-    """持续读取子进程stdout，将日志累计到 account_outputs"""
-    try:
-        for line in proc.stdout:
-            account_outputs[account_name] += line
-    except Exception:
-        pass
-    finally:
+def get_today_log_path():
+    day_str = datetime.now().strftime("%Y%m%d")
+    return os.path.join(LOG_DIR, f"log_{day_str}.log")
+
+def read_last_lines(log_file, n=200):
+    """读取日志文件最后n行"""
+    if not os.path.exists(log_file):
+        return ""
+    with open(log_file, "r", encoding="utf-8", errors="ignore") as f:
         try:
-            proc.stdout.close()
-        except:
-            pass
+            lines = f.readlines()
+            return "".join(lines[-n:])
+        except Exception:
+            return ""
 
 def start_account_backend(account_name):
     """启动账户进程"""
     if account_name in account_processes and account_processes[account_name].poll() is None:
-        return "🟢 运行中", account_outputs[account_name]
+        return "🟢 运行中"
     cmd = ["python", "-u", main_script, "-a", account_name]
     try:
         proc = subprocess.Popen(
@@ -52,13 +58,11 @@ def start_account_backend(account_name):
         )
         account_processes[account_name] = proc
         account_status[account_name] = "运行中"
-        account_outputs[account_name] = ""
-        t = threading.Thread(target=read_output, args=(account_name, proc), daemon=True)
-        t.start()
-        return "🟢 运行中", account_outputs[account_name]
+        # 不再单独维护 output
+        return "🟢 运行中"
     except Exception as e:
         account_status[account_name] = "启动失败"
-        return f"🔴 启动失败: {e}", account_outputs[account_name]
+        return f"🔴 启动失败: {e}"
 
 def stop_account_backend(account_name):
     """停止账户进程"""
@@ -75,13 +79,13 @@ def stop_account_backend(account_name):
             for p in alive:
                 p.kill()
             account_status[account_name] = "已停止"
-            return "⚪ 已停止", account_outputs[account_name]
+            return "⚪ 已停止"
         except Exception as e:
             account_status[account_name] = "停止失败"
-            return f"🔴 停止失败: {e}", account_outputs[account_name]
+            return f"🔴 停止失败: {e}"
     else:
         account_status[account_name] = "未启动"
-        return "⚪ 未启动", account_outputs[account_name]
+        return "⚪ 未启动"
 
 def get_status_backend(account_name):
     proc = account_processes.get(account_name)
@@ -94,7 +98,26 @@ def get_status_backend(account_name):
     return f"🔴 {account_status[account_name]}"
 
 def get_output_backend(account_name):
-    return account_outputs[account_name]
+    """
+    读取日志文件，从最后一个'===============程序开始执行================'行开始，展示到结尾
+    """
+    log_file = get_today_log_path()
+    if not os.path.exists(log_file):
+        return ""
+    start_marker = "===============程序开始执行================"
+    with open(log_file, "r", encoding="utf-8", errors="ignore") as f:
+        lines = f.readlines()
+    # 从最后一行往上找到最新一次start_marker
+    marker_idx = None
+    for idx in range(len(lines)-1, -1, -1):
+        if start_marker in lines[idx]:
+            marker_idx = idx
+            break
+    if marker_idx is not None:
+        return "".join(lines[marker_idx:])
+    else:
+        # 没有分割线就返回最后100行
+        return "".join(lines[-100:])
 
 # ------------------------ 接口路由 ------------------------
 
@@ -127,7 +150,8 @@ def accounts_list():
         account_list.append({
             "name": name,
             "status": account_status.get(name, "未知"),
-            "output": account_outputs.get(name, "")
+            # 输出只读日志最后N行
+            "output": get_output_backend(name)
         })
     return jsonify({"accounts": account_list})
 
@@ -141,8 +165,8 @@ def api_account_start():
     account_name = data.get("account_name")
     if not account_name or account_name not in ACCOUNT_CONFIG_MAP:
         return jsonify({"success": False, "msg": "账户名无效"}), 400
-    status, output = start_account_backend(account_name)
-    return jsonify({"success": "运行中" in status, "status": status, "output": output})
+    status = start_account_backend(account_name)
+    return jsonify({"success": "运行中" in status, "status": status, "output": get_output_backend(account_name)})
 
 @app.route("/account/stop", methods=["POST"])
 def api_account_stop():
@@ -154,8 +178,8 @@ def api_account_stop():
     account_name = data.get("account_name")
     if not account_name or account_name not in ACCOUNT_CONFIG_MAP:
         return jsonify({"success": False, "msg": "账户名无效"}), 400
-    status, output = stop_account_backend(account_name)
-    return jsonify({"success": "已停止" in status, "status": status, "output": output})
+    status = stop_account_backend(account_name)
+    return jsonify({"success": "已停止" in status, "status": status, "output": get_output_backend(account_name)})
 
 @app.route("/account/status", methods=["GET"])
 def api_account_status():

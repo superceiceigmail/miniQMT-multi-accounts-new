@@ -72,6 +72,14 @@
     "market_value": 21626.5
   },
   {
+    "stock_code": "131990.SZ",
+    "stock_name": "未知股票",
+    "volume": 470,
+    "can_use_volume": 0,
+    "avg_price": 100.00010638297873,
+    "market_value": 0.0
+  },
+  {
     "stock_code": "159622.SZ",
     "stock_name": "未知股票",
     "volume": 100,
@@ -142,13 +150,5 @@
     "can_use_volume": 6300,
     "avg_price": 1.349793650793651,
     "market_value": 8706.6
-  },
-  {
-    "stock_code": "131990.SZ",
-    "stock_name": "未知股票",
-    "volume": 470,
-    "can_use_volume": 0,
-    "avg_price": 100.00010638297873,
-    "market_value": 0.0
   }
 ]
