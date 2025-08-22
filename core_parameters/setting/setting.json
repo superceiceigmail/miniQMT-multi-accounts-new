@@ -1,4 +1,14 @@
 {
-  "a": 1,
-  "b": 2
+  "sell_stocks_info": [
+    {
+      "name": "国开债",
+      "ratio": 30.56
+    }
+  ],
+  "buy_stocks_info": [
+    {
+      "name": "银华日利",
+      "ratio": 30.56
+    }
+  ]
 }

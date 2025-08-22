@@ -125,17 +125,15 @@ def get_output_backend(account_name):
 def save_setting():
     """
     保存 setting.json
-    POST body: {"json_text": "<用户粘贴的json字符串>"}
+    POST body: 直接传 json 数据
     """
     try:
         data = request.get_json()
-        json_text = data.get('json_text', '').strip()
-        if not json_text:
+        if not data:
             return jsonify({"success": False, "msg": "内容为空"}), 400
-        obj = json.loads(json_text)
         os.makedirs(os.path.dirname(SETTING_PATH), exist_ok=True)
         with open(SETTING_PATH, 'w', encoding='utf-8') as f:
-            json.dump(obj, f, indent=2, ensure_ascii=False)
+            json.dump(data, f, indent=2, ensure_ascii=False)
         return jsonify({"success": True, "msg": "保存成功！"})
     except Exception as e:
         return jsonify({"success": False, "msg": f"保存失败: {e}"}), 500

@@ -1,117 +1,100 @@
 import gradio as gr
-import subprocess
-import threading
-import psutil
+import requests
 import json
-import os
 
-
-
-# 账户配置
+# ========================
+# 修改这里为你的 Flask 服务地址
+BASE_URL = "http://127.0.0.1:7860"
 ACCOUNT_CONFIG_MAP = {
     "shu": "core_parameters/account/8886006288.json",
     "1234": "core_parameters/account/1234567890.json",
 }
+# ========================
 
-account_processes = {}
-account_status = {k: "未启动" for k in ACCOUNT_CONFIG_MAP}
-account_outputs = {k: "" for k in ACCOUNT_CONFIG_MAP}
-main_script = "main.py"
-
-SETTING_PATH = "core_parameters/setting/setting.json"
-
-def read_output(account_name, proc):
+def get_accounts_list():
+    """获取所有账户状态和输出"""
     try:
-        for line in proc.stdout:
-            account_outputs[account_name] += line
-    except Exception:
-        pass
-    finally:
-        try:
-            proc.stdout.close()
-        except:
-            pass
+        resp = requests.get(f"{BASE_URL}/accounts/list", timeout=3)
+        data = resp.json()
+        return data.get("accounts", [])
+    except Exception as e:
+        # 返回空状态
+        return [{"name": k, "status": "接口异常", "output": ""} for k in ACCOUNT_CONFIG_MAP]
 
 def start_account(account_name):
-    if account_name in account_processes and account_processes[account_name].poll() is None:
-        return "🟢 运行中", account_outputs[account_name]
-    cmd = ["python", "-u", main_script, "-a", account_name]
     try:
-        proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
-        account_processes[account_name] = proc
-        account_status[account_name] = "运行中"
-        account_outputs[account_name] = ""
-        t = threading.Thread(target=read_output, args=(account_name, proc), daemon=True)
-        t.start()
-        return "🟢 运行中", account_outputs[account_name]
+        resp = requests.post(f"{BASE_URL}/account/start", json={"account_name": account_name}, timeout=8)
+        data = resp.json()
+        return data.get("status", "未知"), data.get("output", "")
     except Exception as e:
-        account_status[account_name] = "启动失败"
-        return f"🔴 启动失败: {e}", account_outputs[account_name]
+        return f"❌ 启动接口异常: {e}", ""
 
 def stop_account(account_name):
-    proc = account_processes.get(account_name)
-    if proc and proc.poll() is None:
-        try:
-            parent = psutil.Process(proc.pid)
-            children = parent.children(recursive=True)
-            for child in children:
-                child.terminate()
-            parent.terminate()
-            gone, alive = psutil.wait_procs([parent] + children, timeout=10)
-            for p in alive:
-                p.kill()
-            account_status[account_name] = "已停止"
-            return "⚪ 已停止", account_outputs[account_name]
-        except Exception as e:
-            account_status[account_name] = "停止失败"
-            return f"🔴 停止失败: {e}", account_outputs[account_name]
-    else:
-        account_status[account_name] = "未启动"
-        return "⚪ 未启动", account_outputs[account_name]
+    try:
+        resp = requests.post(f"{BASE_URL}/account/stop", json={"account_name": account_name}, timeout=8)
+        data = resp.json()
+        return data.get("status", "未知"), data.get("output", "")
+    except Exception as e:
+        return f"❌ 停止接口异常: {e}", ""
 
 def get_status(account_name):
-    proc = account_processes.get(account_name)
-    if proc and proc.poll() is None:
-        account_status[account_name] = "运行中"
-        return "🟢 运行中"
-    elif account_status[account_name] not in ("启动失败", "停止失败"):
-        account_status[account_name] = "未启动"
-        return "⚪ 未启动"
-    return f"🔴 {account_status[account_name]}"
+    try:
+        resp = requests.get(f"{BASE_URL}/account/status", params={"account_name": account_name}, timeout=4)
+        data = resp.json()
+        return data.get("status", "未知")
+    except Exception as e:
+        return f"接口异常: {e}"
 
 def get_output(account_name):
-    return account_outputs[account_name]
+    try:
+        resp = requests.get(f"{BASE_URL}/account/output", params={"account_name": account_name}, timeout=4)
+        data = resp.json()
+        return data.get("output", "")
+    except Exception as e:
+        return f"接口异常: {e}"
 
 def refresh_all():
-    return [get_status(account) for account in ACCOUNT_CONFIG_MAP] + [get_output(account) for account in ACCOUNT_CONFIG_MAP]
+    accounts = get_accounts_list()
+    status_list = [acc["status"] for acc in accounts]
+    output_list = [acc["output"] for acc in accounts]
+    return status_list + output_list
 
 def save_setting(json_text):
     try:
-        data = json.loads(json_text)
-        os.makedirs(os.path.dirname(SETTING_PATH), exist_ok=True)
-        with open(SETTING_PATH, "w", encoding="utf-8") as f:
-            json.dump(data, f, indent=2, ensure_ascii=False)
-        return gr.update(value=""), "保存成功！"
+        obj = json.loads(json_text)
     except Exception as e:
-        return gr.update(), f"保存失败: {e}"
+        return gr.update(), f"不是合法的JSON: {e}"
+    try:
+        resp = requests.post(f"{BASE_URL}/setting/save", json=obj, timeout=6)
+        data = resp.json()
+        if data.get("success"):
+            return gr.update(value=""), "保存成功！"
+        return gr.update(), f"保存失败: {data.get('msg', '')}"
+    except Exception as e:
+        return gr.update(), f"保存接口异常: {e}"
 
 with gr.Blocks() as demo:
-    gr.Markdown("### 多账户 miniQMT 管理（每账号一栏 横向排版）")
+    gr.Markdown("### 多账户 miniQMT 管理（每账号一栏 横向排版，所有操作走后端接口）")
 
     with gr.Row():
         refresh_btn = gr.Button("刷新全部状态和输出")
-        # 设置输入框初始高度较低，max_lines=20
         setting_input = gr.Textbox(label="粘贴setting.json内容", lines=2, max_lines=20)
         save_btn = gr.Button("保存setting.json", visible=True)
         save_status = gr.Markdown("")
 
+    # 动态控件
     status_boxes = {}
     output_boxes = {}
 
+    # 取一次初始状态，确定账户列表顺序
+    init_accounts = get_accounts_list()
+    account_names = [acc["name"] for acc in init_accounts] if init_accounts else list(ACCOUNT_CONFIG_MAP.keys())
+
     with gr.Row():
-        for account in ACCOUNT_CONFIG_MAP:
+        for idx, account in enumerate(account_names):
             with gr.Column():
                 gr.Markdown(f"**账户：{account}**")
+                # 初始状态和输出
                 status_md = gr.Markdown(get_status(account))
                 start_btn = gr.Button("启动")
                 stop_btn = gr.Button("停止")
@@ -121,12 +104,12 @@ with gr.Blocks() as demo:
                 start_btn.click(start_account, inputs=[gr.State(account)], outputs=[status_md, output_box])
                 stop_btn.click(stop_account, inputs=[gr.State(account)], outputs=[status_md, output_box])
 
+    # 刷新全部
     refresh_btn.click(
         refresh_all,
-        outputs=list(status_boxes.values()) + list(output_boxes.values())
+        outputs=[*status_boxes.values(), *output_boxes.values()]
     )
 
-    # 输入框有内容才显示保存按钮（美观体验）
     def on_input_change(text):
         return gr.update(visible=bool(text.strip()))
     setting_input.change(on_input_change, inputs=setting_input, outputs=[save_btn])
@@ -134,4 +117,4 @@ with gr.Blocks() as demo:
     save_btn.click(save_setting, inputs=[setting_input], outputs=[setting_input, save_status])
 
 if __name__ == "__main__":
-    demo.launch(server_port=7860)
+    demo.launch(server_port=7861, show_api=False)
