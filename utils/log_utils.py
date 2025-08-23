@@ -89,15 +89,12 @@ class LogCollector:
     def text(self) -> str:
         return "\n".join(self.lines)
 
-def emit(logger: logging.Logger, msg: str, level: str = "info", collector: Optional[LogCollector] = None):
+def emit(logger: logging.Logger, msg: str, level: str = "info", collector: Optional["LogCollector"] = None):
     """
     统一日志输出。level 支持 info/warning/error/debug。
     若传入 collector，则同时收集文本。
     """
     lvl = level.lower()
-    # 新增print，调试期很方便
-    # print(f"[{level.upper()}] {msg}", flush=True)  # 如需极简调试可启用
-
     if lvl == "error":
         logger.error(msg)
     elif lvl == "warning":
@@ -106,6 +103,13 @@ def emit(logger: logging.Logger, msg: str, level: str = "info", collector: Optio
         logger.debug(msg)
     else:
         logger.info(msg)
+
+    # 关键：强制刷新所有 handler，保证日志立即落盘
+    for handler in logger.handlers:
+        try:
+            handler.flush()
+        except Exception:
+            pass
 
     if collector is not None:
         collector.append(msg)

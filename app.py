@@ -42,23 +42,34 @@ def read_last_lines(log_file, n=200):
             return ""
 
 def start_account_backend(account_name):
-    """启动账户进程"""
+    """启动账户进程（无黑框）"""
     if account_name in account_processes and account_processes[account_name].poll() is None:
         return "🟢 运行中"
     cmd = ["python", "-u", main_script, "-a", account_name]
     try:
-        proc = subprocess.Popen(
-            cmd,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
-            text=True,
-            bufsize=1,
-            cwd=os.path.abspath(os.path.dirname(main_script)),
-            creationflags=getattr(subprocess, "CREATE_NEW_CONSOLE", 0)
-        )
+        if os.name == "nt":
+            startupinfo = subprocess.STARTUPINFO()
+            startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+            proc = subprocess.Popen(
+                cmd,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                text=True,
+                bufsize=1,
+                cwd=os.path.abspath(os.path.dirname(main_script)),
+                startupinfo=startupinfo
+            )
+        else:
+            proc = subprocess.Popen(
+                cmd,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                text=True,
+                bufsize=1,
+                cwd=os.path.abspath(os.path.dirname(main_script)),
+            )
         account_processes[account_name] = proc
         account_status[account_name] = "运行中"
-        # 不再单独维护 output
         return "🟢 运行中"
     except Exception as e:
         account_status[account_name] = "启动失败"

@@ -158,9 +158,11 @@ def print_trade_plan(
             "code": norm_code
         })
 
-        emit(logger,
-             f"  - 名称:{name} 代码:{norm_code or '-'} 操作比例:{ratio:.4f} 当前持仓:{volume} 可用:{can_use_volume} 市值:{market_value:.2f} 计划卖出数量:{actual_lots if can_use_volume else 0}",
-             collector=collector)
+        emit(
+            logger,
+            f"  - 名称:{name} 代码:{norm_code or '-'} 操作比例:{ratio:.4f} 当前持仓:{volume} 可用:{can_use_volume} 市值:{market_value:.2f} 计划卖出数量:{actual_lots if can_use_volume else 0}",
+            collector=collector
+        )
 
     emit(logger, "")
     emit(logger, "************************ 买入计划 ************************", collector=collector)
@@ -173,13 +175,21 @@ def print_trade_plan(
         code = stock_code_dict.get(name)
         norm_code = normalize_code(code)
         if not norm_code:
-            emit(logger, f"[错误] 买入计划中【{name}】没有找到有效股票代码，请检查 stock_code_dict 或输入配置！",
-                 level="error", collector=collector)
+            emit(
+                logger,
+                f"[错误] 买入计划中【{name}】没有找到有效股票代码，请检查 stock_code_dict 或输入配置！",
+                level="error",
+                collector=collector
+            )
             raise ValueError(f"买入计划中【{name}】没有找到有效股票代码，程序终止。")
 
         op_money = op_asset * ratio
         buy_total_money += op_money
-        emit(logger, f"  - 名称:{name} 代码:{norm_code} 操作比例:{ratio:.4f} 计划买入金额:{op_money:.2f}", collector=collector)
+        emit(
+            logger,
+            f"  - 名称:{name} 代码:{norm_code} 操作比例:{ratio:.4f} 计划买入金额:{op_money:.2f}",
+            collector=collector
+        )
 
         buy_plan.append({
             "name": name,
@@ -193,8 +203,14 @@ def print_trade_plan(
     emit(logger, f"可用资金：{cash:.2f}，预计卖出回笼资金：{sell_total_money:.2f}，预计买入资金：{buy_total_money:.2f}", collector=collector)
     emit(logger, f"可用+卖出-买入后资金余额：{total_available:.2f}", collector=collector)
     if total_available < 0:
-        emit(logger, f"[错误] 资金不足警告：预计可用资金不足以支持整体交易计划，缺口 {abs(total_available):.2f}", level="error", collector=collector)
+        emit(
+            logger,
+            f"[错误] 资金不足警告：预计可用资金不足以支持整体交易计划，缺口 {abs(total_available):.2f}",
+            level="error",
+            collector=collector
+        )
 
+    # ======================== 日志写入和落盘部分改进 ========================
     if not trade_plan_file:
         folder = "zz_account_tradplan"
         filename = f"trade_plan_{config.get('account_id', '-')}_{trade_date.replace('-', '')}.json"
@@ -204,10 +220,3 @@ def print_trade_plan(
         folder = os.path.dirname(trade_plan_file)
         if folder:
             os.makedirs(folder, exist_ok=True)
-
-    with open(trade_plan_file, 'w', encoding='utf-8') as f:
-        json.dump({"sell": sell_plan, "buy": buy_plan}, f, ensure_ascii=False, indent=4)
-
-    emit(logger, f"交易计划已保存到 {trade_plan_file}", collector=collector)
-
-    return collector.text if collector else None

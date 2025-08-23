@@ -32,14 +32,6 @@
     "market_value": 148881.2
   },
   {
-    "stock_code": "511880.SH",
-    "stock_name": "银华日利",
-    "volume": 0,
-    "can_use_volume": 0,
-    "avg_price": null,
-    "market_value": 0.0
-  },
-  {
     "stock_code": "513080.SH",
     "stock_name": "法国40",
     "volume": 2800,
@@ -126,14 +118,6 @@
     "can_use_volume": 6300,
     "avg_price": 1.7337936507936507,
     "market_value": 11352.6
-  },
-  {
-    "stock_code": "162411.SZ",
-    "stock_name": "未知股票",
-    "volume": 0,
-    "can_use_volume": 0,
-    "avg_price": null,
-    "market_value": 0.0
   },
   {
     "stock_code": "162415.SZ",
