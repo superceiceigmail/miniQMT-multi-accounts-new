@@ -1,6 +1,7 @@
 import gradio as gr
 import requests
 import json
+import os
 
 # ========================
 # 修改这里为你的 Flask 服务地址
@@ -59,6 +60,7 @@ def refresh_all():
     output_list = [acc["output"] for acc in accounts]
     return status_list + output_list
 
+"""
 def save_setting(json_text):
     try:
         obj = json.loads(json_text)
@@ -72,6 +74,21 @@ def save_setting(json_text):
         return gr.update(), f"保存失败: {data.get('msg', '')}"
     except Exception as e:
         return gr.update(), f"保存接口异常: {e}"
+"""
+def save_setting(json_text):
+    try:
+        obj = json.loads(json_text)
+    except Exception as e:
+        return gr.update(), f"不是合法的JSON: {e}"
+    try:
+        save_path = os.path.abspath("core_parameters/setting/setting.json")
+        # 自动创建目录（如果不存在）
+        os.makedirs(os.path.dirname(save_path), exist_ok=True)
+        with open(save_path, "w", encoding="utf-8") as f:
+            json.dump(obj, f, ensure_ascii=False, indent=2)
+        return gr.update(value=""), f"保存成功！文件路径：{save_path}"
+    except Exception as e:
+        return gr.update(), f"保存文件异常: {e}"
 
 with gr.Blocks() as demo:
     gr.Markdown("### 多账户 miniQMT 管理（每账号一栏 横向排版，所有操作走后端接口）")

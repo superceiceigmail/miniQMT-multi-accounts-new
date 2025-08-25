@@ -1,14 +1,9 @@
 {
-  "sell_stocks_info": [
-    {
-      "name": "30年国债",
-      "ratio": 1.56
-    }
-  ],
+  "sell_stocks_info": [],
   "buy_stocks_info": [
     {
       "name": "银华日利",
-      "ratio": 30.56
+      "ratio": 2.52
     }
   ]
 }
