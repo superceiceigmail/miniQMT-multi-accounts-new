@@ -4,10 +4,12 @@ from datetime import datetime, timedelta
 import os
 import json
 import logging
-
+REORDER_RECORD_DIR = "reorder_records"
 def _get_today_reorder_record_file():
     today_str = datetime.now().strftime("%Y%m%d")
-    return f"reorder_record_{today_str}.json"
+    # 自动创建目录（如果不存在）
+    os.makedirs(REORDER_RECORD_DIR, exist_ok=True)
+    return os.path.join(REORDER_RECORD_DIR, f"reorder_record_{today_str}.json")
 
 def load_reorder_record():
     fname = _get_today_reorder_record_file()

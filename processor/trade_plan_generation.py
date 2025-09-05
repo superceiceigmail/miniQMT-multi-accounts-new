@@ -220,3 +220,9 @@ def print_trade_plan(
         folder = os.path.dirname(trade_plan_file)
         if folder:
             os.makedirs(folder, exist_ok=True)
+    with open(trade_plan_file, 'w', encoding='utf-8') as f:
+        json.dump({"sell": sell_plan, "buy": buy_plan}, f, ensure_ascii=False, indent=4)
+
+    emit(logger, f"交易计划已保存到 {trade_plan_file}", collector=collector)
+
+    return collector.text if collector else None

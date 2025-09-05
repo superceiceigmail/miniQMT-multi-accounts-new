@@ -1,9 +1,42 @@
 {
-  "sell_stocks_info": [],
+  "sell_stocks_info": [
+    {
+      "name": "嘉实原油",
+      "ratio": 1.22
+    },
+    {
+      "name": "原油易方达",
+      "ratio": 1.22
+    },
+    {
+      "name": "嘉实原油",
+      "ratio": 1.22
+    },
+    {
+      "name": "30年国债",
+      "ratio": 13.73
+    },
+    {
+      "name": "30年国债指数",
+      "ratio": 29
+    },
+    {
+      "name": "可转债",
+      "ratio": 16.96
+    },
+    {
+      "name": "十年国债",
+      "ratio": 15.26
+    }
+  ],
   "buy_stocks_info": [
     {
-      "name": "银华日利",
-      "ratio": 2.52
+      "name": "黄金LOF",
+      "ratio": 1.22
+    },
+    {
+      "name": "标普信息科技",
+      "ratio": 0.49
     }
   ]
 }
