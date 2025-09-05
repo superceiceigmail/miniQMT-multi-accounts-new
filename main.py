@@ -362,12 +362,12 @@ def main():
 
     scheduler.add_job(
         print_positions_task,
-        trigger=CronTrigger(hour=9, minute=35, second=0),
+        trigger=CronTrigger(hour=14, minute=57, second=0),
         args=[xt_trader, account_id, reverse_mapping, account_asset_info],
         id="print_positions_task",
         replace_existing=True
     )
-    logging.info("定时持仓打印任务定时: 9:35:00")
+    logging.info("定时持仓打印任务定时: 14:57:00")
 
     # 银华日利自动交易任务
     buy_h, buy_m, buy_s = AUTO_BUY_511880_TIME
