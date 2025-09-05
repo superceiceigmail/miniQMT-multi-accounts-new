@@ -1,170 +1,181 @@
-[
-  {
-    "stock_code": "510300.SH",
-    "stock_name": "沪深300",
-    "volume": 2100,
-    "can_use_volume": 2100,
-    "avg_price": 4.617380952380953,
-    "market_value": 9357.6
-  },
-  {
-    "stock_code": "511090.SH",
-    "stock_name": "30年国债",
-    "volume": 700,
-    "can_use_volume": 700,
-    "avg_price": 120.325,
-    "market_value": 85005.20000000001
-  },
-  {
-    "stock_code": "511130.SH",
-    "stock_name": "30年国债指数",
-    "volume": 1700,
-    "can_use_volume": 1700,
-    "avg_price": 108.67294117647059,
-    "market_value": 186178.9
-  },
-  {
-    "stock_code": "511260.SH",
-    "stock_name": "十年国债",
-    "volume": 700,
-    "can_use_volume": 700,
-    "avg_price": 135.74557142857142,
-    "market_value": 95284.0
-  },
-  {
-    "stock_code": "511380.SH",
-    "stock_name": "可转债",
-    "volume": 8100,
-    "can_use_volume": 8100,
-    "avg_price": 13.872012345679012,
-    "market_value": 105826.5
-  },
-  {
-    "stock_code": "513300.SH",
-    "stock_name": "未知股票",
-    "volume": 1000,
-    "can_use_volume": 1000,
-    "avg_price": 1.965,
-    "market_value": 2094.0
-  },
-  {
-    "stock_code": "513520.SH",
-    "stock_name": "日经",
-    "volume": 6200,
-    "can_use_volume": 6200,
-    "avg_price": 1.6018064516129034,
-    "market_value": 9969.6
-  },
-  {
-    "stock_code": "513600.SH",
-    "stock_name": "未知股票",
-    "volume": 3300,
-    "can_use_volume": 3300,
-    "avg_price": 2.9555151515151517,
-    "market_value": 9540.3
-  },
-  {
-    "stock_code": "563000.SH",
-    "stock_name": "未知股票",
-    "volume": 9100,
-    "can_use_volume": 9100,
-    "avg_price": 0.9805494505494505,
-    "market_value": 8881.6
-  },
-  {
-    "stock_code": "131990.SZ",
-    "stock_name": "未知股票",
-    "volume": 0,
-    "can_use_volume": 0,
-    "avg_price": null,
-    "market_value": 0.0
-  },
-  {
-    "stock_code": "159518.SZ",
-    "stock_name": "标普油气",
-    "volume": 5500,
-    "can_use_volume": 5500,
-    "avg_price": 0.9069090909090909,
-    "market_value": 5021.5
-  },
-  {
-    "stock_code": "159622.SZ",
-    "stock_name": "未知股票",
-    "volume": 100,
-    "can_use_volume": 100,
-    "avg_price": 1.2309999999999999,
-    "market_value": 124.9
-  },
-  {
-    "stock_code": "159682.SZ",
-    "stock_name": "未知股票",
-    "volume": 9100,
-    "can_use_volume": 9100,
-    "avg_price": 1.2280989010989012,
-    "market_value": 11402.300000000001
-  },
-  {
-    "stock_code": "160140.SZ",
-    "stock_name": "美国精选",
-    "volume": 4453,
-    "can_use_volume": 4453,
-    "avg_price": 1.2979384684482371,
-    "market_value": 5677.575000000001
-  },
-  {
-    "stock_code": "160719.SZ",
-    "stock_name": "嘉实黄金",
-    "volume": 6700,
-    "can_use_volume": 6700,
-    "avg_price": 1.605507462686567,
-    "market_value": 11329.7
-  },
-  {
-    "stock_code": "160723.SZ",
-    "stock_name": "嘉实原油",
-    "volume": 11000,
-    "can_use_volume": 11000,
-    "avg_price": 1.4269545454545454,
-    "market_value": 15543.0
-  },
-  {
-    "stock_code": "161116.SZ",
-    "stock_name": "黄金主题",
-    "volume": 15400,
-    "can_use_volume": 15400,
-    "avg_price": 1.33472012987013,
-    "market_value": 21128.800000000003
-  },
-  {
-    "stock_code": "161128.SZ",
-    "stock_name": "标普信息科技",
-    "volume": 900,
-    "can_use_volume": 900,
-    "avg_price": 5.414555555555556,
-    "market_value": 4849.2
-  },
-  {
-    "stock_code": "161129.SZ",
-    "stock_name": "原油易方达",
-    "volume": 6600,
-    "can_use_volume": 6600,
-    "avg_price": 1.196757575757576,
-    "market_value": 7675.8
-  },
-  {
-    "stock_code": "162415.SZ",
-    "stock_name": "美国消费",
-    "volume": 2784,
-    "can_use_volume": 2784,
-    "avg_price": 2.723516522988506,
-    "market_value": 8254.56
-  },
-  {
-    "stock_code": "164701.SZ",
-    "stock_name": "黄金LOF",
-    "volume": 6000,
-    "can_use_volume": 6000,
-    "avg_price": 1.35815,
-    "market_value": 8784.0
-  }
-]
+{
+  "last_update": "2025-09-05T09:57:00.020224",
+  "positions": [
+    {
+      "stock_code": "510300.SH",
+      "stock_name": "沪深300",
+      "volume": 2100,
+      "can_use_volume": 2100,
+      "avg_price": 4.617380952380953,
+      "market_value": 9397.500000000002
+    },
+    {
+      "stock_code": "511090.SH",
+      "stock_name": "30年国债",
+      "volume": 0,
+      "can_use_volume": 0,
+      "avg_price": null,
+      "market_value": 0.0
+    },
+    {
+      "stock_code": "511130.SH",
+      "stock_name": "30年国债指数",
+      "volume": 0,
+      "can_use_volume": 0,
+      "avg_price": null,
+      "market_value": 0.0
+    },
+    {
+      "stock_code": "511260.SH",
+      "stock_name": "十年国债",
+      "volume": 0,
+      "can_use_volume": 0,
+      "avg_price": null,
+      "market_value": 0.0
+    },
+    {
+      "stock_code": "511380.SH",
+      "stock_name": "可转债",
+      "volume": 0,
+      "can_use_volume": 0,
+      "avg_price": null,
+      "market_value": 0.0
+    },
+    {
+      "stock_code": "513300.SH",
+      "stock_name": "未知股票",
+      "volume": 1000,
+      "can_use_volume": 1000,
+      "avg_price": 1.965,
+      "market_value": 2114.0
+    },
+    {
+      "stock_code": "513520.SH",
+      "stock_name": "日经",
+      "volume": 6200,
+      "can_use_volume": 6200,
+      "avg_price": 1.6018064516129034,
+      "market_value": 10013.0
+    },
+    {
+      "stock_code": "513600.SH",
+      "stock_name": "未知股票",
+      "volume": 3300,
+      "can_use_volume": 3300,
+      "avg_price": 2.9555151515151517,
+      "market_value": 9589.800000000001
+    },
+    {
+      "stock_code": "563000.SH",
+      "stock_name": "未知股票",
+      "volume": 9100,
+      "can_use_volume": 9100,
+      "avg_price": 0.9805494505494505,
+      "market_value": 8890.699999999999
+    },
+    {
+      "stock_code": "131990.SZ",
+      "stock_name": "未知股票",
+      "volume": 0,
+      "can_use_volume": 0,
+      "avg_price": null,
+      "market_value": 0.0
+    },
+    {
+      "stock_code": "159518.SZ",
+      "stock_name": "标普油气",
+      "volume": 5500,
+      "can_use_volume": 5500,
+      "avg_price": 0.9069090909090909,
+      "market_value": 5087.5
+    },
+    {
+      "stock_code": "159622.SZ",
+      "stock_name": "未知股票",
+      "volume": 0,
+      "can_use_volume": 0,
+      "avg_price": 0.0,
+      "market_value": 0.0
+    },
+    {
+      "stock_code": "159682.SZ",
+      "stock_name": "未知股票",
+      "volume": 9100,
+      "can_use_volume": 9100,
+      "avg_price": 1.2280989010989012,
+      "market_value": 11711.699999999999
+    },
+    {
+      "stock_code": "160140.SZ",
+      "stock_name": "美国精选",
+      "volume": 4453,
+      "can_use_volume": 4453,
+      "avg_price": 1.2979384684482371,
+      "market_value": 5722.105
+    },
+    {
+      "stock_code": "160719.SZ",
+      "stock_name": "嘉实黄金",
+      "volume": 6700,
+      "can_use_volume": 6700,
+      "avg_price": 1.605507462686567,
+      "market_value": 11363.199999999999
+    },
+    {
+      "stock_code": "160723.SZ",
+      "stock_name": "嘉实原油",
+      "volume": 0,
+      "can_use_volume": 0,
+      "avg_price": null,
+      "market_value": 0.0
+    },
+    {
+      "stock_code": "161116.SZ",
+      "stock_name": "黄金主题",
+      "volume": 15400,
+      "can_use_volume": 15400,
+      "avg_price": 1.33472012987013,
+      "market_value": 21221.2
+    },
+    {
+      "stock_code": "161128.SZ",
+      "stock_name": "标普信息科技",
+      "volume": 1400,
+      "can_use_volume": 1400,
+      "avg_price": 5.422571428571429,
+      "market_value": 7614.6
+    },
+    {
+      "stock_code": "161129.SZ",
+      "stock_name": "原油易方达",
+      "volume": 0,
+      "can_use_volume": 0,
+      "avg_price": null,
+      "market_value": 0.0
+    },
+    {
+      "stock_code": "162415.SZ",
+      "stock_name": "美国消费",
+      "volume": 2784,
+      "can_use_volume": 2784,
+      "avg_price": 2.723516522988506,
+      "market_value": 8357.568000000001
+    },
+    {
+      "stock_code": "164701.SZ",
+      "stock_name": "黄金LOF",
+      "volume": 11400,
+      "can_use_volume": 11400,
+      "avg_price": 1.4097105263157896,
+      "market_value": 16689.6
+    },
+    {
+      "stock_code": "511880.SH",
+      "stock_name": "银华日利",
+      "volume": 5000,
+      "can_use_volume": 5000,
+      "avg_price": 100.87,
+      "market_value": 504350.0
+    }
+  ]
+}

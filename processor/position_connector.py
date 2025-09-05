@@ -4,6 +4,7 @@ from tabulate import tabulate
 import os
 import json
 import logging
+import datetime
 
 def print_positions(trader, account_id, code_to_name_dict, account_asset_info):
     """
@@ -67,7 +68,6 @@ def print_positions(trader, account_id, code_to_name_dict, account_asset_info):
             save_dir = "template_account_info"
             save_path = os.path.join(save_dir, "template_account_position_info.json")
             os.makedirs(save_dir, exist_ok=True)
-            # 将positions转为可json序列化的dict列表，处理NaN/Inf为None
             positions_list = []
             for p in positions:
                 avg_price = nan_to_none(getattr(p, "avg_price", 0.0))
@@ -80,8 +80,13 @@ def print_positions(trader, account_id, code_to_name_dict, account_asset_info):
                     "avg_price": avg_price,
                     "market_value": market_value
                 })
+            # 新增更新时间字段
+            data_to_save = {
+                "last_update": datetime.datetime.now().isoformat(),
+                "positions": positions_list
+            }
             with open(save_path, "w", encoding="utf-8") as f:
-                json.dump(positions_list, f, ensure_ascii=False, indent=2)
+                json.dump(data_to_save, f, ensure_ascii=False, indent=2)
 
         logging.info("                                                                         ")
         logging.info("================================账户持仓信息================================")

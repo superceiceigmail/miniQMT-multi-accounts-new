@@ -40,14 +40,20 @@ function getReferenceMarketValue(stockName) {
 
 let stockMarketValueMap = {}, stockPercentMap = {}, assetTotal = 0, cash = 0, marketValue = 0;
 async function loadAccountInfo() {
-  let asset, positions;
+  let asset, positionsData;
   try {
     asset = await fetch('./template_account_info/template_account_asset_info.json?t=' + Date.now()).then(r => r.json());
-    positions = await fetch('./template_account_info/template_account_position_info.json?t=' + Date.now()).then(r => r.json());
+    positionsData = await fetch('./template_account_info/template_account_position_info.json?t=' + Date.now()).then(r => r.json());
   } catch (e) {
     document.getElementById('errormsg').textContent = '读取账户信息失败：' + e;
     return;
   }
+  // 新增：显示更新时间
+  let lastUpdate = positionsData.last_update;
+  document.getElementById('position-update-time').textContent = lastUpdate
+    ? `最后更新时间: ${formatDateTime(lastUpdate)}`
+    : '';
+  let positions = positionsData.positions || [];
   assetTotal = Number(asset.total_asset) || 0;
   cash = Number(asset.cash) || 0;
   marketValue = Number(asset.market_value) || 0;
@@ -834,4 +840,17 @@ window.onload = async function() {
   if (strategySelect.value) loadStrategy();
   renderPlans();
   startAutoRefresh();
+}
+
+// 辅助：格式化时间
+function formatDateTime(dt) {
+  if (!dt) return '';
+  const date = new Date(dt);
+  if (isNaN(date)) return dt;
+  return date.getFullYear() + '-' +
+    String(date.getMonth() + 1).padStart(2, '0') + '-' +
+    String(date.getDate()).padStart(2, '0') + ' ' +
+    String(date.getHours()).padStart(2, '0') + ':' +
+    String(date.getMinutes()).padStart(2, '0') + ':' +
+    String(date.getSeconds()).padStart(2, '0');
 }
