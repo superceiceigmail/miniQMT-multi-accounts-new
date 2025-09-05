@@ -25,23 +25,11 @@ def ensure_qmt_and_connect(config_path, xt_trader, logger=None, connect_max_retr
                 time.sleep(5)
         return False
 
-    # 第一次尝试连接
+    # 尝试连接
     if try_connect(connect_max_retry):
         return True
 
-    # 第一次连接失败，重启QMT
-    with open(config_path, 'r', encoding='utf-8') as f:
-        config = json.load(f)
-    log("连接失败3次，尝试关闭并重启miniQMT...")
-    qmt_restart_program(config["program_name"], config["program_path"])
-    log(f"已重启miniQMT，请在窗口手动登录，程序将在{wait_after_qmt}秒后再次尝试连接...")
-    time.sleep(wait_after_qmt)
-
-    # 第二次尝试连接
-    if try_connect(connect_max_retry):
-        return True
-
-    # 第二次还失败，再重启QMT并重启自身
+    # 失败重启QMT并重启自身
     log("再次连接失败，尝试再次重启miniQMT并即将重启本main账户进程...")
     qmt_restart_program(config["program_name"], config["program_path"])
     log(f"已重启miniQMT，请在窗口手动登录，程序将在{wait_after_qmt}秒后自动重启本main账户进程...")
