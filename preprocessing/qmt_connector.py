@@ -25,6 +25,10 @@ def ensure_qmt_and_connect(config_path, xt_trader, logger=None, connect_max_retr
                 time.sleep(5)
         return False
 
+    # 新增：读取config文件
+    with open(config_path, "r", encoding="utf-8") as f:
+        config = json.load(f)
+
     # 尝试连接
     if try_connect(connect_max_retry):
         return True
