@@ -87,7 +87,12 @@ def print_positions(trader, account_id, code_to_name_dict, account_asset_info):
             }
             with open(save_path, "w", encoding="utf-8") as f:
                 json.dump(data_to_save, f, ensure_ascii=False, indent=2)
-
+             # 额外保存到前端 public 目录
+            fe_save_dir = r"C:\Users\ceicei\PycharmProjects\miniQMT-frontend\public\template_account_info"
+            fe_save_path = os.path.join(fe_save_dir, "template_account_position_info.json")
+            os.makedirs(fe_save_dir, exist_ok=True)
+            with open(fe_save_path, "w", encoding="utf-8") as f:
+                json.dump(data_to_save, f, ensure_ascii=False, indent=2)
         logging.info("                                                                         ")
         logging.info("================================账户持仓信息================================")
         logging.info("\n" + tabulate(table, headers, tablefmt="github", stralign="center"))

@@ -2,7 +2,9 @@ import gradio as gr
 import requests
 import json
 import os
-
+import sys
+print("Python Executable:", sys.executable)
+print("sys.path:", sys.path)
 # ========================
 # 修改这里为你的 Flask 服务地址
 BASE_URL = "http://127.0.0.1:7860"

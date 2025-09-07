@@ -61,6 +61,12 @@ def print_account_asset(trader, account_id):
             }
             with open(save_path, "w", encoding="utf-8") as f:
                 json.dump(asset_dict, f, ensure_ascii=False, indent=2)
+        # 额外保存到前端public目录
+        fe_save_dir = r"C:\Users\ceicei\PycharmProjects\miniQMT-frontend\public\template_account_info"
+        fe_save_path = os.path.join(fe_save_dir, "template_account_asset_info.json")
+        os.makedirs(fe_save_dir, exist_ok=True)
+        with open(fe_save_path, "w", encoding="utf-8") as f:
+            json.dump(asset_dict, f, ensure_ascii=False, indent=2)
 
         # 使用 tabulate 格式化资产表
         headers = ["资金账号", "可用金额", "冻结金额", "持仓市值", "总资产"]
