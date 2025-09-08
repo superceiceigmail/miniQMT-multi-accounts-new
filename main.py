@@ -1,6 +1,9 @@
 try:
     import os
     import sys
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding="utf-8")
+        sys.stderr.reconfigure(encoding="utf-8")
     import logging
     import time
     import json
