@@ -5,6 +5,67 @@ from datetime import date, datetime, timedelta
 import tkinter as tk
 from tkinter import ttk, scrolledtext, messagebox
 
+# Tooltip实现（支持多行）
+class ToolTip:
+    def __init__(self, widget, text_func):
+        self.widget = widget
+        self.text_func = text_func
+        self.tipwindow = None
+        self.id = None
+        self.widget.bind("<Motion>", self.on_motion)
+        self.widget.bind("<Leave>", self.hidetip)
+        self.last_rowcol = (None, None)
+    def showtip(self, text, x, y):
+        if self.tipwindow or not text:
+            return
+        self.tipwindow = tw = tk.Toplevel(self.widget)
+        tw.wm_overrideredirect(1)
+        # 弹窗位置微调
+        tw.wm_geometry("+%d+%d" % (x + 20, y + 20))
+        label = tk.Label(tw, text=text, justify=tk.LEFT,
+                         background="#ffffe0", relief=tk.SOLID, borderwidth=1,
+                         font=("微软雅黑", 10), anchor="w")
+        label.pack(ipadx=1)
+    def hidetip(self, event=None):
+        if self.tipwindow:
+            self.tipwindow.destroy()
+            self.tipwindow = None
+        self.last_rowcol = (None, None)
+    def on_motion(self, event):
+        region = self.widget.identify("region", event.x, event.y)
+        if region != "cell":
+            self.hidetip()
+            return
+        rowid = self.widget.identify_row(event.y)
+        colid = self.widget.identify_column(event.x)
+        if self.last_rowcol == (rowid, colid):
+            return
+        self.last_rowcol = (rowid, colid)
+        if rowid and colid:
+            colnum = int(colid.replace("#", "")) - 1
+            # 只在“功勋内容”/“计划内容”列弹出Tooltip
+            columns = self.widget["columns"]
+            colname = columns[colnum]
+            if colname not in ("content",):
+                self.hidetip()
+                return
+            item = self.widget.item(rowid)
+            values = item.get("values", [])
+            if not values or colnum >= len(values):
+                self.hidetip()
+                return
+            fulltext = self.text_func(rowid, colnum)
+            if not fulltext:
+                self.hidetip()
+                return
+            # 屏幕坐标
+            x = self.widget.winfo_pointerx()
+            y = self.widget.winfo_pointery()
+            self.hidetip()
+            self.showtip(fulltext, x, y)
+        else:
+            self.hidetip()
+
 # 统一数据文件目录
 DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data")
 os.makedirs(DATA_DIR, exist_ok=True)
@@ -12,7 +73,7 @@ DIARY_FILE = os.path.join(DATA_DIR, "diary.json")
 REMIND_FILE = os.path.join(DATA_DIR, "remind.json")
 TODO_FILE = os.path.join(DATA_DIR, "todo.json")
 
-HONOR_CATEGORIES = ["交易", "生活", "娱乐", "写歌", "锻炼"]
+HONOR_CATEGORIES = ["交易","量化", "生活", "娱乐", "写歌", "锻炼"]
 DIARY_PAGE_SIZE = 10
 
 def get_plan_date_choices():
@@ -107,6 +168,30 @@ def get_continuous_days():
     diary_data = load_diary()
     return diary_data.get("continuous_days", 0)
 
+def load_json_file(filename):
+    try:
+        with open(filename, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except Exception:
+        return []
+
+def save_json_file(filename, data):
+    with open(filename, "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
+
+def make_summary(text, length=30):
+    """
+    摘要：优先用第一行，最多length字符，多余加...
+    """
+    text = text.strip().replace('\r\n', '\n').replace('\r', '\n')
+    first_line = text.split('\n', 1)[0]
+    if len(first_line) > length:
+        return first_line[:length] + "..."
+    if len(text) > len(first_line):
+        # 内容有多行，显示第一行+...
+        return first_line + "..."
+    return first_line
+
 class DiaryPage(tk.Frame):
     def __init__(self, master):
         super().__init__(master)
@@ -140,6 +225,13 @@ class DiaryPage(tk.Frame):
         ttk.Entry(honor_attr_frame, textvariable=self.honor_score_var, width=6).pack(side=tk.LEFT, padx=2)
         self.honor_unit_var = tk.StringVar(value="小时")
         ttk.Combobox(honor_attr_frame, textvariable=self.honor_unit_var, values=["小时", "天"], width=6, state="readonly").pack(side=tk.LEFT, padx=2)
+        # 新增项目和标签字段
+        ttk.Label(honor_attr_frame, text="项目:").pack(side=tk.LEFT, padx=(6, 0))
+        self.honor_project_var = tk.StringVar()
+        ttk.Entry(honor_attr_frame, textvariable=self.honor_project_var, width=10).pack(side=tk.LEFT, padx=2)
+        ttk.Label(honor_attr_frame, text="标签:").pack(side=tk.LEFT, padx=(6, 0))
+        self.honor_tags_var = tk.StringVar()
+        ttk.Entry(honor_attr_frame, textvariable=self.honor_tags_var, width=12).pack(side=tk.LEFT, padx=2)
         ttk.Button(honor_attr_frame, text="添加功勋", command=self.add_honor_row).pack(side=tk.LEFT, padx=4)
         ttk.Button(honor_attr_frame, text="删除选中", command=self.del_selected_honor).pack(side=tk.LEFT)
 
@@ -148,25 +240,43 @@ class DiaryPage(tk.Frame):
 
         self.honor_tree = ttk.Treeview(
             honor_frame,
-            columns=("category", "content", "major", "score", "unit"),
+            columns=("category", "content", "major", "score", "unit", "project", "tags"),
             show="headings",
-            height=4
+            height=12
         )
         self.honor_tree.heading("category", text="分类")
         self.honor_tree.heading("content", text="功勋内容")
         self.honor_tree.heading("major", text="重大")
         self.honor_tree.heading("score", text="积分")
         self.honor_tree.heading("unit", text="单位")
+        self.honor_tree.heading("project", text="项目")
+        self.honor_tree.heading("tags", text="标签")
         self.honor_tree.column("category", width=60, anchor="center")
-        self.honor_tree.column("content", width=280, anchor="w")
+        self.honor_tree.column("content", width=185, anchor="w")
         self.honor_tree.column("major", width=44, anchor="center")
         self.honor_tree.column("score", width=56, anchor="center")
         self.honor_tree.column("unit", width=44, anchor="center")
+        self.honor_tree.column("project", width=70, anchor="w")
+        self.honor_tree.column("tags", width=80, anchor="w")
         self.honor_tree.pack(side=tk.LEFT, fill=tk.X, expand=True)
 
         tree_scroll = ttk.Scrollbar(honor_frame, orient="vertical", command=self.honor_tree.yview)
         tree_scroll.pack(side=tk.RIGHT, fill=tk.Y)
         self.honor_tree.configure(yscrollcommand=tree_scroll.set)
+
+        self.honor_tree.bind("<Double-1>", self.on_honor_tree_row_edit)
+
+        # Tooltip for honor_tree
+        def get_honor_fulltext(rowid, colnum):
+            item = self.honor_tree.item(rowid)
+            vals = item.get("values", [])
+            if not vals: return ""
+            # 我们内容存在self._honor_fulltext_map
+            if hasattr(self, "_honor_fulltext_map"):
+                return self._honor_fulltext_map.get(rowid, "")
+            # 兼容旧方式
+            return vals[1]
+        ToolTip(self.honor_tree, get_honor_fulltext)
 
         plan_labelframe = ttk.LabelFrame(diary_entry_frame, text="后续计划（可多条）", padding=(4, 4))
         plan_labelframe.pack(fill=tk.X, pady=(10, 0))
@@ -199,7 +309,7 @@ class DiaryPage(tk.Frame):
             plan_frame,
             columns=("content", "priority", "date", "time"),
             show="headings",
-            height=4
+            height=12
         )
         self.plan_tree.heading("content", text="计划内容")
         self.plan_tree.heading("priority", text="优先级")
@@ -215,6 +325,18 @@ class DiaryPage(tk.Frame):
         plan_tree_scroll.pack(side=tk.RIGHT, fill=tk.Y)
         self.plan_tree.configure(yscrollcommand=plan_tree_scroll.set)
 
+        self.plan_tree.bind("<Double-1>", self.on_plan_tree_row_edit)
+
+        # Tooltip for plan_tree
+        def get_plan_fulltext(rowid, colnum):
+            item = self.plan_tree.item(rowid)
+            vals = item.get("values", [])
+            if not vals: return ""
+            if hasattr(self, "_plan_fulltext_map"):
+                return self._plan_fulltext_map.get(rowid, "")
+            return vals[0]
+        ToolTip(self.plan_tree, get_plan_fulltext)
+
         label3 = ttk.Label(diary_entry_frame, text="要点和心得：")
         label3.pack(anchor="w", pady=(8, 0))
         self.rules_text = scrolledtext.ScrolledText(diary_entry_frame, height=2, width=40, font=("Consolas", 10),
@@ -226,8 +348,8 @@ class DiaryPage(tk.Frame):
         self.today_remind_frame.pack(fill=tk.X, pady=(4, 0))
         self.today_remind_label = ttk.Label(self.today_remind_frame, font=("微软雅黑", 11, "bold"), foreground="#b22222")
         self.today_remind_label.pack(anchor="w", padx=0, pady=0)
-        self.today_remind_listbox = tk.Listbox(self.today_remind_frame, height=3, font=("微软雅黑", 10), fg="#b22222", borderwidth=0, highlightthickness=0)
-        self.today_remind_listbox.pack(fill=tk.X, padx=0, pady=0)
+        self.today_remind_items_frame = ttk.Frame(self.today_remind_frame)
+        self.today_remind_items_frame.pack(fill=tk.X, padx=0, pady=0)
 
         self.followed_var = tk.BooleanVar(value=True)
         diary_check = ttk.Checkbutton(diary_entry_frame, text="是否按照策略规划配置和执行", variable=self.followed_var)
@@ -255,6 +377,43 @@ class DiaryPage(tk.Frame):
         # 初始禁用时间选择框（如果初始为待定）
         self.on_plan_date_change()
 
+    def on_honor_tree_row_edit(self, event):
+        item_id = self.honor_tree.identify_row(event.y)
+        if not item_id:
+            return
+        vals = self.honor_tree.item(item_id, "values")
+        if not vals:
+            return
+        self.honor_cat_var.set(vals[0])
+        # 通过 fulltext_map 还原原文
+        fulltext = self._honor_fulltext_map.get(item_id, vals[1])
+        self.honor_content_text.delete("1.0", tk.END)
+        self.honor_content_text.insert("1.0", fulltext)
+        self.honor_major_var.set(vals[2] == "是")
+        self.honor_score_var.set(vals[3])
+        self.honor_unit_var.set(vals[4])
+        self.honor_project_var.set(vals[5])
+        self.honor_tags_var.set(vals[6])
+        self.honor_tree.delete(item_id)
+        self._honor_fulltext_map.pop(item_id, None)
+
+    def on_plan_tree_row_edit(self, event):
+        item_id = self.plan_tree.identify_row(event.y)
+        if not item_id:
+            return
+        vals = self.plan_tree.item(item_id, "values")
+        if not vals:
+            return
+        fulltext = self._plan_fulltext_map.get(item_id, vals[0])
+        self.plan_content_text.delete("1.0", tk.END)
+        self.plan_content_text.insert("1.0", fulltext)
+        self.plan_priority_var.set(vals[1])
+        self.plan_date_var.set(vals[2])
+        self.plan_time_var.set(vals[3])
+        self.on_plan_date_change()
+        self.plan_tree.delete(item_id)
+        self._plan_fulltext_map.pop(item_id, None)
+
     def on_plan_date_change(self, event=None):
         date_label = self.plan_date_var.get()
         if date_label == "待定":
@@ -269,6 +428,8 @@ class DiaryPage(tk.Frame):
         major = "是" if self.honor_major_var.get() else ""
         score = self.honor_score_var.get().strip()
         unit = self.honor_unit_var.get()
+        project = self.honor_project_var.get().strip()
+        tags = self.honor_tags_var.get().strip()
         if not content:
             messagebox.showwarning("提示", "请填写功勋内容")
             return
@@ -277,15 +438,24 @@ class DiaryPage(tk.Frame):
         except ValueError:
             messagebox.showwarning("提示", "积分请输入数字")
             return
-        self.honor_tree.insert("", tk.END, values=(cat, content, major, score, unit))
+        summary = make_summary(content)
+        iid = self.honor_tree.insert("", tk.END, values=(cat, summary, major, score, unit, project, tags))
+        # 记录原文
+        if not hasattr(self, "_honor_fulltext_map"):
+            self._honor_fulltext_map = {}
+        self._honor_fulltext_map[iid] = content
         self.honor_content_text.delete("1.0", tk.END)
         self.honor_major_var.set(False)
         self.honor_score_var.set("")
         self.honor_unit_var.set("小时")
+        self.honor_project_var.set("")
+        self.honor_tags_var.set("")
 
     def del_selected_honor(self):
         for item in self.honor_tree.selection():
             self.honor_tree.delete(item)
+            if hasattr(self, "_honor_fulltext_map"):
+                self._honor_fulltext_map.pop(item, None)
 
     def add_plan_row(self):
         content = self.plan_content_text.get("1.0", tk.END).strip()
@@ -295,20 +465,25 @@ class DiaryPage(tk.Frame):
         if not content:
             messagebox.showwarning("提示", "请填写计划内容")
             return
-        # 禁止待定日期时填写时间
         if date_label == "待定" and time_str:
             messagebox.showwarning("提示", "开始日期为待定时，不能填写开始时间")
             return
-        self.plan_tree.insert("", tk.END, values=(content, priority, date_label, time_str))
+        summary = make_summary(content)
+        iid = self.plan_tree.insert("", tk.END, values=(summary, priority, date_label, time_str))
+        if not hasattr(self, "_plan_fulltext_map"):
+            self._plan_fulltext_map = {}
+        self._plan_fulltext_map[iid] = content
         self.plan_content_text.delete("1.0", tk.END)
         self.plan_priority_var.set("3")
         self.plan_date_var.set(self.plan_date_choices[0])
         self.plan_time_var.set("")
-        self.on_plan_date_change()  # 保持时间输入框状态同步
+        self.on_plan_date_change()
 
     def del_selected_plan(self):
         for item in self.plan_tree.selection():
             self.plan_tree.delete(item)
+            if hasattr(self, "_plan_fulltext_map"):
+                self._plan_fulltext_map.pop(item, None)
 
     def load_today_content(self):
         today_str = date.today().isoformat()
@@ -316,6 +491,8 @@ class DiaryPage(tk.Frame):
         rec = next((r for r in diary_data["records"] if r["date"] == today_str), None)
         self.honor_tree.delete(*self.honor_tree.get_children())
         self.plan_tree.delete(*self.plan_tree.get_children())
+        self._honor_fulltext_map = {}
+        self._plan_fulltext_map = {}
         if rec:
             honors = rec.get("honor", [])
             if isinstance(honors, str):
@@ -324,20 +501,28 @@ class DiaryPage(tk.Frame):
                     "content": honors,
                     "major": False,
                     "score": 0,
-                    "unit": "小时"
+                    "unit": "小时",
+                    "project": "",
+                    "tags": ""
                 }]
             for honor in honors:
-                self.honor_tree.insert("", tk.END, values=(
+                summary = make_summary(honor.get("content", ""))
+                iid = self.honor_tree.insert("", tk.END, values=(
                     honor.get("category", HONOR_CATEGORIES[0]),
-                    honor.get("content", ""),
+                    summary,
                     "是" if honor.get("major") else "",
                     honor.get("score", ""),
                     honor.get("unit", "小时"),
+                    honor.get("project", ""),
+                    honor.get("tags", "")
                 ))
+                self._honor_fulltext_map[iid] = honor.get("content", "")
             plans = rec.get("plan", [])
             if isinstance(plans, str):
                 if plans:
-                    self.plan_tree.insert("", tk.END, values=(plans, "3", "待定", ""))
+                    summary = make_summary(plans)
+                    iid = self.plan_tree.insert("", tk.END, values=(summary, "3", "待定", ""))
+                    self._plan_fulltext_map[iid] = plans
             elif isinstance(plans, list):
                 for plan in plans:
                     date_label = "待定"
@@ -358,12 +543,14 @@ class DiaryPage(tk.Frame):
                         except:
                             date_label = plan.get("start_date", "待定")
                     time_value = plan.get("start_time", "")
-                    self.plan_tree.insert("", tk.END, values=(
-                        plan.get("content", ""),
+                    summary = make_summary(plan.get("content", ""))
+                    iid = self.plan_tree.insert("", tk.END, values=(
+                        summary,
                         str(plan.get("priority", 3)),
                         date_label,
                         time_value
                     ))
+                    self._plan_fulltext_map[iid] = plan.get("content", "")
             self.rules_text.delete(1.0, tk.END)
             self.rules_text.insert(tk.END, rec.get("rules", ""))
             self.followed_var.set(rec.get("followed_plan", True))
@@ -375,17 +562,21 @@ class DiaryPage(tk.Frame):
     def save_today(self):
         honors = []
         for row in self.honor_tree.get_children():
-            cat, content, major, score, unit = self.honor_tree.item(row, "values")
+            cat, summary, major, score, unit, project, tags = self.honor_tree.item(row, "values")
+            content = self._honor_fulltext_map.get(row, summary)
             honors.append({
                 "category": cat,
                 "content": content,
                 "major": (major == "是"),
                 "score": float(score) if score else 0,
-                "unit": unit
+                "unit": unit,
+                "project": project,
+                "tags": tags
             })
         plans = []
         for row in self.plan_tree.get_children():
-            content, priority, date_label, time_value = self.plan_tree.item(row, "values")
+            summary, priority, date_label, time_value = self.plan_tree.item(row, "values")
+            content = self._plan_fulltext_map.get(row, summary)
             if date_label == "待定":
                 date_value = ""
             else:
@@ -408,26 +599,29 @@ class DiaryPage(tk.Frame):
         if not honors and not plans and not rules:
             messagebox.showwarning("提示", "请填写至少一项内容！")
             return
-        add_diary_record(honors, plans, rules, followed)
         self.save_plan_to_remind_and_todo(plans)
+        add_diary_record(honors, plans, rules, followed)
         self.update_encourage()
         self.load_diary_page()
         self.update_today_remind()
         messagebox.showinfo("保存成功", "今日交易日记已保存！")
 
     def save_plan_to_remind_and_todo(self, plans):
-        remind = []
-        todo = []
+        today = date.today().isoformat()
+        old_remind = load_json_file(REMIND_FILE)
+        old_todo = load_json_file(TODO_FILE)
+        remind = [item for item in old_remind if item.get("created_date") != today]
+        todo = [item for item in old_todo if item.get("created_date") != today]
         for plan in plans:
+            plan_copy = plan.copy()
+            plan_copy["created_date"] = today
             if plan.get("start_date"):
-                remind.append(plan)
+                plan_copy["status"] = plan_copy.get("status", "")
+                remind.append(plan_copy)
             else:
-                todo.append(plan)
-        def save_json(filename, data):
-            with open(filename, "w", encoding="utf-8") as f:
-                json.dump(data, f, ensure_ascii=False, indent=2)
-        save_json(REMIND_FILE, remind)
-        save_json(TODO_FILE, todo)
+                todo.append(plan_copy)
+        save_json_file(REMIND_FILE, remind)
+        save_json_file(TODO_FILE, todo)
 
     def update_encourage(self):
         days = get_continuous_days()
@@ -439,29 +633,51 @@ class DiaryPage(tk.Frame):
 
     def update_today_remind(self):
         today = date.today().isoformat()
+        for widget in self.today_remind_items_frame.winfo_children():
+            widget.destroy()
         remind_list = []
+        remind_data = []
         if os.path.exists(REMIND_FILE):
             with open(REMIND_FILE, "r", encoding="utf-8") as f:
                 try:
                     data = json.load(f)
-                    for plan in data:
-                        if plan.get("start_date") == today:
+                    remind_data = data
+                    for idx, plan in enumerate(data):
+                        if plan.get("created_date") == today and plan.get("start_date") == today and plan.get("status", "") != "已知悉":
                             time_str = plan.get("start_time", "")
                             content = plan.get("content", "")
-                            if time_str:
-                                remind_list.append(f"{time_str} - {content}")
-                            else:
-                                remind_list.append(f"{content}")
+                            item = {
+                                "index": idx,
+                                "text": f"{time_str + ' - ' if time_str else ''}{content}",
+                            }
+                            remind_list.append(item)
                 except Exception:
                     pass
-        self.today_remind_listbox.delete(0, tk.END)
         if remind_list:
             self.today_remind_label.config(text="今日提醒：")
             for item in remind_list:
-                self.today_remind_listbox.insert(tk.END, item)
+                row_frame = ttk.Frame(self.today_remind_items_frame)
+                row_frame.pack(fill=tk.X, pady=1, anchor="w")
+                label = ttk.Label(row_frame, text=item["text"], font=("微软雅黑", 10), foreground="#b22222")
+                label.pack(side=tk.LEFT, padx=(0,8))
+                btn = ttk.Button(row_frame, text="知道了", width=7,
+                                 command=lambda idx=item["index"]: self.acknowledge_remind(idx))
+                btn.pack(side=tk.LEFT)
         else:
             self.today_remind_label.config(text="")
-            self.today_remind_listbox.delete(0, tk.END)
+
+    def acknowledge_remind(self, idx):
+        if os.path.exists(REMIND_FILE):
+            with open(REMIND_FILE, "r", encoding="utf-8") as f:
+                try:
+                    data = json.load(f)
+                    if 0 <= idx < len(data):
+                        data[idx]["status"] = "已知悉"
+                        with open(REMIND_FILE, "w", encoding="utf-8") as wf:
+                            json.dump(data, wf, ensure_ascii=False, indent=2)
+                except Exception:
+                    pass
+        self.update_today_remind()
 
     def load_diary_page(self):
         records, total_pages = get_diary_page(self.page)
@@ -481,16 +697,22 @@ class DiaryPage(tk.Frame):
                         "content": honors,
                         "major": False,
                         "score": 0,
-                        "unit": "小时"
+                        "unit": "小时",
+                        "project": "",
+                        "tags": ""
                     }]
                 if honors:
                     for idx, honor in enumerate(honors, 1):
+                        content = honor.get("content", "")
                         self.diary_list.insert(
                             tk.END,
-                            f'  {idx}. {honor.get("content", "")}\n'
+                            f'  {idx}. {content}\n'
                             f'      [{honor.get("category", "")}]'
                             f'{"[重大]" if honor.get("major") else ""} '
-                            f'({honor.get("score", 0)}{honor.get("unit", "")})\n'
+                            f'({honor.get("score", 0)}{honor.get("unit", "")})'
+                            + (f' 项目:{honor.get("project","")}' if honor.get("project","") else "")
+                            + (f' 标签:{honor.get("tags","")}' if honor.get("tags","") else "")
+                            + "\n"
                         )
                 else:
                     self.diary_list.insert(tk.END, "  无\n")
@@ -520,6 +742,7 @@ class DiaryPage(tk.Frame):
                             except:
                                 date_label = plan.get("start_date", "待定")
                         time_value = plan.get("start_time", "")
+                        content = plan.get("content", "")
                         if not plan.get("start_date"):
                             showtime = "待定"
                         elif not time_value:
@@ -528,7 +751,7 @@ class DiaryPage(tk.Frame):
                             showtime = f"{date_label} {time_value}"
                         self.diary_list.insert(
                             tk.END,
-                            f'  {idx}. {plan.get("content", "")}\n'
+                            f'  {idx}. {content}\n'
                             f'      优先级:{plan.get("priority", 3)}  开始:{showtime}\n'
                         )
                 else:
