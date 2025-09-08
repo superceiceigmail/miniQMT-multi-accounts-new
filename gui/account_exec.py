@@ -1,9 +1,10 @@
 import os
 import subprocess
 import threading
-import tkinter as tk
-from tkinter import scrolledtext, messagebox
-from tkinter import ttk
+import ttkbootstrap as tb
+from ttkbootstrap.constants import *
+from ttkbootstrap.scrolled import ScrolledText
+from tkinter import messagebox
 
 MAIN_SCRIPT = "main.py"  # 注意：可根据实际后端文件调整路径
 
@@ -79,31 +80,31 @@ class AccountProcess:
 
     def update_log(self):
         log = self.get_log(100)
-        self.widgets["log_text"].delete(1.0, tk.END)
-        self.widgets["log_text"].insert(tk.END, log)
-        self.widgets["log_text"].see(tk.END)
+        self.widgets["log_text"].delete(1.0, "end")
+        self.widgets["log_text"].insert("end", log)
+        self.widgets["log_text"].see("end")
 
     def update_status(self):
         self.widgets["status"].config(text=self.status())
 
 def build_account_frame(root, acc, config):
-    frame = ttk.LabelFrame(root, text=f"账户：{acc}", padding=(10,8))
-    frame.pack(side=tk.LEFT, padx=10, pady=10, fill=tk.BOTH, expand=True)
+    frame = tb.LabelFrame(root, text=f"账户：{acc}", padding=(10,8))
+    frame.pack(side=LEFT, padx=10, pady=10, fill=BOTH, expand=True)
 
-    status_label = ttk.Label(frame, text="未启动", foreground="#2779aa", font=("微软雅黑", 10, "bold"))
+    status_label = tb.Label(frame, text="未启动", foreground="#2779aa", font=("微软雅黑", 10, "bold"))
     status_label.pack(anchor="w", pady=2)
-    btn_frame = ttk.Frame(frame)
-    btn_frame.pack(fill=tk.X, pady=3)
-    btn_start = ttk.Button(btn_frame, text="启动", width=10)
-    btn_stop = ttk.Button(btn_frame, text="停止", width=10)
-    btn_start.pack(side=tk.LEFT, padx=3)
-    btn_stop.pack(side=tk.LEFT, padx=3)
+    btn_frame = tb.Frame(frame)
+    btn_frame.pack(fill=X, pady=3)
+    btn_start = tb.Button(btn_frame, text="启动", width=10, bootstyle="success-outline")
+    btn_stop = tb.Button(btn_frame, text="停止", width=10, bootstyle="danger-outline")
+    btn_start.pack(side=LEFT, padx=3)
+    btn_stop.pack(side=LEFT, padx=3)
 
-    log_label = ttk.Label(frame, text="日志窗口：")
+    log_label = tb.Label(frame, text="日志窗口：")
     log_label.pack(anchor="w", pady=(6,0))
-    log_text = scrolledtext.ScrolledText(frame, height=10, width=50, font=("Consolas", 10), background="#f7f7fa")
-    log_text.pack(fill=tk.BOTH, expand=True, pady=2)
-    btn_refresh = ttk.Button(frame, text="刷新日志")
+    log_text = ScrolledText(frame, height=10, width=50, font=("Consolas", 10), bootstyle="light")
+    log_text.pack(fill=BOTH, expand=True, pady=2)
+    btn_refresh = tb.Button(frame, text="刷新日志", bootstyle="info-outline")
     btn_refresh.pack(pady=2)
 
     widgets = {"status": status_label, "log_text": log_text}

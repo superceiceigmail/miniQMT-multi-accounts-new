@@ -2,8 +2,10 @@ import os
 import json
 import re
 from datetime import date, datetime, timedelta
-import tkinter as tk
-from tkinter import ttk, scrolledtext, messagebox
+import ttkbootstrap as tb
+from ttkbootstrap.constants import *
+from ttkbootstrap.scrolled import ScrolledText
+from tkinter import messagebox
 
 # Tooltip实现（支持多行）
 class ToolTip:
@@ -18,12 +20,11 @@ class ToolTip:
     def showtip(self, text, x, y):
         if self.tipwindow or not text:
             return
-        self.tipwindow = tw = tk.Toplevel(self.widget)
+        self.tipwindow = tw = tb.Toplevel(self.widget)
         tw.wm_overrideredirect(1)
-        # 弹窗位置微调
         tw.wm_geometry("+%d+%d" % (x + 20, y + 20))
-        label = tk.Label(tw, text=text, justify=tk.LEFT,
-                         background="#ffffe0", relief=tk.SOLID, borderwidth=1,
+        label = tb.Label(tw, text=text, justify=LEFT,
+                         background="#ffffe0", relief="solid", borderwidth=1,
                          font=("微软雅黑", 10), anchor="w")
         label.pack(ipadx=1)
     def hidetip(self, event=None):
@@ -43,7 +44,6 @@ class ToolTip:
         self.last_rowcol = (rowid, colid)
         if rowid and colid:
             colnum = int(colid.replace("#", "")) - 1
-            # 只在“功勋内容”/“计划内容”列弹出Tooltip
             columns = self.widget["columns"]
             colname = columns[colnum]
             if colname not in ("content",):
@@ -58,7 +58,6 @@ class ToolTip:
             if not fulltext:
                 self.hidetip()
                 return
-            # 屏幕坐标
             x = self.widget.winfo_pointerx()
             y = self.widget.winfo_pointery()
             self.hidetip()
@@ -80,7 +79,7 @@ def get_plan_date_choices():
     today = date.today()
     week_days = ['一', '二', '三', '四', '五', '六', '日']
     choices = ["待定"]
-    for i in range(0, 10):  # 今天+后9天
+    for i in range(0, 10):
         d = today + timedelta(days=i)
         if i == 0:
             label = f"今天({d.month:02d}月{d.day:02d}日)"
@@ -180,19 +179,15 @@ def save_json_file(filename, data):
         json.dump(data, f, ensure_ascii=False, indent=2)
 
 def make_summary(text, length=30):
-    """
-    摘要：优先用第一行，最多length字符，多余加...
-    """
     text = text.strip().replace('\r\n', '\n').replace('\r', '\n')
     first_line = text.split('\n', 1)[0]
     if len(first_line) > length:
         return first_line[:length] + "..."
     if len(text) > len(first_line):
-        # 内容有多行，显示第一行+...
         return first_line + "..."
     return first_line
 
-class DiaryPage(tk.Frame):
+class DiaryPage(tb.Frame):
     def __init__(self, master):
         super().__init__(master)
         self.page = 1
@@ -202,43 +197,40 @@ class DiaryPage(tk.Frame):
         self.update_today_remind()
 
     def create_widgets(self):
-        main_frame = ttk.Frame(self)
-        main_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=8)
+        main_frame = tb.Frame(self)
+        main_frame.pack(fill=BOTH, expand=True, padx=10, pady=8)
         main_frame.pack_propagate(0)
 
-        # 左侧输入区
-        diary_entry_frame = ttk.LabelFrame(main_frame, text="今日交易日记（结构化）", padding=(10, 8))
-        diary_entry_frame.pack(side=tk.LEFT, fill=tk.Y, expand=False, padx=(0, 8))
+        diary_entry_frame = tb.LabelFrame(main_frame, text="今日交易日记（结构化）", padding=(10, 8))
+        diary_entry_frame.pack(side=LEFT, fill=Y, expand=False, padx=(0, 8))
 
-        # 功勋内容输入框（单独一行）
-        ttk.Label(diary_entry_frame, text="功勋内容：").pack(anchor="w", pady=(2, 0))
-        self.honor_content_text = scrolledtext.ScrolledText(diary_entry_frame, height=3, width=40, font=("微软雅黑", 10))
-        self.honor_content_text.pack(fill=tk.X, padx=0, pady=(0,2))
-        # 分类/重大/积分/单位等属性区（单独一行）
-        honor_attr_frame = ttk.Frame(diary_entry_frame)
-        honor_attr_frame.pack(fill=tk.X, pady=2)
-        self.honor_cat_var = tk.StringVar(value=HONOR_CATEGORIES[0])
-        ttk.Combobox(honor_attr_frame, textvariable=self.honor_cat_var, values=HONOR_CATEGORIES, width=8, state="readonly").pack(side=tk.LEFT)
-        self.honor_major_var = tk.BooleanVar()
-        ttk.Checkbutton(honor_attr_frame, text="重大", variable=self.honor_major_var).pack(side=tk.LEFT, padx=2)
-        self.honor_score_var = tk.StringVar()
-        ttk.Entry(honor_attr_frame, textvariable=self.honor_score_var, width=6).pack(side=tk.LEFT, padx=2)
-        self.honor_unit_var = tk.StringVar(value="小时")
-        ttk.Combobox(honor_attr_frame, textvariable=self.honor_unit_var, values=["小时", "天"], width=6, state="readonly").pack(side=tk.LEFT, padx=2)
-        # 新增项目和标签字段
-        ttk.Label(honor_attr_frame, text="项目:").pack(side=tk.LEFT, padx=(6, 0))
-        self.honor_project_var = tk.StringVar()
-        ttk.Entry(honor_attr_frame, textvariable=self.honor_project_var, width=10).pack(side=tk.LEFT, padx=2)
-        ttk.Label(honor_attr_frame, text="标签:").pack(side=tk.LEFT, padx=(6, 0))
-        self.honor_tags_var = tk.StringVar()
-        ttk.Entry(honor_attr_frame, textvariable=self.honor_tags_var, width=12).pack(side=tk.LEFT, padx=2)
-        ttk.Button(honor_attr_frame, text="添加功勋", command=self.add_honor_row).pack(side=tk.LEFT, padx=4)
-        ttk.Button(honor_attr_frame, text="删除选中", command=self.del_selected_honor).pack(side=tk.LEFT)
+        tb.Label(diary_entry_frame, text="功勋内容：").pack(anchor="w", pady=(2, 0))
+        self.honor_content_text = ScrolledText(diary_entry_frame, height=3, width=40, font=("微软雅黑", 10))
+        self.honor_content_text.pack(fill=X, padx=0, pady=(0,2))
 
-        honor_frame = ttk.Frame(diary_entry_frame)
-        honor_frame.pack(fill=tk.X, pady=(2, 0))
+        honor_attr_frame = tb.Frame(diary_entry_frame)
+        honor_attr_frame.pack(fill=X, pady=2)
+        self.honor_cat_var = tb.StringVar(value=HONOR_CATEGORIES[0])
+        tb.Combobox(honor_attr_frame, textvariable=self.honor_cat_var, values=HONOR_CATEGORIES, width=8, state="readonly").pack(side=LEFT)
+        self.honor_major_var = tb.BooleanVar()
+        tb.Checkbutton(honor_attr_frame, text="重大", variable=self.honor_major_var).pack(side=LEFT, padx=2)
+        self.honor_score_var = tb.StringVar()
+        tb.Entry(honor_attr_frame, textvariable=self.honor_score_var, width=6).pack(side=LEFT, padx=2)
+        self.honor_unit_var = tb.StringVar(value="小时")
+        tb.Combobox(honor_attr_frame, textvariable=self.honor_unit_var, values=["小时", "天"], width=6, state="readonly").pack(side=LEFT, padx=2)
+        tb.Label(honor_attr_frame, text="项目:").pack(side=LEFT, padx=(6, 0))
+        self.honor_project_var = tb.StringVar()
+        tb.Entry(honor_attr_frame, textvariable=self.honor_project_var, width=10).pack(side=LEFT, padx=2)
+        tb.Label(honor_attr_frame, text="标签:").pack(side=LEFT, padx=(6, 0))
+        self.honor_tags_var = tb.StringVar()
+        tb.Entry(honor_attr_frame, textvariable=self.honor_tags_var, width=12).pack(side=LEFT, padx=2)
+        tb.Button(honor_attr_frame, text="添加功勋", command=self.add_honor_row, bootstyle="success-outline").pack(side=LEFT, padx=4)
+        tb.Button(honor_attr_frame, text="删除选中", command=self.del_selected_honor, bootstyle="danger-outline").pack(side=LEFT)
 
-        self.honor_tree = ttk.Treeview(
+        honor_frame = tb.Frame(diary_entry_frame)
+        honor_frame.pack(fill=X, pady=(2, 0))
+
+        self.honor_tree = tb.Treeview(
             honor_frame,
             columns=("category", "content", "major", "score", "unit", "project", "tags"),
             show="headings",
@@ -258,54 +250,49 @@ class DiaryPage(tk.Frame):
         self.honor_tree.column("unit", width=44, anchor="center")
         self.honor_tree.column("project", width=70, anchor="w")
         self.honor_tree.column("tags", width=80, anchor="w")
-        self.honor_tree.pack(side=tk.LEFT, fill=tk.X, expand=True)
+        self.honor_tree.pack(side=LEFT, fill=X, expand=True)
 
-        tree_scroll = ttk.Scrollbar(honor_frame, orient="vertical", command=self.honor_tree.yview)
-        tree_scroll.pack(side=tk.RIGHT, fill=tk.Y)
+        tree_scroll = tb.Scrollbar(honor_frame, orient="vertical", command=self.honor_tree.yview)
+        tree_scroll.pack(side=RIGHT, fill=Y)
         self.honor_tree.configure(yscrollcommand=tree_scroll.set)
 
         self.honor_tree.bind("<Double-1>", self.on_honor_tree_row_edit)
 
-        # Tooltip for honor_tree
         def get_honor_fulltext(rowid, colnum):
             item = self.honor_tree.item(rowid)
             vals = item.get("values", [])
             if not vals: return ""
-            # 我们内容存在self._honor_fulltext_map
             if hasattr(self, "_honor_fulltext_map"):
                 return self._honor_fulltext_map.get(rowid, "")
-            # 兼容旧方式
             return vals[1]
         ToolTip(self.honor_tree, get_honor_fulltext)
 
-        plan_labelframe = ttk.LabelFrame(diary_entry_frame, text="后续计划（可多条）", padding=(4, 4))
-        plan_labelframe.pack(fill=tk.X, pady=(10, 0))
+        plan_labelframe = tb.LabelFrame(diary_entry_frame, text="后续计划（可多条）", padding=(4, 4))
+        plan_labelframe.pack(fill=X, pady=(10, 0))
 
-        # 计划内容输入框（单独一行）
-        ttk.Label(plan_labelframe, text="计划内容：").pack(anchor="w", pady=(2, 0))
-        self.plan_content_text = scrolledtext.ScrolledText(plan_labelframe, height=3, width=35, font=("微软雅黑", 10))
-        self.plan_content_text.pack(fill=tk.X, padx=0, pady=(0,2))
-        # 优先级/日期/时间等属性区（单独一行）
-        plan_attr_frame = ttk.Frame(plan_labelframe)
-        plan_attr_frame.pack(fill=tk.X, pady=2)
-        self.plan_priority_var = tk.StringVar(value="3")
-        ttk.Combobox(plan_attr_frame, textvariable=self.plan_priority_var, values=["1", "2", "3", "4", "5"], width=4, state="readonly").pack(side=tk.LEFT, padx=2)
+        tb.Label(plan_labelframe, text="计划内容：").pack(anchor="w", pady=(2, 0))
+        self.plan_content_text = ScrolledText(plan_labelframe, height=3, width=35, font=("微软雅黑", 10))
+        self.plan_content_text.pack(fill=X, padx=0, pady=(0,2))
+        plan_attr_frame = tb.Frame(plan_labelframe)
+        plan_attr_frame.pack(fill=X, pady=2)
+        self.plan_priority_var = tb.StringVar(value="3")
+        tb.Combobox(plan_attr_frame, textvariable=self.plan_priority_var, values=["1", "2", "3", "4", "5"], width=4, state="readonly").pack(side=LEFT, padx=2)
         self.plan_date_choices = get_plan_date_choices()
-        self.plan_date_var = tk.StringVar(value=self.plan_date_choices[0])
-        self.plan_date_combo = ttk.Combobox(plan_attr_frame, textvariable=self.plan_date_var, values=self.plan_date_choices, width=16, state="readonly")
-        self.plan_date_combo.pack(side=tk.LEFT, padx=2)
+        self.plan_date_var = tb.StringVar(value=self.plan_date_choices[0])
+        self.plan_date_combo = tb.Combobox(plan_attr_frame, textvariable=self.plan_date_var, values=self.plan_date_choices, width=16, state="readonly")
+        self.plan_date_combo.pack(side=LEFT, padx=2)
         self.plan_date_combo.bind("<<ComboboxSelected>>", self.on_plan_date_change)
         self.plan_time_choices = [""] + [f"{h:02d}:{m:02d}" for h in range(0, 24) for m in (0, 30)]
-        self.plan_time_var = tk.StringVar(value="")
-        self.plan_time_combo = ttk.Combobox(plan_attr_frame, textvariable=self.plan_time_var, values=self.plan_time_choices, width=8, state="readonly")
-        self.plan_time_combo.pack(side=tk.LEFT, padx=2)
-        ttk.Button(plan_attr_frame, text="添加计划", command=self.add_plan_row).pack(side=tk.LEFT, padx=4)
-        ttk.Button(plan_attr_frame, text="删除选中", command=self.del_selected_plan).pack(side=tk.LEFT)
+        self.plan_time_var = tb.StringVar(value="")
+        self.plan_time_combo = tb.Combobox(plan_attr_frame, textvariable=self.plan_time_var, values=self.plan_time_choices, width=8, state="readonly")
+        self.plan_time_combo.pack(side=LEFT, padx=2)
+        tb.Button(plan_attr_frame, text="添加计划", command=self.add_plan_row, bootstyle="success-outline").pack(side=LEFT, padx=4)
+        tb.Button(plan_attr_frame, text="删除选中", command=self.del_selected_plan, bootstyle="danger-outline").pack(side=LEFT)
 
-        plan_frame = ttk.Frame(plan_labelframe)
-        plan_frame.pack(fill=tk.X, pady=1)
+        plan_frame = tb.Frame(plan_labelframe)
+        plan_frame.pack(fill=X, pady=1)
 
-        self.plan_tree = ttk.Treeview(
+        self.plan_tree = tb.Treeview(
             plan_frame,
             columns=("content", "priority", "date", "time"),
             show="headings",
@@ -319,15 +306,14 @@ class DiaryPage(tk.Frame):
         self.plan_tree.column("priority", width=54, anchor="center")
         self.plan_tree.column("date", width=120, anchor="center")
         self.plan_tree.column("time", width=70, anchor="center")
-        self.plan_tree.pack(side=tk.LEFT, fill=tk.X, expand=True)
+        self.plan_tree.pack(side=LEFT, fill=X, expand=True)
 
-        plan_tree_scroll = ttk.Scrollbar(plan_frame, orient="vertical", command=self.plan_tree.yview)
-        plan_tree_scroll.pack(side=tk.RIGHT, fill=tk.Y)
+        plan_tree_scroll = tb.Scrollbar(plan_frame, orient="vertical", command=self.plan_tree.yview)
+        plan_tree_scroll.pack(side=RIGHT, fill=Y)
         self.plan_tree.configure(yscrollcommand=plan_tree_scroll.set)
 
         self.plan_tree.bind("<Double-1>", self.on_plan_tree_row_edit)
 
-        # Tooltip for plan_tree
         def get_plan_fulltext(rowid, colnum):
             item = self.plan_tree.item(rowid)
             vals = item.get("values", [])
@@ -337,44 +323,40 @@ class DiaryPage(tk.Frame):
             return vals[0]
         ToolTip(self.plan_tree, get_plan_fulltext)
 
-        label3 = ttk.Label(diary_entry_frame, text="要点和心得：")
+        label3 = tb.Label(diary_entry_frame, text="要点和心得：")
         label3.pack(anchor="w", pady=(8, 0))
-        self.rules_text = scrolledtext.ScrolledText(diary_entry_frame, height=2, width=40, font=("Consolas", 10),
-                                                    background="#f7f7fa")
-        self.rules_text.pack(fill=tk.X, pady=2)
+        self.rules_text = ScrolledText(diary_entry_frame, height=2, width=40, font=("Consolas", 10))
+        self.rules_text.pack(fill=X, pady=2)
 
-        # 今日提醒（放在要点和心得下面，更显眼）
-        self.today_remind_frame = ttk.Frame(diary_entry_frame)
-        self.today_remind_frame.pack(fill=tk.X, pady=(4, 0))
-        self.today_remind_label = ttk.Label(self.today_remind_frame, font=("微软雅黑", 11, "bold"), foreground="#b22222")
+        self.today_remind_frame = tb.Frame(diary_entry_frame)
+        self.today_remind_frame.pack(fill=X, pady=(4, 0))
+        self.today_remind_label = tb.Label(self.today_remind_frame, font=("微软雅黑", 11, "bold"), foreground="#b22222")
         self.today_remind_label.pack(anchor="w", padx=0, pady=0)
-        self.today_remind_items_frame = ttk.Frame(self.today_remind_frame)
-        self.today_remind_items_frame.pack(fill=tk.X, padx=0, pady=0)
+        self.today_remind_items_frame = tb.Frame(self.today_remind_frame)
+        self.today_remind_items_frame.pack(fill=X, padx=0, pady=0)
 
-        self.followed_var = tk.BooleanVar(value=True)
-        diary_check = ttk.Checkbutton(diary_entry_frame, text="是否按照策略规划配置和执行", variable=self.followed_var)
+        self.followed_var = tb.BooleanVar(value=True)
+        diary_check = tb.Checkbutton(diary_entry_frame, text="是否按照策略规划配置和执行", variable=self.followed_var)
         diary_check.pack(anchor="w", pady=2)
-        diary_save_btn = ttk.Button(diary_entry_frame, text="保存今日日记", command=self.save_today)
+        diary_save_btn = tb.Button(diary_entry_frame, text="保存今日日记", command=self.save_today, bootstyle="primary-outline")
         diary_save_btn.pack(anchor="e", pady=4)
 
-        self.encourage_label = ttk.Label(diary_entry_frame, font=("微软雅黑", 11, "bold"), foreground="#1b9d55")
+        self.encourage_label = tb.Label(diary_entry_frame, font=("微软雅黑", 11, "bold"), foreground="#1b9d55")
         self.encourage_label.pack(pady=4)
 
-        diary_list_frame = ttk.LabelFrame(main_frame, text="历史交易日记", padding=(10, 8))
-        diary_list_frame.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True)
-        self.diary_list = scrolledtext.ScrolledText(diary_list_frame, height=15, width=60, font=("Consolas", 10),
-                                                    background="#f8faff", state="disabled")
-        self.diary_list.pack(fill=tk.BOTH, expand=True, pady=2)
-        nav_frame = ttk.Frame(diary_list_frame)
-        nav_frame.pack(fill=tk.X)
-        self.prev_btn = ttk.Button(nav_frame, text="上一页", width=12, command=self.prev_page)
-        self.next_btn = ttk.Button(nav_frame, text="下一页", width=12, command=self.next_page)
-        self.page_label = ttk.Label(nav_frame)
-        self.prev_btn.pack(side=tk.LEFT, padx=2, pady=3)
-        self.next_btn.pack(side=tk.LEFT, padx=2, pady=3)
-        self.page_label.pack(side=tk.LEFT, padx=10)
+        diary_list_frame = tb.LabelFrame(main_frame, text="历史交易日记", padding=(10, 8))
+        diary_list_frame.pack(side=RIGHT, fill=BOTH, expand=True)
+        self.diary_list = ScrolledText(diary_list_frame, height=15, width=60, font=("Consolas", 10), state="disabled")
+        self.diary_list.pack(fill=BOTH, expand=True, pady=2)
+        nav_frame = tb.Frame(diary_list_frame)
+        nav_frame.pack(fill=X)
+        self.prev_btn = tb.Button(nav_frame, text="上一页", width=12, command=self.prev_page, bootstyle="info-outline")
+        self.next_btn = tb.Button(nav_frame, text="下一页", width=12, command=self.next_page, bootstyle="info-outline")
+        self.page_label = tb.Label(nav_frame)
+        self.prev_btn.pack(side=LEFT, padx=2, pady=3)
+        self.next_btn.pack(side=LEFT, padx=2, pady=3)
+        self.page_label.pack(side=LEFT, padx=10)
 
-        # 初始禁用时间选择框（如果初始为待定）
         self.on_plan_date_change()
 
     def on_honor_tree_row_edit(self, event):
@@ -385,9 +367,8 @@ class DiaryPage(tk.Frame):
         if not vals:
             return
         self.honor_cat_var.set(vals[0])
-        # 通过 fulltext_map 还原原文
         fulltext = self._honor_fulltext_map.get(item_id, vals[1])
-        self.honor_content_text.delete("1.0", tk.END)
+        self.honor_content_text.delete("1.0", "end")
         self.honor_content_text.insert("1.0", fulltext)
         self.honor_major_var.set(vals[2] == "是")
         self.honor_score_var.set(vals[3])
@@ -405,7 +386,7 @@ class DiaryPage(tk.Frame):
         if not vals:
             return
         fulltext = self._plan_fulltext_map.get(item_id, vals[0])
-        self.plan_content_text.delete("1.0", tk.END)
+        self.plan_content_text.delete("1.0", "end")
         self.plan_content_text.insert("1.0", fulltext)
         self.plan_priority_var.set(vals[1])
         self.plan_date_var.set(vals[2])
@@ -424,7 +405,7 @@ class DiaryPage(tk.Frame):
 
     def add_honor_row(self):
         cat = self.honor_cat_var.get()
-        content = self.honor_content_text.get("1.0", tk.END).strip()
+        content = self.honor_content_text.get("1.0", "end").strip()
         major = "是" if self.honor_major_var.get() else ""
         score = self.honor_score_var.get().strip()
         unit = self.honor_unit_var.get()
@@ -439,12 +420,11 @@ class DiaryPage(tk.Frame):
             messagebox.showwarning("提示", "积分请输入数字")
             return
         summary = make_summary(content)
-        iid = self.honor_tree.insert("", tk.END, values=(cat, summary, major, score, unit, project, tags))
-        # 记录原文
+        iid = self.honor_tree.insert("", "end", values=(cat, summary, major, score, unit, project, tags))
         if not hasattr(self, "_honor_fulltext_map"):
             self._honor_fulltext_map = {}
         self._honor_fulltext_map[iid] = content
-        self.honor_content_text.delete("1.0", tk.END)
+        self.honor_content_text.delete("1.0", "end")
         self.honor_major_var.set(False)
         self.honor_score_var.set("")
         self.honor_unit_var.set("小时")
@@ -458,7 +438,7 @@ class DiaryPage(tk.Frame):
                 self._honor_fulltext_map.pop(item, None)
 
     def add_plan_row(self):
-        content = self.plan_content_text.get("1.0", tk.END).strip()
+        content = self.plan_content_text.get("1.0", "end").strip()
         priority = self.plan_priority_var.get()
         date_label = self.plan_date_var.get()
         time_str = self.plan_time_var.get().strip()
@@ -469,11 +449,11 @@ class DiaryPage(tk.Frame):
             messagebox.showwarning("提示", "开始日期为待定时，不能填写开始时间")
             return
         summary = make_summary(content)
-        iid = self.plan_tree.insert("", tk.END, values=(summary, priority, date_label, time_str))
+        iid = self.plan_tree.insert("", "end", values=(summary, priority, date_label, time_str))
         if not hasattr(self, "_plan_fulltext_map"):
             self._plan_fulltext_map = {}
         self._plan_fulltext_map[iid] = content
-        self.plan_content_text.delete("1.0", tk.END)
+        self.plan_content_text.delete("1.0", "end")
         self.plan_priority_var.set("3")
         self.plan_date_var.set(self.plan_date_choices[0])
         self.plan_time_var.set("")
@@ -507,7 +487,7 @@ class DiaryPage(tk.Frame):
                 }]
             for honor in honors:
                 summary = make_summary(honor.get("content", ""))
-                iid = self.honor_tree.insert("", tk.END, values=(
+                iid = self.honor_tree.insert("", "end", values=(
                     honor.get("category", HONOR_CATEGORIES[0]),
                     summary,
                     "是" if honor.get("major") else "",
@@ -521,7 +501,7 @@ class DiaryPage(tk.Frame):
             if isinstance(plans, str):
                 if plans:
                     summary = make_summary(plans)
-                    iid = self.plan_tree.insert("", tk.END, values=(summary, "3", "待定", ""))
+                    iid = self.plan_tree.insert("", "end", values=(summary, "3", "待定", ""))
                     self._plan_fulltext_map[iid] = plans
             elif isinstance(plans, list):
                 for plan in plans:
@@ -544,18 +524,18 @@ class DiaryPage(tk.Frame):
                             date_label = plan.get("start_date", "待定")
                     time_value = plan.get("start_time", "")
                     summary = make_summary(plan.get("content", ""))
-                    iid = self.plan_tree.insert("", tk.END, values=(
+                    iid = self.plan_tree.insert("", "end", values=(
                         summary,
                         str(plan.get("priority", 3)),
                         date_label,
                         time_value
                     ))
                     self._plan_fulltext_map[iid] = plan.get("content", "")
-            self.rules_text.delete(1.0, tk.END)
-            self.rules_text.insert(tk.END, rec.get("rules", ""))
+            self.rules_text.delete("1.0", "end")
+            self.rules_text.insert("end", rec.get("rules", ""))
             self.followed_var.set(rec.get("followed_plan", True))
         else:
-            self.rules_text.delete(1.0, tk.END)
+            self.rules_text.delete("1.0", "end")
             self.followed_var.set(True)
         self.on_plan_date_change()
 
@@ -594,7 +574,7 @@ class DiaryPage(tk.Frame):
                 "start_date": date_value,
                 "start_time": time_value
             })
-        rules = self.rules_text.get(1.0, tk.END).strip()
+        rules = self.rules_text.get("1.0", "end").strip()
         followed = self.followed_var.get()
         if not honors and not plans and not rules:
             messagebox.showwarning("提示", "请填写至少一项内容！")
@@ -656,13 +636,13 @@ class DiaryPage(tk.Frame):
         if remind_list:
             self.today_remind_label.config(text="今日提醒：")
             for item in remind_list:
-                row_frame = ttk.Frame(self.today_remind_items_frame)
-                row_frame.pack(fill=tk.X, pady=1, anchor="w")
-                label = ttk.Label(row_frame, text=item["text"], font=("微软雅黑", 10), foreground="#b22222")
-                label.pack(side=tk.LEFT, padx=(0,8))
-                btn = ttk.Button(row_frame, text="知道了", width=7,
-                                 command=lambda idx=item["index"]: self.acknowledge_remind(idx))
-                btn.pack(side=tk.LEFT)
+                row_frame = tb.Frame(self.today_remind_items_frame)
+                row_frame.pack(fill=X, pady=1, anchor="w")
+                label = tb.Label(row_frame, text=item["text"], font=("微软雅黑", 10), foreground="#b22222")
+                label.pack(side=LEFT, padx=(0,8))
+                btn = tb.Button(row_frame, text="知道了", width=7,
+                                 command=lambda idx=item["index"]: self.acknowledge_remind(idx), bootstyle="success-outline")
+                btn.pack(side=LEFT)
         else:
             self.today_remind_label.config(text="")
 
@@ -681,15 +661,15 @@ class DiaryPage(tk.Frame):
 
     def load_diary_page(self):
         records, total_pages = get_diary_page(self.page)
-        self.diary_list.config(state="normal")
-        self.diary_list.delete(1.0, tk.END)
+        self.diary_list.text.config(state="normal")
+        self.diary_list.text.delete("1.0", "end")
         if not records:
-            self.diary_list.insert(tk.END, "暂无历史日记记录。\n")
+            self.diary_list.text.insert("end", "暂无历史日记记录。\n")
         else:
             for rec in records:
-                self.diary_list.insert(tk.END, f'日期: {rec["date"]}\n')
-                self.diary_list.insert(tk.END, f'是否按策略执行: {"是" if rec.get("followed_plan", False) else "否"}\n')
-                self.diary_list.insert(tk.END, f'今日功勋:\n')
+                self.diary_list.text.insert("end", f'日期: {rec["date"]}\n')
+                self.diary_list.text.insert("end", f'是否按策略执行: {"是" if rec.get("followed_plan", False) else "否"}\n')
+                self.diary_list.text.insert("end", f'今日功勋:\n')
                 honors = rec.get("honor", [])
                 if isinstance(honors, str):
                     honors = [{
@@ -704,8 +684,8 @@ class DiaryPage(tk.Frame):
                 if honors:
                     for idx, honor in enumerate(honors, 1):
                         content = honor.get("content", "")
-                        self.diary_list.insert(
-                            tk.END,
+                        self.diary_list.text.insert(
+                            "end",
                             f'  {idx}. {content}\n'
                             f'      [{honor.get("category", "")}]'
                             f'{"[重大]" if honor.get("major") else ""} '
@@ -715,12 +695,12 @@ class DiaryPage(tk.Frame):
                             + "\n"
                         )
                 else:
-                    self.diary_list.insert(tk.END, "  无\n")
-                self.diary_list.insert(tk.END, f'后续计划:\n')
+                    self.diary_list.text.insert("end", "  无\n")
+                self.diary_list.text.insert("end", f'后续计划:\n')
                 plans = rec.get("plan", [])
                 if isinstance(plans, str):
                     if plans:
-                        self.diary_list.insert(tk.END, f'  1. {plans}\n')
+                        self.diary_list.text.insert("end", f'  1. {plans}\n')
                 elif isinstance(plans, list):
                     for idx, plan in enumerate(plans, 1):
                         if not plan.get("start_date"):
@@ -749,21 +729,21 @@ class DiaryPage(tk.Frame):
                             showtime = date_label
                         else:
                             showtime = f"{date_label} {time_value}"
-                        self.diary_list.insert(
-                            tk.END,
+                        self.diary_list.text.insert(
+                            "end",
                             f'  {idx}. {content}\n'
                             f'      优先级:{plan.get("priority", 3)}  开始:{showtime}\n'
                         )
                 else:
-                    self.diary_list.insert(tk.END, "  无\n")
-                self.diary_list.insert(tk.END, f'要点和规则:\n{rec.get("rules", "")}\n')
-                self.diary_list.insert(tk.END, f'保存时间: {rec.get("timestamp", "")}\n')
-                self.diary_list.insert(tk.END, "----------------------------------------\n")
-        self.diary_list.config(state="disabled")
+                    self.diary_list.text.insert("end", "  无\n")
+                self.diary_list.text.insert("end", f'要点和规则:\n{rec.get("rules", "")}\n')
+                self.diary_list.text.insert("end", f'保存时间: {rec.get("timestamp", "")}\n')
+                self.diary_list.text.insert("end", "----------------------------------------\n")
+        self.diary_list.text.config(state="disabled")
         self.page_label.config(text=f"第 {self.page} / {max(total_pages, 1)} 页")
         self.update_encourage()
-        self.prev_btn["state"] = tk.NORMAL if self.page > 1 else tk.DISABLED
-        self.next_btn["state"] = tk.NORMAL if self.page < total_pages else tk.DISABLED
+        self.prev_btn["state"] = "normal" if self.page > 1 else "disabled"
+        self.next_btn["state"] = "normal" if self.page < total_pages else "disabled"
         self.update_today_remind()
 
     def prev_page(self):
@@ -778,7 +758,7 @@ class DiaryPage(tk.Frame):
             self.load_diary_page()
 
 if __name__ == "__main__":
-    root = tk.Tk()
+    root = tb.Window(themename="cosmo")
     root.title("交易日记")
-    DiaryPage(root).pack(fill=tk.BOTH, expand=True)
+    DiaryPage(root).pack(fill=BOTH, expand=True)
     root.mainloop()
