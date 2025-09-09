@@ -364,8 +364,17 @@ def main():
     logging.info(f"撤单和重下任务2定时: {check_time_second}")
 
     scheduler.add_job(
+        cancel_and_reorder_task,
+        trigger=CronTrigger(hour=13, minute=0, second=3),
+        args=[xt_trader, account_id, reverse_mapping, "13:00:03"],
+        id="cancel_and_reorder_task_13am",
+        replace_existing=True
+    )
+    logging.info("撤单和重下任务定时: 13:00:03")
+
+    scheduler.add_job(
         print_positions_task,
-        trigger=CronTrigger(hour=9, minute=40, second=0),
+        trigger=CronTrigger(hour=9, minute=36, second=0),
         args=[xt_trader, account_id, reverse_mapping, account_asset_info],
         id="print_positions_task",
         replace_existing=True
