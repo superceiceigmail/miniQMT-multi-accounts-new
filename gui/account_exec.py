@@ -79,7 +79,7 @@ class AccountProcess:
         return "".join(lines[-tail:])
 
     def update_log(self):
-        log = self.get_log(100)
+        log = self.get_log(500)
         self.widgets["log_text"].delete(1.0, "end")
         self.widgets["log_text"].insert("end", log)
         self.widgets["log_text"].see("end")

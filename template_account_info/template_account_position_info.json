@@ -1,5 +1,5 @@
 {
-  "last_update": "2025-09-09T09:38:30.869897",
+  "last_update": "2025-09-09T09:48:34.757138",
   "positions": [
     {
       "stock_code": "510300.SH",
@@ -7,7 +7,7 @@
       "volume": 2100,
       "can_use_volume": 2100,
       "avg_price": 4.617380952380953,
-      "market_value": 9552.900000000001
+      "market_value": 9569.7
     },
     {
       "stock_code": "511010.SH",
@@ -15,7 +15,7 @@
       "volume": 500,
       "can_use_volume": 500,
       "avg_price": 141.246,
-      "market_value": 70615.0
+      "market_value": 70611.5
     },
     {
       "stock_code": "511090.SH",
@@ -39,7 +39,7 @@
       "volume": 500,
       "can_use_volume": 500,
       "avg_price": 135.628,
-      "market_value": 67781.0
+      "market_value": 67762.5
     },
     {
       "stock_code": "511380.SH",
@@ -47,7 +47,7 @@
       "volume": 18200,
       "can_use_volume": 18200,
       "avg_price": 13.414,
-      "market_value": 243170.2
+      "market_value": 243388.6
     },
     {
       "stock_code": "511880.SH",
@@ -55,7 +55,7 @@
       "volume": 1000,
       "can_use_volume": 1000,
       "avg_price": 100.863,
-      "market_value": 100862.00000000001
+      "market_value": 100860.0
     },
     {
       "stock_code": "513300.SH",
@@ -63,7 +63,7 @@
       "volume": 1000,
       "can_use_volume": 1000,
       "avg_price": 1.965,
-      "market_value": 2115.0
+      "market_value": 2114.0
     },
     {
       "stock_code": "513520.SH",
@@ -71,7 +71,7 @@
       "volume": 6200,
       "can_use_volume": 6200,
       "avg_price": 1.6316129032258064,
-      "market_value": 10149.4
+      "market_value": 10118.400000000001
     },
     {
       "stock_code": "513600.SH",
@@ -79,7 +79,7 @@
       "volume": 3300,
       "can_use_volume": 3300,
       "avg_price": 2.9555151515151517,
-      "market_value": 9787.800000000001
+      "market_value": 9853.800000000001
     },
     {
       "stock_code": "159518.SZ",
@@ -87,7 +87,7 @@
       "volume": 5500,
       "can_use_volume": 5500,
       "avg_price": 0.9069090909090909,
-      "market_value": 4950.0
+      "market_value": 4955.5
     },
     {
       "stock_code": "159682.SZ",
@@ -95,7 +95,7 @@
       "volume": 9100,
       "can_use_volume": 9100,
       "avg_price": 1.2280989010989012,
-      "market_value": 11966.5
+      "market_value": 11993.800000000001
     },
     {
       "stock_code": "160140.SZ",
@@ -103,7 +103,7 @@
       "volume": 4453,
       "can_use_volume": 4453,
       "avg_price": 1.2979384684482371,
-      "market_value": 5762.182
+      "market_value": 5771.088
     },
     {
       "stock_code": "160719.SZ",
@@ -111,7 +111,7 @@
       "volume": 9700,
       "can_use_volume": 9700,
       "avg_price": 1.6376701030927834,
-      "market_value": 16810.100000000002
+      "market_value": 16819.8
     },
     {
       "stock_code": "161116.SZ",
@@ -119,7 +119,7 @@
       "volume": 18900,
       "can_use_volume": 18900,
       "avg_price": 1.3450365079365079,
-      "market_value": 26762.399999999998
+      "market_value": 26724.6
     },
     {
       "stock_code": "161126.SZ",
@@ -143,7 +143,7 @@
       "volume": 6200,
       "can_use_volume": 6200,
       "avg_price": 1.6068064516129033,
-      "market_value": 9944.800000000001
+      "market_value": 9951.0
     },
     {
       "stock_code": "161903.SZ",
@@ -159,7 +159,7 @@
       "volume": 2784,
       "can_use_volume": 2784,
       "avg_price": 2.723516522988506,
-      "market_value": 8407.68
+      "market_value": 8404.896
     },
     {
       "stock_code": "164701.SZ",
