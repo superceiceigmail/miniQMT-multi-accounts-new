@@ -195,6 +195,14 @@ class DiaryPage(tb.Frame):
         self.load_today_content()
         self.load_diary_page()
         self.update_today_remind()
+        self.auto_save()  # 自动保存定时器
+
+    def auto_save(self):
+        try:
+            self.save_today(auto=True)
+        except Exception as e:
+            print("自动保存失败:", e)
+        self.after(100000, self.auto_save)  # 1分钟左右自动保存一次
 
     def create_widgets(self):
         main_frame = tb.Frame(self)
@@ -539,7 +547,7 @@ class DiaryPage(tb.Frame):
             self.followed_var.set(True)
         self.on_plan_date_change()
 
-    def save_today(self):
+    def save_today(self, auto=False):
         honors = []
         for row in self.honor_tree.get_children():
             cat, summary, major, score, unit, project, tags = self.honor_tree.item(row, "values")
@@ -577,14 +585,16 @@ class DiaryPage(tb.Frame):
         rules = self.rules_text.get("1.0", "end").strip()
         followed = self.followed_var.get()
         if not honors and not plans and not rules:
-            messagebox.showwarning("提示", "请填写至少一项内容！")
+            if not auto:
+                messagebox.showwarning("提示", "请填写至少一项内容！")
             return
         self.save_plan_to_remind_and_todo(plans)
         add_diary_record(honors, plans, rules, followed)
         self.update_encourage()
         self.load_diary_page()
         self.update_today_remind()
-        messagebox.showinfo("保存成功", "今日交易日记已保存！")
+        if not auto:
+            messagebox.showinfo("保存成功", "今日交易日记已保存！")
 
     def save_plan_to_remind_and_todo(self, plans):
         today = date.today().isoformat()
@@ -623,7 +633,7 @@ class DiaryPage(tb.Frame):
                     data = json.load(f)
                     remind_data = data
                     for idx, plan in enumerate(data):
-                        if plan.get("created_date") == today and plan.get("start_date") == today and plan.get("status", "") != "已知悉":
+                        if plan.get("start_date") == today and plan.get("status", "") != "已知悉":
                             time_str = plan.get("start_time", "")
                             content = plan.get("content", "")
                             item = {
@@ -758,6 +768,7 @@ class DiaryPage(tb.Frame):
             self.load_diary_page()
 
 if __name__ == "__main__":
+    print("当前Python日期", date.today())
     root = tb.Window(themename="cosmo")
     root.title("交易日记")
     DiaryPage(root).pack(fill=BOTH, expand=True)
