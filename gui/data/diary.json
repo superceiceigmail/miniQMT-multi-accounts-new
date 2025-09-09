@@ -1,6 +1,60 @@
 {
-  "continuous_days": 379,
+  "continuous_days": 10,
   "records": [
+    {
+      "date": "2025-09-01",
+      "honor": [
+        {
+          "category": "写歌",
+          "content": "完成了《时光如诗因为有了你》这首歌的创作",
+          "major": true,
+          "score": 3.0,
+          "unit": "天",
+          "project": "",
+          "tags": ""
+        }
+      ],
+      "plan": [],
+      "rules": "",
+      "followed_plan": false,
+      "timestamp": ""
+    },
+    {
+      "date": "2025-09-03",
+      "honor": [
+        {
+          "category": "交易",
+          "content": "完成了可转债股性债性的研究，通过叠加最差国债和最差可转债回测确认，可转债不但能提升国债曲线，而且并未带来额外风险。由于是新指标，先按国债6-7成分配可转债仓位。",
+          "major": true,
+          "score": 3.0,
+          "unit": "天",
+          "project": "",
+          "tags": ""
+        }
+      ],
+      "plan": [],
+      "rules": "",
+      "followed_plan": false,
+      "timestamp": ""
+    },
+    {
+      "date": "2025-09-04",
+      "honor": [
+        {
+          "category": "生活",
+          "content": "科目一考试98分",
+          "major": true,
+          "score": 1.0,
+          "unit": "天",
+          "project": "学车",
+          "tags": ""
+        }
+      ],
+      "plan": [],
+      "rules": "",
+      "followed_plan": false,
+      "timestamp": ""
+    },
     {
       "date": "2025-09-08",
       "honor": [
@@ -37,49 +91,73 @@
           "content": "智能分配仓位中，需要考虑拆单，把能下的仓位先买入",
           "priority": 3,
           "start_date": "",
-          "start_time": ""
+          "start_time": "",
+          "category": "交易",
+          "project": "",
+          "tags": ""
         },
         {
           "content": "云飞的策略自动跟踪。",
           "priority": 3,
           "start_date": "",
-          "start_time": ""
+          "start_time": "",
+          "category": "交易",
+          "project": "",
+          "tags": ""
         },
         {
           "content": "生活和娱乐的计划也列进来，准备做日历，老子要活的香喷喷！",
           "priority": 3,
           "start_date": "",
-          "start_time": ""
+          "start_time": "",
+          "category": "交易",
+          "project": "",
+          "tags": ""
         },
         {
           "content": "日历和todolist",
           "priority": 3,
           "start_date": "",
-          "start_time": ""
+          "start_time": "",
+          "category": "交易",
+          "project": "",
+          "tags": ""
         },
         {
           "content": "看病，唱歌，总结歌曲，看电影",
           "priority": 3,
           "start_date": "2025-09-09",
-          "start_time": ""
+          "start_time": "",
+          "category": "交易",
+          "project": "",
+          "tags": ""
         },
         {
           "content": "学车，前进后退",
           "priority": 3,
           "start_date": "2025-09-10",
-          "start_time": "10:30"
+          "start_time": "10:30",
+          "category": "交易",
+          "project": "",
+          "tags": ""
         },
         {
           "content": "学车",
           "priority": 3,
           "start_date": "2025-09-11",
-          "start_time": "13:00"
+          "start_time": "13:00",
+          "category": "交易",
+          "project": "",
+          "tags": ""
         },
         {
           "content": "前后端部署上线学习和尝试",
           "priority": 3,
           "start_date": "",
-          "start_time": ""
+          "start_time": "",
+          "category": "交易",
+          "project": "",
+          "tags": ""
         }
       ],
       "rules": "参考雪人的仓位，改动30%仓位，其他按策略比例均衡配置",
@@ -90,15 +168,6 @@
       "date": "2025-09-09",
       "honor": [
         {
-          "category": "娱乐",
-          "content": "看成龙电影捕风追影，梁家辉真是个厉害角色",
-          "major": true,
-          "score": 3.0,
-          "unit": "小时",
-          "project": "",
-          "tags": ""
-        },
-        {
           "category": "量化",
           "content": "后台增加了13点自动成交检查",
           "major": false,
@@ -108,12 +177,30 @@
           "tags": ""
         },
         {
+          "category": "量化",
+          "content": "云飞偷鸡项目调研",
+          "major": false,
+          "score": 1.0,
+          "unit": "小时",
+          "project": "云飞偷鸡",
+          "tags": ""
+        },
+        {
+          "category": "娱乐",
+          "content": "看成龙电影捕风追影，梁家辉真是个厉害角色",
+          "major": false,
+          "score": 3.0,
+          "unit": "小时",
+          "project": "",
+          "tags": ""
+        },
+        {
           "category": "生活",
           "content": "复查神经性皮炎发现已经治好了",
           "major": true,
           "score": 2.0,
           "unit": "小时",
-          "project": "神经性皮炎",
+          "project": "",
           "tags": ""
         }
       ],
@@ -122,42 +209,123 @@
           "content": "tushare关注",
           "priority": 3,
           "start_date": "",
-          "start_time": ""
+          "start_time": "",
+          "category": "量化",
+          "project": "",
+          "tags": ""
         },
         {
           "content": "成就计划思考",
           "priority": 3,
           "start_date": "",
-          "start_time": ""
+          "start_time": "",
+          "category": "生活",
+          "project": "",
+          "tags": ""
         },
         {
-          "content": "找云飞订阅最多的策略，验证是否有云飞突刺。",
-          "priority": 3,
+          "content": "云飞偷鸡项目，找云飞订阅最多的策略，验证是否有云飞突刺。",
+          "priority": 5,
           "start_date": "",
-          "start_time": ""
-        },
-        {
-          "content": "云飞跟踪",
-          "priority": 3,
-          "start_date": "",
-          "start_time": ""
+          "start_time": "",
+          "category": "量化",
+          "project": "",
+          "tags": ""
         },
         {
           "content": "总结歌曲",
           "priority": 3,
           "start_date": "",
-          "start_time": ""
+          "start_time": "",
+          "category": "娱乐",
+          "project": "",
+          "tags": ""
         },
         {
           "content": "微盘股准备",
           "priority": 3,
           "start_date": "",
-          "start_time": ""
+          "start_time": "",
+          "category": "交易",
+          "project": "",
+          "tags": ""
+        },
+        {
+          "content": "柳永尝试",
+          "priority": 4,
+          "start_date": "",
+          "start_time": "",
+          "category": "写歌",
+          "project": "",
+          "tags": ""
+        },
+        {
+          "content": "歌词学习，郑智化，beyond，beatles研究",
+          "priority": 3,
+          "start_date": "",
+          "start_time": "",
+          "category": "写歌",
+          "project": "",
+          "tags": ""
+        },
+        {
+          "content": "垫乐制作尝试",
+          "priority": 3,
+          "start_date": "",
+          "start_time": "",
+          "category": "写歌",
+          "project": "",
+          "tags": ""
+        },
+        {
+          "content": "策略跟踪自动记录和激励",
+          "priority": 3,
+          "start_date": "",
+          "start_time": "",
+          "category": "量化",
+          "project": "",
+          "tags": ""
+        },
+        {
+          "content": "量化教学，准备课程",
+          "priority": 3,
+          "start_date": "",
+          "start_time": "",
+          "category": "量化",
+          "project": "",
+          "tags": ""
+        },
+        {
+          "content": "量化推广 国联、孙辉、刘梦楠",
+          "priority": 3,
+          "start_date": "",
+          "start_time": "",
+          "category": "量化",
+          "project": "",
+          "tags": ""
+        },
+        {
+          "content": "史晓系统学习",
+          "priority": 3,
+          "start_date": "",
+          "start_time": "",
+          "category": "生活",
+          "project": "",
+          "tags": ""
+        },
+        {
+          "content": "搬家",
+          "priority": 3,
+          "start_date": "",
+          "start_time": "",
+          "category": "交易",
+          "project": "",
+          "tags": ""
         }
       ],
       "rules": "",
       "followed_plan": true,
-      "timestamp": "2025-09-09T19:05:54"
+      "timestamp": "2025-09-09T20:04:23"
     }
   ]
 }

@@ -4,41 +4,59 @@
     "priority": 3,
     "start_date": "",
     "start_time": "",
-    "created_date": "2025-09-08"
+    "created_date": "2025-09-08",
+    "category": "交易",
+    "project": "",
+    "tags": ""
   },
   {
     "content": "云飞的策略自动跟踪。",
     "priority": 3,
     "start_date": "",
     "start_time": "",
-    "created_date": "2025-09-08"
+    "created_date": "2025-09-08",
+    "category": "交易",
+    "project": "",
+    "tags": ""
   },
   {
     "content": "生活和娱乐的计划也列进来，准备做日历，老子要活的香喷喷！",
     "priority": 3,
     "start_date": "",
     "start_time": "",
-    "created_date": "2025-09-08"
+    "created_date": "2025-09-08",
+    "category": "交易",
+    "project": "",
+    "tags": ""
   },
   {
     "content": "日历和todolist",
     "priority": 3,
     "start_date": "",
     "start_time": "",
-    "created_date": "2025-09-08"
+    "created_date": "2025-09-08",
+    "category": "交易",
+    "project": "",
+    "tags": ""
   },
   {
     "content": "前后端部署上线学习和尝试",
     "priority": 3,
     "start_date": "",
     "start_time": "",
-    "created_date": "2025-09-08"
+    "created_date": "2025-09-08",
+    "category": "交易",
+    "project": "",
+    "tags": ""
   },
   {
     "content": "tushare关注",
     "priority": 3,
     "start_date": "",
     "start_time": "",
+    "category": "量化",
+    "project": "",
+    "tags": "",
     "created_date": "2025-09-09"
   },
   {
@@ -46,20 +64,19 @@
     "priority": 3,
     "start_date": "",
     "start_time": "",
+    "category": "生活",
+    "project": "",
+    "tags": "",
     "created_date": "2025-09-09"
   },
   {
-    "content": "找云飞订阅最多的策略，验证是否有云飞突刺。",
-    "priority": 3,
+    "content": "云飞偷鸡项目，找云飞订阅最多的策略，验证是否有云飞突刺。",
+    "priority": 5,
     "start_date": "",
     "start_time": "",
-    "created_date": "2025-09-09"
-  },
-  {
-    "content": "云飞跟踪",
-    "priority": 3,
-    "start_date": "",
-    "start_time": "",
+    "category": "量化",
+    "project": "",
+    "tags": "",
     "created_date": "2025-09-09"
   },
   {
@@ -67,6 +84,9 @@
     "priority": 3,
     "start_date": "",
     "start_time": "",
+    "category": "娱乐",
+    "project": "",
+    "tags": "",
     "created_date": "2025-09-09"
   },
   {
@@ -74,6 +94,89 @@
     "priority": 3,
     "start_date": "",
     "start_time": "",
+    "category": "交易",
+    "project": "",
+    "tags": "",
+    "created_date": "2025-09-09"
+  },
+  {
+    "content": "柳永尝试",
+    "priority": 4,
+    "start_date": "",
+    "start_time": "",
+    "category": "写歌",
+    "project": "",
+    "tags": "",
+    "created_date": "2025-09-09"
+  },
+  {
+    "content": "歌词学习，郑智化，beyond，beatles研究",
+    "priority": 3,
+    "start_date": "",
+    "start_time": "",
+    "category": "写歌",
+    "project": "",
+    "tags": "",
+    "created_date": "2025-09-09"
+  },
+  {
+    "content": "垫乐制作尝试",
+    "priority": 3,
+    "start_date": "",
+    "start_time": "",
+    "category": "写歌",
+    "project": "",
+    "tags": "",
+    "created_date": "2025-09-09"
+  },
+  {
+    "content": "策略跟踪自动记录和激励",
+    "priority": 3,
+    "start_date": "",
+    "start_time": "",
+    "category": "量化",
+    "project": "",
+    "tags": "",
+    "created_date": "2025-09-09"
+  },
+  {
+    "content": "量化教学，准备课程",
+    "priority": 3,
+    "start_date": "",
+    "start_time": "",
+    "category": "量化",
+    "project": "",
+    "tags": "",
+    "created_date": "2025-09-09"
+  },
+  {
+    "content": "量化推广 国联、孙辉、刘梦楠",
+    "priority": 3,
+    "start_date": "",
+    "start_time": "",
+    "category": "量化",
+    "project": "",
+    "tags": "",
+    "created_date": "2025-09-09"
+  },
+  {
+    "content": "史晓系统学习",
+    "priority": 3,
+    "start_date": "",
+    "start_time": "",
+    "category": "生活",
+    "project": "",
+    "tags": "",
+    "created_date": "2025-09-09"
+  },
+  {
+    "content": "搬家",
+    "priority": 3,
+    "start_date": "",
+    "start_time": "",
+    "category": "交易",
+    "project": "",
+    "tags": "",
     "created_date": "2025-09-09"
   }
 ]

@@ -218,14 +218,17 @@ class DiaryPage(tb.Frame):
 
         honor_attr_frame = tb.Frame(diary_entry_frame)
         honor_attr_frame.pack(fill=X, pady=2)
-        self.honor_cat_var = tb.StringVar(value=HONOR_CATEGORIES[0])
-        tb.Combobox(honor_attr_frame, textvariable=self.honor_cat_var, values=HONOR_CATEGORIES, width=8, state="readonly").pack(side=LEFT)
+        # 新增：分类标签
         self.honor_major_var = tb.BooleanVar()
         tb.Checkbutton(honor_attr_frame, text="重大", variable=self.honor_major_var).pack(side=LEFT, padx=2)
         self.honor_score_var = tb.StringVar()
         tb.Entry(honor_attr_frame, textvariable=self.honor_score_var, width=6).pack(side=LEFT, padx=2)
         self.honor_unit_var = tb.StringVar(value="小时")
         tb.Combobox(honor_attr_frame, textvariable=self.honor_unit_var, values=["小时", "天"], width=6, state="readonly").pack(side=LEFT, padx=2)
+        # 分类放到项目前面
+        tb.Label(honor_attr_frame, text="分类:").pack(side=LEFT, padx=(0, 2))
+        self.honor_cat_var = tb.StringVar(value=HONOR_CATEGORIES[0])
+        tb.Combobox(honor_attr_frame, textvariable=self.honor_cat_var, values=HONOR_CATEGORIES, width=8, state="readonly").pack(side=LEFT)
         tb.Label(honor_attr_frame, text="项目:").pack(side=LEFT, padx=(6, 0))
         self.honor_project_var = tb.StringVar()
         tb.Entry(honor_attr_frame, textvariable=self.honor_project_var, width=10).pack(side=LEFT, padx=2)
@@ -294,6 +297,16 @@ class DiaryPage(tb.Frame):
         self.plan_time_var = tb.StringVar(value="")
         self.plan_time_combo = tb.Combobox(plan_attr_frame, textvariable=self.plan_time_var, values=self.plan_time_choices, width=8, state="readonly")
         self.plan_time_combo.pack(side=LEFT, padx=2)
+        # 新增 分类、项目、标签
+        tb.Label(plan_attr_frame, text="分类:").pack(side=LEFT, padx=(4,0))
+        self.plan_cat_var = tb.StringVar(value=HONOR_CATEGORIES[0])
+        tb.Combobox(plan_attr_frame, textvariable=self.plan_cat_var, values=HONOR_CATEGORIES, width=8, state="readonly").pack(side=LEFT, padx=2)
+        tb.Label(plan_attr_frame, text="项目:").pack(side=LEFT, padx=(4,0))
+        self.plan_project_var = tb.StringVar()
+        tb.Entry(plan_attr_frame, textvariable=self.plan_project_var, width=10).pack(side=LEFT, padx=2)
+        tb.Label(plan_attr_frame, text="标签:").pack(side=LEFT, padx=(4,0))
+        self.plan_tags_var = tb.StringVar()
+        tb.Entry(plan_attr_frame, textvariable=self.plan_tags_var, width=12).pack(side=LEFT, padx=2)
         tb.Button(plan_attr_frame, text="添加计划", command=self.add_plan_row, bootstyle="success-outline").pack(side=LEFT, padx=4)
         tb.Button(plan_attr_frame, text="删除选中", command=self.del_selected_plan, bootstyle="danger-outline").pack(side=LEFT)
 
@@ -302,7 +315,7 @@ class DiaryPage(tb.Frame):
 
         self.plan_tree = tb.Treeview(
             plan_frame,
-            columns=("content", "priority", "date", "time"),
+            columns=("content", "priority", "date", "time", "category", "project", "tags"),
             show="headings",
             height=12
         )
@@ -310,10 +323,16 @@ class DiaryPage(tb.Frame):
         self.plan_tree.heading("priority", text="优先级")
         self.plan_tree.heading("date", text="开始日期")
         self.plan_tree.heading("time", text="开始时间")
-        self.plan_tree.column("content", width=200, anchor="w")
+        self.plan_tree.heading("category", text="分类")
+        self.plan_tree.heading("project", text="项目")
+        self.plan_tree.heading("tags", text="标签")
+        self.plan_tree.column("content", width=160, anchor="w")
         self.plan_tree.column("priority", width=54, anchor="center")
-        self.plan_tree.column("date", width=120, anchor="center")
+        self.plan_tree.column("date", width=90, anchor="center")
         self.plan_tree.column("time", width=70, anchor="center")
+        self.plan_tree.column("category", width=60, anchor="center")
+        self.plan_tree.column("project", width=70, anchor="w")
+        self.plan_tree.column("tags", width=80, anchor="w")
         self.plan_tree.pack(side=LEFT, fill=X, expand=True)
 
         plan_tree_scroll = tb.Scrollbar(plan_frame, orient="vertical", command=self.plan_tree.yview)
@@ -399,6 +418,9 @@ class DiaryPage(tb.Frame):
         self.plan_priority_var.set(vals[1])
         self.plan_date_var.set(vals[2])
         self.plan_time_var.set(vals[3])
+        self.plan_cat_var.set(vals[4])
+        self.plan_project_var.set(vals[5])
+        self.plan_tags_var.set(vals[6])
         self.on_plan_date_change()
         self.plan_tree.delete(item_id)
         self._plan_fulltext_map.pop(item_id, None)
@@ -450,6 +472,9 @@ class DiaryPage(tb.Frame):
         priority = self.plan_priority_var.get()
         date_label = self.plan_date_var.get()
         time_str = self.plan_time_var.get().strip()
+        category = self.plan_cat_var.get()
+        project = self.plan_project_var.get().strip()
+        tags = self.plan_tags_var.get().strip()
         if not content:
             messagebox.showwarning("提示", "请填写计划内容")
             return
@@ -457,7 +482,7 @@ class DiaryPage(tb.Frame):
             messagebox.showwarning("提示", "开始日期为待定时，不能填写开始时间")
             return
         summary = make_summary(content)
-        iid = self.plan_tree.insert("", "end", values=(summary, priority, date_label, time_str))
+        iid = self.plan_tree.insert("", "end", values=(summary, priority, date_label, time_str, category, project, tags))
         if not hasattr(self, "_plan_fulltext_map"):
             self._plan_fulltext_map = {}
         self._plan_fulltext_map[iid] = content
@@ -465,6 +490,9 @@ class DiaryPage(tb.Frame):
         self.plan_priority_var.set("3")
         self.plan_date_var.set(self.plan_date_choices[0])
         self.plan_time_var.set("")
+        self.plan_cat_var.set(HONOR_CATEGORIES[0])
+        self.plan_project_var.set("")
+        self.plan_tags_var.set("")
         self.on_plan_date_change()
 
     def del_selected_plan(self):
@@ -509,7 +537,7 @@ class DiaryPage(tb.Frame):
             if isinstance(plans, str):
                 if plans:
                     summary = make_summary(plans)
-                    iid = self.plan_tree.insert("", "end", values=(summary, "3", "待定", ""))
+                    iid = self.plan_tree.insert("", "end", values=(summary, "3", "待定", "", HONOR_CATEGORIES[0], "", ""))
                     self._plan_fulltext_map[iid] = plans
             elif isinstance(plans, list):
                 for plan in plans:
@@ -532,11 +560,17 @@ class DiaryPage(tb.Frame):
                             date_label = plan.get("start_date", "待定")
                     time_value = plan.get("start_time", "")
                     summary = make_summary(plan.get("content", ""))
+                    category = plan.get("category", HONOR_CATEGORIES[0])
+                    project = plan.get("project", "")
+                    tags = plan.get("tags", "")
                     iid = self.plan_tree.insert("", "end", values=(
                         summary,
                         str(plan.get("priority", 3)),
                         date_label,
-                        time_value
+                        time_value,
+                        category,
+                        project,
+                        tags
                     ))
                     self._plan_fulltext_map[iid] = plan.get("content", "")
             self.rules_text.delete("1.0", "end")
@@ -563,7 +597,7 @@ class DiaryPage(tb.Frame):
             })
         plans = []
         for row in self.plan_tree.get_children():
-            summary, priority, date_label, time_value = self.plan_tree.item(row, "values")
+            summary, priority, date_label, time_value, category, project, tags = self.plan_tree.item(row, "values")
             content = self._plan_fulltext_map.get(row, summary)
             if date_label == "待定":
                 date_value = ""
@@ -580,7 +614,10 @@ class DiaryPage(tb.Frame):
                 "content": content,
                 "priority": int(priority),
                 "start_date": date_value,
-                "start_time": time_value
+                "start_time": time_value,
+                "category": category,
+                "project": project,
+                "tags": tags
             })
         rules = self.rules_text.get("1.0", "end").strip()
         followed = self.followed_var.get()
@@ -603,7 +640,7 @@ class DiaryPage(tb.Frame):
         remind = [item for item in old_remind if item.get("created_date") != today]
         todo = [item for item in old_todo if item.get("created_date") != today]
         for plan in plans:
-            plan_copy = plan.copy()
+            plan_copy = dict(plan)
             plan_copy["created_date"] = today
             if plan.get("start_date"):
                 plan_copy["status"] = plan_copy.get("status", "")
@@ -733,6 +770,9 @@ class DiaryPage(tb.Frame):
                                 date_label = plan.get("start_date", "待定")
                         time_value = plan.get("start_time", "")
                         content = plan.get("content", "")
+                        category = plan.get("category", HONOR_CATEGORIES[0])
+                        project = plan.get("project", "")
+                        tags = plan.get("tags", "")
                         if not plan.get("start_date"):
                             showtime = "待定"
                         elif not time_value:
@@ -742,7 +782,11 @@ class DiaryPage(tb.Frame):
                         self.diary_list.text.insert(
                             "end",
                             f'  {idx}. {content}\n'
-                            f'      优先级:{plan.get("priority", 3)}  开始:{showtime}\n'
+                            f'      优先级:{plan.get("priority", 3)}  开始:{showtime}'
+                            f' 分类:{category}'
+                            + (f' 项目:{project}' if project else "")
+                            + (f' 标签:{tags}' if tags else "")
+                            + "\n"
                         )
                 else:
                     self.diary_list.text.insert("end", "  无\n")
