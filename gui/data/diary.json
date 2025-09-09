@@ -1,0 +1,163 @@
+{
+  "continuous_days": 379,
+  "records": [
+    {
+      "date": "2025-09-08",
+      "honor": [
+        {
+          "category": "量化",
+          "content": "完成了VUE架构的前端页面，包含了\n1、账户持仓、标的查看；\n2、策略管理和智能拉伸收缩仓位；\n3、仓位配置。\n4、对接了echarts,尝试了可视化。",
+          "major": true,
+          "score": 5.0,
+          "unit": "天",
+          "project": "智能量化前端二期",
+          "tags": ""
+        },
+        {
+          "category": "交易",
+          "content": "根据雪人仓位，补充了黄金仓位。",
+          "major": false,
+          "score": 1.0,
+          "unit": "小时",
+          "project": "",
+          "tags": ""
+        },
+        {
+          "category": "量化",
+          "content": "完成了GUI交易执行和日记部分的开发，试用了两个前端框架",
+          "major": true,
+          "score": 3.0,
+          "unit": "天",
+          "project": "GUI二期",
+          "tags": ""
+        }
+      ],
+      "plan": [
+        {
+          "content": "智能分配仓位中，需要考虑拆单，把能下的仓位先买入",
+          "priority": 3,
+          "start_date": "",
+          "start_time": ""
+        },
+        {
+          "content": "云飞的策略自动跟踪。",
+          "priority": 3,
+          "start_date": "",
+          "start_time": ""
+        },
+        {
+          "content": "生活和娱乐的计划也列进来，准备做日历，老子要活的香喷喷！",
+          "priority": 3,
+          "start_date": "",
+          "start_time": ""
+        },
+        {
+          "content": "日历和todolist",
+          "priority": 3,
+          "start_date": "",
+          "start_time": ""
+        },
+        {
+          "content": "看病，唱歌，总结歌曲，看电影",
+          "priority": 3,
+          "start_date": "2025-09-09",
+          "start_time": ""
+        },
+        {
+          "content": "学车，前进后退",
+          "priority": 3,
+          "start_date": "2025-09-10",
+          "start_time": "10:30"
+        },
+        {
+          "content": "学车",
+          "priority": 3,
+          "start_date": "2025-09-11",
+          "start_time": "13:00"
+        },
+        {
+          "content": "前后端部署上线学习和尝试",
+          "priority": 3,
+          "start_date": "",
+          "start_time": ""
+        }
+      ],
+      "rules": "参考雪人的仓位，改动30%仓位，其他按策略比例均衡配置",
+      "followed_plan": true,
+      "timestamp": "2025-09-08T23:40:51"
+    },
+    {
+      "date": "2025-09-09",
+      "honor": [
+        {
+          "category": "娱乐",
+          "content": "看成龙电影捕风追影，梁家辉真是个厉害角色",
+          "major": true,
+          "score": 3.0,
+          "unit": "小时",
+          "project": "",
+          "tags": ""
+        },
+        {
+          "category": "量化",
+          "content": "后台增加了13点自动成交检查",
+          "major": false,
+          "score": 1.0,
+          "unit": "小时",
+          "project": "量化后端",
+          "tags": ""
+        },
+        {
+          "category": "生活",
+          "content": "复查神经性皮炎发现已经治好了",
+          "major": true,
+          "score": 2.0,
+          "unit": "小时",
+          "project": "神经性皮炎",
+          "tags": ""
+        }
+      ],
+      "plan": [
+        {
+          "content": "tushare关注",
+          "priority": 3,
+          "start_date": "",
+          "start_time": ""
+        },
+        {
+          "content": "成就计划思考",
+          "priority": 3,
+          "start_date": "",
+          "start_time": ""
+        },
+        {
+          "content": "找云飞订阅最多的策略，验证是否有云飞突刺。",
+          "priority": 3,
+          "start_date": "",
+          "start_time": ""
+        },
+        {
+          "content": "云飞跟踪",
+          "priority": 3,
+          "start_date": "",
+          "start_time": ""
+        },
+        {
+          "content": "总结歌曲",
+          "priority": 3,
+          "start_date": "",
+          "start_time": ""
+        },
+        {
+          "content": "微盘股准备",
+          "priority": 3,
+          "start_date": "",
+          "start_time": ""
+        }
+      ],
+      "rules": "",
+      "followed_plan": true,
+      "timestamp": "2025-09-09T19:05:54"
+    }
+  ]
+}
