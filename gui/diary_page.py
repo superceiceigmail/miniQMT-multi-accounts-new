@@ -97,7 +97,7 @@ def ensure_diary_file():
     os.makedirs(os.path.dirname(DIARY_FILE), exist_ok=True)
     if not os.path.exists(DIARY_FILE):
         with open(DIARY_FILE, "w", encoding="utf-8") as f:
-            json.dump({"continuous_days": 0, "records": []}, f, ensure_ascii=False, indent=2)
+            json.dump({"continuous_days": 0, "continuous_days_last_date": "", "records": []}, f, ensure_ascii=False, indent=2)
 
 def load_diary():
     ensure_diary_file()
@@ -106,9 +106,13 @@ def load_diary():
             content = f.read().strip()
             if not content:
                 raise ValueError("Empty file")
-            return json.loads(content)
+            data = json.loads(content)
+            # 兼容老数据
+            if "continuous_days_last_date" not in data:
+                data["continuous_days_last_date"] = ""
+            return data
     except Exception:
-        data = {"continuous_days": 0, "records": []}
+        data = {"continuous_days": 0, "continuous_days_last_date": "", "records": []}
         with open(DIARY_FILE, "w", encoding="utf-8") as f:
             json.dump(data, f, ensure_ascii=False, indent=2)
         return data
@@ -141,15 +145,32 @@ def add_diary_record(honors, plans, rules, followed_plan):
             "followed_plan": followed_plan,
             "timestamp": datetime.now().isoformat(timespec="seconds")
         })
+
+    # ----------- 修复每日只累计一次 continuous_days -----------
+    last_date = diary_data.get("continuous_days_last_date", "")
+    continuous_days = diary_data.get("continuous_days", 0)
     if followed_plan:
-        prev_day = (date.fromisoformat(today_str) - timedelta(days=1)).isoformat()
-        prev = next((r for r in records if r["date"] == prev_day), None)
-        if prev and prev["followed_plan"]:
-            diary_data["continuous_days"] = diary_data.get("continuous_days", 0) + 1
+        if last_date == today_str:
+            # 今天已经累计过，不再+1
+            pass
         else:
-            diary_data["continuous_days"] = 1
+            prev_day = (date.fromisoformat(today_str) - timedelta(days=1)).isoformat()
+            prev = next((r for r in records if r["date"] == prev_day), None)
+            if prev and prev.get("followed_plan"):
+                continuous_days = continuous_days + 1
+            else:
+                continuous_days = 1
+            diary_data["continuous_days_last_date"] = today_str
     else:
-        diary_data["continuous_days"] = 0
+        if last_date == today_str:
+            # 今天已累计过，但现在撤销了，归零
+            continuous_days = 0
+            diary_data["continuous_days_last_date"] = today_str
+        else:
+            continuous_days = 0
+    diary_data["continuous_days"] = continuous_days
+    # ----------- 逻辑结束 -----------
+
     diary_data["records"] = records
     save_diary(diary_data)
 

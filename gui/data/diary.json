@@ -1,5 +1,5 @@
 {
-  "continuous_days": 10,
+  "continuous_days": 0,
   "records": [
     {
       "date": "2025-09-01",
@@ -202,6 +202,15 @@
           "unit": "小时",
           "project": "",
           "tags": ""
+        },
+        {
+          "category": "生活",
+          "content": "迁移了笔记本电脑的todolist",
+          "major": false,
+          "score": 1.0,
+          "unit": "小时",
+          "project": "",
+          "tags": ""
         }
       ],
       "plan": [
@@ -325,7 +334,8 @@
       ],
       "rules": "",
       "followed_plan": true,
-      "timestamp": "2025-09-09T20:04:23"
+      "timestamp": "2025-09-09T20:21:27"
     }
-  ]
+  ],
+  "continuous_days_last_date": "2025-09-09"
 }
