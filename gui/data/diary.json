@@ -1,5 +1,5 @@
 {
-  "continuous_days": 0,
+  "continuous_days": 1,
   "records": [
     {
       "date": "2025-09-01",
@@ -196,18 +196,36 @@
         },
         {
           "category": "生活",
-          "content": "复查神经性皮炎发现已经治好了",
-          "major": true,
-          "score": 2.0,
+          "content": "迁移了笔记本电脑的todolist",
+          "major": false,
+          "score": 1.0,
           "unit": "小时",
           "project": "",
           "tags": ""
         },
         {
-          "category": "生活",
-          "content": "迁移了笔记本电脑的todolist",
+          "category": "量化",
+          "content": "完善了日志分类、项目、标签属性，修复了若干bug",
           "major": false,
           "score": 1.0,
+          "unit": "小时",
+          "project": "",
+          "tags": ""
+        },
+        {
+          "category": "量化",
+          "content": "打通了SSH方式的gitpush",
+          "major": true,
+          "score": 1.0,
+          "unit": "小时",
+          "project": "量化后端",
+          "tags": ""
+        },
+        {
+          "category": "生活",
+          "content": "复查神经性皮炎发现已经治好了",
+          "major": true,
+          "score": 3.0,
           "unit": "小时",
           "project": "",
           "tags": ""
@@ -334,8 +352,26 @@
       ],
       "rules": "",
       "followed_plan": true,
-      "timestamp": "2025-09-09T20:21:27"
+      "timestamp": "2025-09-09T23:58:54"
+    },
+    {
+      "date": "2025-09-10",
+      "honor": [],
+      "plan": [
+        {
+          "content": "todolist研发",
+          "priority": 3,
+          "start_date": "2025-09-10",
+          "start_time": "",
+          "category": "量化",
+          "project": "GUI二期",
+          "tags": ""
+        }
+      ],
+      "rules": "",
+      "followed_plan": true,
+      "timestamp": "2025-09-10T07:05:47"
     }
   ],
-  "continuous_days_last_date": "2025-09-09"
+  "continuous_days_last_date": "2025-09-10"
 }

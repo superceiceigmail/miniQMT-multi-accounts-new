@@ -603,6 +603,20 @@ class DiaryPage(tb.Frame):
         self.on_plan_date_change()
 
     def save_today(self, auto=False):
+        # 检查当前页面内容日期与今天是否一致，否则自动刷新
+        today_str = date.today().isoformat()
+        # 获取 honor_tree/plan_tree 中任意一行的日期，如果是昨天的，则自动清空并刷新
+        diary_data = load_diary()
+        rec = next((r for r in diary_data["records"] if r["date"] == today_str), None)
+        # 如果没有今日记录且页面内容不为空，则自动刷新页面
+        if rec is None and (
+                self.honor_tree.get_children() or self.plan_tree.get_children() or self.rules_text.get("1.0",
+                                                                                                       "end").strip()):
+            self.load_today_content()
+            # 也可以弹窗提示
+            messagebox.showinfo("提示", "已进入新的一天，页面内容已自动刷新，请填写今日内容。")
+            return  # 阻止本次误保存
+
         honors = []
         for row in self.honor_tree.get_children():
             cat, summary, major, score, unit, project, tags = self.honor_tree.item(row, "values")
