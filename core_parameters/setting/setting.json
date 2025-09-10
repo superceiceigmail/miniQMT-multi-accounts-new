@@ -1,38 +1,9 @@
 {
-  "sell_stocks_info": [
-    {
-      "name": "30年国债",
-      "ratio": "51.99"
-    },
-    {
-      "name": "标普信息科技",
-      "ratio": "1.83"
-    },
-    {
-      "name": "国债30年",
-      "ratio": "16.31"
-    },
-    {
-      "name": "万家行业",
-      "ratio": "0.76"
-    }
-  ],
+  "sell_stocks_info": [],
   "buy_stocks_info": [
     {
-      "name": "可转债",
-      "ratio": "37.35"
-    },
-    {
-      "name": "标普医疗",
-      "ratio": "1.83"
-    },
-    {
-      "name": "黄金LOF",
-      "ratio": "1.83"
-    },
-    {
-      "name": "十年国债",
-      "ratio": "11.43"
+      "name": "国债",
+      "ratio": "10.86"
     }
   ]
 }

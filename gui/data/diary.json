@@ -356,7 +356,17 @@
     },
     {
       "date": "2025-09-10",
-      "honor": [],
+      "honor": [
+        {
+          "category": "交易",
+          "content": "测试标签",
+          "major": false,
+          "score": 0.0,
+          "unit": "小时",
+          "project": "",
+          "tags": "标签"
+        }
+      ],
       "plan": [
         {
           "content": "todolist研发",
@@ -370,7 +380,7 @@
       ],
       "rules": "",
       "followed_plan": true,
-      "timestamp": "2025-09-10T07:05:47"
+      "timestamp": "2025-09-10T08:26:54"
     }
   ],
   "continuous_days_last_date": "2025-09-10"

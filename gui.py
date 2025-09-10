@@ -3,6 +3,9 @@ from ttkbootstrap.constants import *
 from ttkbootstrap.scrolled import ScrolledText
 from gui.account_exec import build_account_frame, save_plan, load_plan
 from gui.diary_page import DiaryPage
+from gui.todolist_page import TodolistPage
+from gui.remind_page import RemindPage, load_reminders, save_reminders, check_due_reminders
+from tkinter import messagebox
 
 # 配置区
 ACCOUNTS = {
@@ -12,7 +15,7 @@ ACCOUNTS = {
 PLAN_FILE = "core_parameters/setting/setting.json"
 
 def main():
-    root = tb.Window(themename="cosmo")  # 初始主题，可自定义
+    root = tb.Window(themename="cosmo")
     root.title("miniQMT 多账户本地管理")
     root.geometry("1200x800")
     try:
@@ -75,19 +78,43 @@ def main():
     diary_frame = DiaryPage(main_frame)
     diary_frame.pack_forget()  # 默认隐藏
 
+    todolist_frame = TodolistPage(main_frame)
+    todolist_frame.pack_forget()
+
+    remind_frame = RemindPage(main_frame)
+    remind_frame.pack_forget()
+
+    # 页面切换
     def show_exec():
         exec_frame.pack(fill=BOTH, expand=True)
         diary_frame.pack_forget()
+        todolist_frame.pack_forget()
+        remind_frame.pack_forget()
     def show_diary():
         exec_frame.pack_forget()
         diary_frame.pack(fill=BOTH, expand=True)
         diary_frame.load_today_content()
         diary_frame.load_diary_page()
+        todolist_frame.pack_forget()
+        remind_frame.pack_forget()
+    def show_todolist():
+        exec_frame.pack_forget()
+        diary_frame.pack_forget()
+        todolist_frame.pack(fill=BOTH, expand=True)
+        remind_frame.pack_forget()
+    def show_remind():
+        exec_frame.pack_forget()
+        diary_frame.pack_forget()
+        todolist_frame.pack_forget()
+        remind_frame.pack(fill=BOTH, expand=True)
 
     menu_bar.add_command(label="交易执行", command=show_exec)
     menu_bar.add_command(label="交易日记", command=show_diary)
+    menu_bar.add_command(label="todolist", command=show_todolist)
+    menu_bar.add_command(label="提醒", command=show_remind)
 
     show_exec()
+
     root.mainloop()
 
 if __name__ == "__main__":
