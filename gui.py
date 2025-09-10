@@ -26,16 +26,6 @@ def main():
     menu_bar = tb.Menu(root)
     root.config(menu=menu_bar)
 
-    # ----------- 动态切换主题菜单 -----------
-    themes = tb.Style().theme_names()
-    theme_menu = tb.Menu(menu_bar, tearoff=0)
-    def set_theme(theme_name):
-        root.style.theme_use(theme_name)
-    for t in themes:
-        theme_menu.add_command(label=t, command=lambda tn=t: set_theme(tn))
-    menu_bar.add_cascade(label="切换主题", menu=theme_menu)
-    # ----------- 主题菜单结束 ---------------
-
     main_frame = tb.Frame(root)
     main_frame.pack(fill=BOTH, expand=True)
 
@@ -107,11 +97,25 @@ def main():
         diary_frame.pack_forget()
         todolist_frame.pack_forget()
         remind_frame.pack(fill=BOTH, expand=True)
+        # 每次切换到提醒页面都强制刷新
+        if hasattr(remind_frame, "refresh"):
+            remind_frame.refresh()
 
+    # 菜单顺序调整为：交易执行、交易日记、todolist、提醒、切换主题
     menu_bar.add_command(label="交易执行", command=show_exec)
     menu_bar.add_command(label="交易日记", command=show_diary)
     menu_bar.add_command(label="todolist", command=show_todolist)
     menu_bar.add_command(label="提醒", command=show_remind)
+
+    # ----------- 动态切换主题菜单（放到最后） -----------
+    themes = tb.Style().theme_names()
+    theme_menu = tb.Menu(menu_bar, tearoff=0)
+    def set_theme(theme_name):
+        root.style.theme_use(theme_name)
+    for t in themes:
+        theme_menu.add_command(label=t, command=lambda tn=t: set_theme(tn))
+    menu_bar.add_cascade(label="切换主题", menu=theme_menu)
+    # ----------- 主题菜单结束 ---------------
 
     show_exec()
 

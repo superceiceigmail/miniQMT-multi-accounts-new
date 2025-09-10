@@ -7,6 +7,12 @@ from ttkbootstrap.constants import *
 from ttkbootstrap.scrolled import ScrolledText
 from tkinter import messagebox
 
+# ==== 调试打印模块 ====
+DEBUG = True
+def debug_print(*args, **kwargs):
+    if DEBUG:
+        print("[DEBUG]", *args, **kwargs)
+
 # Tooltip实现（支持多行）
 class ToolTip:
     def __init__(self, widget, text_func):
@@ -110,8 +116,10 @@ def load_diary():
             # 兼容老数据
             if "continuous_days_last_date" not in data:
                 data["continuous_days_last_date"] = ""
+            debug_print("load_diary loaded:", data)
             return data
-    except Exception:
+    except Exception as e:
+        debug_print("load_diary failed:", e)
         data = {"continuous_days": 0, "continuous_days_last_date": "", "records": []}
         with open(DIARY_FILE, "w", encoding="utf-8") as f:
             json.dump(data, f, ensure_ascii=False, indent=2)
@@ -121,6 +129,7 @@ def save_diary(diary_data):
     os.makedirs(os.path.dirname(DIARY_FILE), exist_ok=True)
     with open(DIARY_FILE, "w", encoding="utf-8") as f:
         json.dump(diary_data, f, ensure_ascii=False, indent=2)
+    debug_print("save_diary:", diary_data)
 
 def add_diary_record(honors, plans, rules, followed_plan):
     today_str = date.today().isoformat()
@@ -146,12 +155,10 @@ def add_diary_record(honors, plans, rules, followed_plan):
             "timestamp": datetime.now().isoformat(timespec="seconds")
         })
 
-    # ----------- 修复每日只累计一次 continuous_days -----------
     last_date = diary_data.get("continuous_days_last_date", "")
     continuous_days = diary_data.get("continuous_days", 0)
     if followed_plan:
         if last_date == today_str:
-            # 今天已经累计过，不再+1
             pass
         else:
             prev_day = (date.fromisoformat(today_str) - timedelta(days=1)).isoformat()
@@ -163,15 +170,16 @@ def add_diary_record(honors, plans, rules, followed_plan):
             diary_data["continuous_days_last_date"] = today_str
     else:
         if last_date == today_str:
-            # 今天已累计过，但现在撤销了，归零
             continuous_days = 0
             diary_data["continuous_days_last_date"] = today_str
         else:
             continuous_days = 0
     diary_data["continuous_days"] = continuous_days
-    # ----------- 逻辑结束 -----------
-
     diary_data["records"] = records
+    debug_print("add_diary_record called, honors:", honors)
+    debug_print("add_diary_record called, plans:", plans)
+    debug_print("add_diary_record called, rules:", rules)
+    debug_print("add_diary_record called, followed_plan:", followed_plan)
     save_diary(diary_data)
 
 def get_diary_page(page=1):
@@ -182,6 +190,7 @@ def get_diary_page(page=1):
     total_pages = (total + DIARY_PAGE_SIZE - 1) // DIARY_PAGE_SIZE
     start = (page - 1) * DIARY_PAGE_SIZE
     end = start + DIARY_PAGE_SIZE
+    debug_print("get_diary_page:", records_sorted[start:end], "total_pages:", total_pages)
     return records_sorted[start:end], total_pages
 
 def get_continuous_days():
@@ -191,13 +200,17 @@ def get_continuous_days():
 def load_json_file(filename):
     try:
         with open(filename, "r", encoding="utf-8") as f:
-            return json.load(f)
-    except Exception:
+            data = json.load(f)
+            debug_print(f"load_json_file({filename}):", data)
+            return data
+    except Exception as e:
+        debug_print(f"load_json_file({filename}) failed:", e)
         return []
 
 def save_json_file(filename, data):
     with open(filename, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
+    debug_print(f"save_json_file({filename}):", data)
 
 def make_summary(text, length=30):
     text = text.strip().replace('\r\n', '\n').replace('\r', '\n')
@@ -222,7 +235,7 @@ class DiaryPage(tb.Frame):
         try:
             self.save_today(auto=True)
         except Exception as e:
-            print("自动保存失败:", e)
+            debug_print("自动保存失败:", e)
         self.after(100000, self.auto_save)  # 1分钟左右自动保存一次
 
     def create_widgets(self):
@@ -239,14 +252,12 @@ class DiaryPage(tb.Frame):
 
         honor_attr_frame = tb.Frame(diary_entry_frame)
         honor_attr_frame.pack(fill=X, pady=2)
-        # 新增：分类标签
         self.honor_major_var = tb.BooleanVar()
         tb.Checkbutton(honor_attr_frame, text="重大", variable=self.honor_major_var).pack(side=LEFT, padx=2)
         self.honor_score_var = tb.StringVar()
         tb.Entry(honor_attr_frame, textvariable=self.honor_score_var, width=6).pack(side=LEFT, padx=2)
         self.honor_unit_var = tb.StringVar(value="小时")
         tb.Combobox(honor_attr_frame, textvariable=self.honor_unit_var, values=["小时", "天"], width=6, state="readonly").pack(side=LEFT, padx=2)
-        # 分类放到项目前面
         tb.Label(honor_attr_frame, text="分类:").pack(side=LEFT, padx=(0, 2))
         self.honor_cat_var = tb.StringVar(value=HONOR_CATEGORIES[0])
         tb.Combobox(honor_attr_frame, textvariable=self.honor_cat_var, values=HONOR_CATEGORIES, width=8, state="readonly").pack(side=LEFT)
@@ -318,7 +329,6 @@ class DiaryPage(tb.Frame):
         self.plan_time_var = tb.StringVar(value="")
         self.plan_time_combo = tb.Combobox(plan_attr_frame, textvariable=self.plan_time_var, values=self.plan_time_choices, width=8, state="readonly")
         self.plan_time_combo.pack(side=LEFT, padx=2)
-        # 新增 分类、项目、标签
         tb.Label(plan_attr_frame, text="分类:").pack(side=LEFT, padx=(4,0))
         self.plan_cat_var = tb.StringVar(value=HONOR_CATEGORIES[0])
         tb.Combobox(plan_attr_frame, textvariable=self.plan_cat_var, values=HONOR_CATEGORIES, width=8, state="readonly").pack(side=LEFT, padx=2)
@@ -603,19 +613,15 @@ class DiaryPage(tb.Frame):
         self.on_plan_date_change()
 
     def save_today(self, auto=False):
-        # 检查当前页面内容日期与今天是否一致，否则自动刷新
         today_str = date.today().isoformat()
-        # 获取 honor_tree/plan_tree 中任意一行的日期，如果是昨天的，则自动清空并刷新
         diary_data = load_diary()
         rec = next((r for r in diary_data["records"] if r["date"] == today_str), None)
-        # 如果没有今日记录且页面内容不为空，则自动刷新页面
         if rec is None and (
                 self.honor_tree.get_children() or self.plan_tree.get_children() or self.rules_text.get("1.0",
                                                                                                        "end").strip()):
             self.load_today_content()
-            # 也可以弹窗提示
             messagebox.showinfo("提示", "已进入新的一天，页面内容已自动刷新，请填写今日内容。")
-            return  # 阻止本次误保存
+            return
 
         honors = []
         for row in self.honor_tree.get_children():
@@ -704,6 +710,7 @@ class DiaryPage(tb.Frame):
                 try:
                     data = json.load(f)
                     remind_data = data
+                    debug_print("update_today_remind loaded data:", data)
                     for idx, plan in enumerate(data):
                         if plan.get("start_date") == today and plan.get("status", "") != "已知悉":
                             time_str = plan.get("start_time", "")
@@ -712,9 +719,10 @@ class DiaryPage(tb.Frame):
                                 "index": idx,
                                 "text": f"{time_str + ' - ' if time_str else ''}{content}",
                             }
+                            debug_print("今日提醒项:", item)
                             remind_list.append(item)
-                except Exception:
-                    pass
+                except Exception as e:
+                    debug_print("update_today_remind exception:", e)
         if remind_list:
             self.today_remind_label.config(text="今日提醒：")
             for item in remind_list:
@@ -729,16 +737,23 @@ class DiaryPage(tb.Frame):
             self.today_remind_label.config(text="")
 
     def acknowledge_remind(self, idx):
+        debug_print(f"acknowledge_remind called with idx={idx}, REMIND_FILE={REMIND_FILE}")
         if os.path.exists(REMIND_FILE):
             with open(REMIND_FILE, "r", encoding="utf-8") as f:
                 try:
                     data = json.load(f)
+                    debug_print("acknowledge_remind loaded data:", data)
                     if 0 <= idx < len(data):
+                        debug_print(f"Before: status={data[idx].get('status','')}")
                         data[idx]["status"] = "已知悉"
+                        debug_print(f"After: status={data[idx].get('status','')}")
                         with open(REMIND_FILE, "w", encoding="utf-8") as wf:
                             json.dump(data, wf, ensure_ascii=False, indent=2)
-                except Exception:
-                    pass
+                        debug_print(f"acknowledge_remind: 已写回数据 idx={idx}")
+                    else:
+                        debug_print(f"acknowledge_remind: idx {idx} out of range, length {len(data)}")
+                except Exception as e:
+                    debug_print("acknowledge_remind exception:", e)
         self.update_today_remind()
 
     def load_diary_page(self):
@@ -848,6 +863,7 @@ class DiaryPage(tb.Frame):
 
 if __name__ == "__main__":
     print("当前Python日期", date.today())
+    debug_print("REMIND_FILE:", REMIND_FILE)
     root = tb.Window(themename="cosmo")
     root.title("交易日记")
     DiaryPage(root).pack(fill=BOTH, expand=True)

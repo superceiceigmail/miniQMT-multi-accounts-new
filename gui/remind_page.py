@@ -117,6 +117,7 @@ class RemindPage(tb.Frame):
         tb.Button(entry_frame, text="删除", width=7, bootstyle="danger", command=self.delete_item).pack(side=LEFT, padx=2)
 
     def refresh(self):
+        # 每次操作都重新加载文件内容，防止脏数据覆盖
         self.reminders = load_reminders()
         from collections import Counter
         cat_counts = Counter(remind.get("category", "其他") for remind in self.reminders)
@@ -153,6 +154,8 @@ class RemindPage(tb.Frame):
         self.tags_entry.delete(0, tk.END)
 
     def add_item(self):
+        # 先reload，防止覆盖外部变更
+        self.reminders = load_reminders()
         text = self.entry.get().strip()
         try:
             priority = int(self.priority_entry.get().strip())
@@ -184,6 +187,7 @@ class RemindPage(tb.Frame):
             self.refresh()
 
     def delete_item(self):
+        self.reminders = load_reminders()
         idx = self.selected_index
         if idx is not None and 0 <= idx < len(self.reminders):
             self.reminders.pop(idx)
@@ -194,6 +198,7 @@ class RemindPage(tb.Frame):
             messagebox.showinfo("提示", "请先选中需要删除的提醒")
 
     def edit_item(self):
+        self.reminders = load_reminders()
         idx = self.selected_index
         if idx is None or idx < 0 or idx >= len(self.reminders):
             messagebox.showinfo("提示", "请先选中需要修改的提醒")

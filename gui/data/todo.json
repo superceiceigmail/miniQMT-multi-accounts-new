@@ -11,17 +11,6 @@
     "major": true
   },
   {
-    "content": "todolist",
-    "priority": 5,
-    "start_date": "",
-    "start_time": "",
-    "created_date": "2025-09-08",
-    "category": "量化",
-    "project": "",
-    "tags": "",
-    "major": false
-  },
-  {
     "content": "tushare关注",
     "priority": 3,
     "start_date": "",
