@@ -11,6 +11,29 @@
     "major": true
   },
   {
+    "content": "爬虫学习",
+    "priority": 5,
+    "start_date": "",
+    "start_time": "",
+    "created_date": "2025-09-10",
+    "category": "量化",
+    "project": "",
+    "tags": "",
+    "major": false
+  },
+  {
+    "content": "把仓位搞到网上去",
+    "priority": 4,
+    "start_date": "",
+    "start_time": "",
+    "category": "量化",
+    "project": "",
+    "tags": "",
+    "created_date": "2025-09-10",
+    "remind_id": "69408dd716fd484ab2c429b77ae01232",
+    "status": ""
+  },
+  {
     "content": "tushare关注",
     "priority": 3,
     "start_date": "",
@@ -23,56 +46,39 @@
   },
   {
     "content": "策略跟踪自动记录和激励",
-    "priority": 3,
+    "priority": 2,
     "start_date": "",
     "start_time": "",
     "category": "量化",
     "project": "",
     "tags": "",
-    "created_date": "2025-09-09"
+    "created_date": "2025-09-09",
+    "major": false
   },
   {
     "content": "量化教学，准备课程",
-    "priority": 3,
+    "priority": 1,
     "start_date": "",
     "start_time": "",
     "category": "量化",
     "project": "",
     "tags": "",
-    "created_date": "2025-09-09"
+    "created_date": "2025-09-09",
+    "major": false
   },
   {
-    "content": "量化推广 国联、孙辉、刘梦楠",
-    "priority": 3,
+    "content": "量化推广 国联、刘梦楠等",
+    "priority": 1,
     "start_date": "",
     "start_time": "",
     "category": "量化",
     "project": "",
     "tags": "",
-    "created_date": "2025-09-09"
-  },
-  {
-    "content": "智能分配仓位中，需要考虑拆单，把能下的仓位先买入",
-    "priority": 3,
-    "start_date": "",
-    "start_time": "",
-    "created_date": "2025-09-08",
-    "category": "交易",
-    "project": "",
-    "tags": ""
+    "created_date": "2025-09-09",
+    "major": false
   },
   {
     "content": "云飞的策略自动跟踪。",
-    "priority": 3,
-    "start_date": "",
-    "start_time": "",
-    "created_date": "2025-09-08",
-    "category": "交易",
-    "project": "",
-    "tags": ""
-  },
-  {
-    "content": "生活和娱乐的计划也列进来，准备做日历，老子要活的香喷喷！",
     "priority": 3,
     "start_date": "",
     "start_time": "",
@@ -92,14 +98,26 @@
     "tags": ""
   },
   {
+    "content": "智能分配仓位中，需要考虑拆单，把能下的仓位先买入",
+    "priority": 2,
+    "start_date": "",
+    "start_time": "",
+    "created_date": "2025-09-08",
+    "category": "交易",
+    "project": "",
+    "tags": "",
+    "major": false
+  },
+  {
     "content": "微盘股准备",
-    "priority": 3,
+    "priority": 1,
     "start_date": "",
     "start_time": "",
     "category": "交易",
     "project": "",
     "tags": "",
-    "created_date": "2025-09-09"
+    "created_date": "2025-09-09",
+    "major": false
   },
   {
     "content": "柳永尝试",
@@ -156,7 +174,7 @@
   },
   {
     "content": "史晓系统学习",
-    "priority": 2,
+    "priority": 1,
     "start_date": "",
     "start_time": "",
     "category": "生活",
@@ -175,17 +193,5 @@
     "tags": "",
     "created_date": "2025-09-09",
     "major": false
-  },
-  {
-    "content": "把仓位搞到网上去",
-    "priority": 4,
-    "start_date": "",
-    "start_time": "",
-    "category": "量化",
-    "project": "",
-    "tags": "",
-    "created_date": "2025-09-10",
-    "remind_id": "baba3b4cc3f24e229c8f810bc989b5c3",
-    "status": ""
   }
 ]

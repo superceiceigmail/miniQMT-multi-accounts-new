@@ -374,6 +374,24 @@
           "unit": "天",
           "project": "GUI二期",
           "tags": ""
+        },
+        {
+          "category": "交易",
+          "content": "生活和娱乐的计划也列进来做日历，老子要活的香喷喷！",
+          "major": false,
+          "score": 1.0,
+          "unit": "天",
+          "project": "GUI二期",
+          "tags": ""
+        },
+        {
+          "category": "交易",
+          "content": "完成柳永《鹤冲天·黄金榜上》",
+          "major": true,
+          "score": 10.0,
+          "unit": "天",
+          "project": "柳永",
+          "tags": ""
         }
       ],
       "plan": [
@@ -396,9 +414,9 @@
           "tags": ""
         }
       ],
-      "rules": "",
+      "rules": "老子要活的香喷喷！",
       "followed_plan": true,
-      "timestamp": "2025-09-10T12:42:01"
+      "timestamp": "2025-09-10T23:59:29"
     }
   ],
   "continuous_days_last_date": "2025-09-10"

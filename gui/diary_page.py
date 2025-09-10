@@ -8,7 +8,7 @@ from ttkbootstrap.constants import *
 from ttkbootstrap.scrolled import ScrolledText
 from tkinter import messagebox
 
-DEBUG = True
+DEBUG = False
 def debug_print(*args, **kwargs):
     if DEBUG:
         print("[DEBUG]", *args, **kwargs)
@@ -716,7 +716,7 @@ class DiaryPage(tb.Frame):
             save_json_file(REMIND_FILE, remind)
 
         old_todo = load_json_file(TODO_FILE)
-        # 合并old_todo和新todo，不重复追加
+        # 合并old_todo
         old_todo_map = {(t.get('content', ''), t.get('start_date', ''), t.get('category', ''), t.get('project', ''),
                          t.get('tags', '')): t for t in old_todo}
         for t in todo:

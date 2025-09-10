@@ -143,22 +143,54 @@ class TodolistPage(tb.Frame):
         self.todos = load_todos()
         from collections import Counter
         cat_counts = Counter(todo.get("category", "其他") for todo in self.todos)
+
         def sort_key(todo):
             cat = todo.get("category", "其他")
             return (-cat_counts[cat], cat, -int(todo.get("priority", 99)))
+
         self.todos.sort(key=sort_key)
         # 清空Treeview
         for item in self.tree.get_children():
             self.tree.delete(item)
+
+        # 优先级色阶配置
+        def get_priority_tag(prio):
+            try:
+                prio = int(prio)
+            except Exception:
+                prio = 99
+            if prio <= 1:
+                return "prio1"
+            elif prio == 2:
+                return "prio2"
+            elif prio == 3:
+                return "prio3"
+            elif prio == 4:
+                return "prio4"
+            else:
+                return "prio5"
+
+        self.tree.tag_configure("prio1", background="#f5f5f5")  # 灰
+        self.tree.tag_configure("prio2", background="#e0f7fa")  # 青
+        self.tree.tag_configure("prio3", background="#eaffea")  # 绿
+        self.tree.tag_configure("prio4", background="#fffbe6")  # 黄
+        self.tree.tag_configure("prio5", background="#ffeaea")  # 红
+
         for idx, todo in enumerate(self.todos):
-            self.tree.insert("", "end", iid=str(idx), values=(
-                todo.get('content', ''),
-                todo.get('priority', ''),
-                todo.get('category', ''),
-                todo.get('tags', ''),
-                "是" if todo.get('major') else "",
-                todo.get('created_date', '')
-            ))
+            tag = get_priority_tag(todo.get('priority', 99))
+            self.tree.insert(
+                "", "end", iid=str(idx),
+                values=(
+                    todo.get('content', ''),
+                    todo.get('priority', ''),
+                    todo.get('category', ''),
+                    todo.get('tags', ''),
+                    "是" if todo.get('major') else "",
+                    todo.get('created_date', '')
+                ),
+                tags=(tag,)
+            )
+
         if self.selected_iid is not None and self.selected_iid in self.tree.get_children():
             self.tree.selection_set(self.selected_iid)
             self.tree.focus(self.selected_iid)

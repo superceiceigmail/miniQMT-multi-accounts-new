@@ -1,9 +1,17 @@
 {
-  "sell_stocks_info": [],
-  "buy_stocks_info": [
+  "sell_stocks_info": [
+    {
+      "name": "黄金主题",
+      "ratio": "1.22"
+    },
+    {
+      "name": "黄金LOF",
+      "ratio": "1.22"
+    },
     {
       "name": "国债",
-      "ratio": "10.86"
+      "ratio": "22.95"
     }
-  ]
+  ],
+  "buy_stocks_info": []
 }
