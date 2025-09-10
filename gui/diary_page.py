@@ -8,13 +8,11 @@ from ttkbootstrap.constants import *
 from ttkbootstrap.scrolled import ScrolledText
 from tkinter import messagebox
 
-# ==== 调试打印模块 ====
 DEBUG = True
 def debug_print(*args, **kwargs):
     if DEBUG:
         print("[DEBUG]", *args, **kwargs)
 
-# Tooltip实现（支持多行）
 class ToolTip:
     def __init__(self, widget, text_func):
         self.widget = widget
@@ -72,7 +70,6 @@ class ToolTip:
         else:
             self.hidetip()
 
-# 统一数据文件目录
 DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data")
 os.makedirs(DATA_DIR, exist_ok=True)
 DIARY_FILE = os.path.join(DATA_DIR, "diary.json")
@@ -114,7 +111,6 @@ def load_diary():
             if not content:
                 raise ValueError("Empty file")
             data = json.loads(content)
-            # 兼容老数据
             if "continuous_days_last_date" not in data:
                 data["continuous_days_last_date"] = ""
             debug_print("load_diary loaded:", data)
@@ -230,14 +226,14 @@ class DiaryPage(tb.Frame):
         self.load_today_content()
         self.load_diary_page()
         self.update_today_remind()
-        self.auto_save()  # 自动保存定时器
+        self.auto_save()
 
     def auto_save(self):
         try:
             self.save_today(auto=True)
         except Exception as e:
             debug_print("自动保存失败:", e)
-        self.after(100000, self.auto_save)  # 1分钟左右自动保存一次
+        self.after(100000, self.auto_save)
 
     def create_widgets(self):
         main_frame = tb.Frame(self)
@@ -678,9 +674,9 @@ class DiaryPage(tb.Frame):
     def save_plan_to_remind_and_todo(self, plans):
         today = date.today().isoformat()
         old_remind = load_json_file(REMIND_FILE)
-        old_todo = load_json_file(TODO_FILE)
 
-        # 构建业务主键->提醒对象的映射
+        todo = []
+
         def plan_key(item):
             return (
                 item.get("content", ""),
@@ -695,33 +691,41 @@ class DiaryPage(tb.Frame):
             key = plan_key(item)
             old_remind_map[key] = item
 
-        # 生成新的提醒，去重，如果有老的则复用id和status，否则新建
         new_remind_map = {}
         for plan in plans:
             plan_copy = dict(plan)
             plan_copy["created_date"] = today
             key = plan_key(plan_copy)
             if key in old_remind_map:
-                # 复用id和status，禁止直接更改status
                 plan_copy["remind_id"] = old_remind_map[key].get("remind_id", uuid.uuid4().hex)
                 plan_copy["status"] = old_remind_map[key].get("status", "")
             else:
                 plan_copy["remind_id"] = uuid.uuid4().hex
-                plan_copy["status"] = ""  # 初始为空
+                plan_copy["status"] = ""
             if plan_copy.get("start_date"):
                 new_remind_map[key] = plan_copy
             else:
                 todo.append(plan_copy)
 
-        # 把未出现在新计划里的旧提醒（非今天新建）也保留
         for key, item in old_remind_map.items():
             if key not in new_remind_map:
                 new_remind_map[key] = item
 
-        # 最终保存
         remind = list(new_remind_map.values())
-        save_json_file(REMIND_FILE, remind)
-        save_json_file(TODO_FILE, todo)
+        if remind:
+            save_json_file(REMIND_FILE, remind)
+
+        old_todo = load_json_file(TODO_FILE)
+        # 合并old_todo和新todo，不重复追加
+        old_todo_map = {(t.get('content', ''), t.get('start_date', ''), t.get('category', ''), t.get('project', ''),
+                         t.get('tags', '')): t for t in old_todo}
+        for t in todo:
+            key = (t.get('content', ''), t.get('start_date', ''), t.get('category', ''), t.get('project', ''),
+                   t.get('tags', ''))
+            old_todo_map[key] = t
+        all_todo = list(old_todo_map.values())
+        if all_todo:
+            save_json_file(TODO_FILE, all_todo)
 
     def update_encourage(self):
         days = get_continuous_days()

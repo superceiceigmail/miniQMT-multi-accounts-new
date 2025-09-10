@@ -56,6 +56,7 @@ class RemindPage(tb.Frame):
         super().__init__(master)
         self.reminders = []
         self.selected_index = None
+        self.selected_remind_id = None  # 用于唯一定位选中的提醒
         self.build_ui()
         self.refresh()
 
@@ -124,15 +125,17 @@ class RemindPage(tb.Frame):
 
         tb.Button(entry_frame, text="添加", width=7, bootstyle="success", command=self.add_item).pack(side=LEFT, padx=2)
         tb.Button(entry_frame, text="修改", width=7, bootstyle="info", command=self.edit_item).pack(side=LEFT, padx=2)
-        tb.Button(entry_frame, text="删除", width=7, bootstyle="danger", command=self.delete_item).pack(side=LEFT, padx=2)
+        tb.Button(entry_frame, text="删除", width=7, bootstyle="danger", command=lambda: self.after_idle(self.delete_item)).pack(side=LEFT, padx=2)
 
     def refresh(self):
         self.reminders = load_reminders()
         from collections import Counter
         cat_counts = Counter(remind.get("category", "其他") for remind in self.reminders)
+
         def sort_key(remind):
             cat = remind.get("category", "其他")
             return (-cat_counts[cat], cat, -int(remind.get("priority", 99)))
+
         self.reminders.sort(key=sort_key)
         for item in self.tree.get_children():
             self.tree.delete(item)
@@ -148,9 +151,11 @@ class RemindPage(tb.Frame):
                 remind.get("tags", ""),
                 remind.get("created_date", "")
             ))
-        if self.selected_index is not None and 0 <= self.selected_index < len(self.reminders):
-            self.tree.selection_set(str(self.selected_index))
-            self.tree.focus(str(self.selected_index))
+        # 不自动选中任何行
+        self.selected_index = None
+        self.selected_remind_id = None
+
+        # 清空输入框
         self.entry.delete(0, tk.END)
         self.priority_entry.delete(0, tk.END)
         self.priority_entry.insert(0, "3")
@@ -192,25 +197,37 @@ class RemindPage(tb.Frame):
             }
             self.reminders.append(new_remind)
             save_reminders(self.reminders)
-            self.selected_index = len(self.reminders) - 1
             self.refresh()
 
     def delete_item(self):
         self.reminders = load_reminders()
-        idx = self.selected_index
-        if idx is not None and 0 <= idx < len(self.reminders):
-            self.reminders.pop(idx)
-            save_reminders(self.reminders)
-            self.selected_index = None
-            self.refresh()
-        else:
+        rid = getattr(self, "selected_remind_id", None)
+        if not rid:
             messagebox.showinfo("提示", "请先选中需要删除的提醒")
+            return
+        for i, r in enumerate(self.reminders):
+            if r.get("remind_id") == rid:
+                self.reminders.pop(i)
+                save_reminders(self.reminders)
+                self.selected_index = None
+                self.selected_remind_id = None
+                self.refresh()
+                return
+        messagebox.showinfo("提示", "未找到要删除的提醒")
 
     def edit_item(self):
         self.reminders = load_reminders()
-        idx = self.selected_index
-        if idx is None or idx < 0 or idx >= len(self.reminders):
+        rid = getattr(self, "selected_remind_id", None)
+        if not rid:
             messagebox.showinfo("提示", "请先选中需要修改的提醒")
+            return
+        idx = None
+        for i, r in enumerate(self.reminders):
+            if r.get("remind_id") == rid:
+                idx = i
+                break
+        if idx is None:
+            messagebox.showinfo("提示", "未找到要修改的提醒")
             return
         text = self.entry.get().strip()
         try:
@@ -238,6 +255,7 @@ class RemindPage(tb.Frame):
             save_reminders(self.reminders)
             self.refresh()
             self.selected_index = idx
+            self.selected_remind_id = remind_obj["remind_id"]
             self.tree.selection_set(str(idx))
             self.tree.focus(str(idx))
 
@@ -246,8 +264,9 @@ class RemindPage(tb.Frame):
         if sel:
             iid = sel[0]
             idx = int(iid)
-            self.selected_index = idx
             remind = self.reminders[idx]
+            self.selected_index = idx
+            self.selected_remind_id = remind.get("remind_id")
             self.entry.delete(0, tk.END)
             self.entry.insert(0, remind.get("content", ""))
             self.priority_entry.delete(0, tk.END)
@@ -272,5 +291,8 @@ class RemindPage(tb.Frame):
             if rowid:
                 self.tree.selection_set(rowid)
                 self.tree.focus(rowid)
-                self.selected_index = int(rowid)
+                idx = int(rowid)
+                remind = self.reminders[idx]
+                self.selected_index = idx
+                self.selected_remind_id = remind.get("remind_id")
                 self.on_select(None)
