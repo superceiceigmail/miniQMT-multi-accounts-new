@@ -4,6 +4,7 @@ import tkinter as tk
 from tkinter import messagebox
 import json
 import os
+import uuid
 
 REMIND_FILE = "gui/data/remind.json"
 
@@ -11,7 +12,16 @@ def load_reminders():
     if not os.path.exists(REMIND_FILE):
         return []
     with open(REMIND_FILE, "r", encoding="utf-8") as f:
-        return json.load(f)
+        reminders = json.load(f)
+        # 补充旧数据没有remind_id的情况
+        changed = False
+        for r in reminders:
+            if "remind_id" not in r:
+                r["remind_id"] = uuid.uuid4().hex
+                changed = True
+        if changed:
+            save_reminders(reminders)
+        return reminders
 
 def save_reminders(reminders):
     with open(REMIND_FILE, "w", encoding="utf-8") as f:
@@ -117,7 +127,6 @@ class RemindPage(tb.Frame):
         tb.Button(entry_frame, text="删除", width=7, bootstyle="danger", command=self.delete_item).pack(side=LEFT, padx=2)
 
     def refresh(self):
-        # 每次操作都重新加载文件内容，防止脏数据覆盖
         self.reminders = load_reminders()
         from collections import Counter
         cat_counts = Counter(remind.get("category", "其他") for remind in self.reminders)
@@ -154,7 +163,6 @@ class RemindPage(tb.Frame):
         self.tags_entry.delete(0, tk.END)
 
     def add_item(self):
-        # 先reload，防止覆盖外部变更
         self.reminders = load_reminders()
         text = self.entry.get().strip()
         try:
@@ -179,7 +187,8 @@ class RemindPage(tb.Frame):
                 "status": status,
                 "category": category,
                 "project": project,
-                "tags": tags
+                "tags": tags,
+                "remind_id": uuid.uuid4().hex
             }
             self.reminders.append(new_remind)
             save_reminders(self.reminders)
@@ -215,14 +224,17 @@ class RemindPage(tb.Frame):
         project = self.project_entry.get().strip()
         tags = self.tags_entry.get().strip()
         if text:
-            self.reminders[idx]["content"] = text
-            self.reminders[idx]["priority"] = priority
-            self.reminders[idx]["start_date"] = start_date
-            self.reminders[idx]["start_time"] = start_time
-            self.reminders[idx]["status"] = status
-            self.reminders[idx]["category"] = category
-            self.reminders[idx]["project"] = project
-            self.reminders[idx]["tags"] = tags
+            remind_obj = self.reminders[idx]
+            remind_obj["content"] = text
+            remind_obj["priority"] = priority
+            remind_obj["start_date"] = start_date
+            remind_obj["start_time"] = start_time
+            remind_obj["status"] = status
+            remind_obj["category"] = category
+            remind_obj["project"] = project
+            remind_obj["tags"] = tags
+            if "remind_id" not in remind_obj:
+                remind_obj["remind_id"] = uuid.uuid4().hex
             save_reminders(self.reminders)
             self.refresh()
             self.selected_index = idx

@@ -1,6 +1,7 @@
 import os
 import json
 import re
+import uuid
 from datetime import date, datetime, timedelta
 import ttkbootstrap as tb
 from ttkbootstrap.constants import *
@@ -678,16 +679,47 @@ class DiaryPage(tb.Frame):
         today = date.today().isoformat()
         old_remind = load_json_file(REMIND_FILE)
         old_todo = load_json_file(TODO_FILE)
-        remind = [item for item in old_remind if item.get("created_date") != today]
-        todo = [item for item in old_todo if item.get("created_date") != today]
+
+        # 构建业务主键->提醒对象的映射
+        def plan_key(item):
+            return (
+                item.get("content", ""),
+                item.get("start_date", ""),
+                item.get("category", ""),
+                item.get("project", ""),
+                item.get("tags", "")
+            )
+
+        old_remind_map = {}
+        for item in old_remind:
+            key = plan_key(item)
+            old_remind_map[key] = item
+
+        # 生成新的提醒，去重，如果有老的则复用id和status，否则新建
+        new_remind_map = {}
         for plan in plans:
             plan_copy = dict(plan)
             plan_copy["created_date"] = today
-            if plan.get("start_date"):
-                plan_copy["status"] = plan_copy.get("status", "")
-                remind.append(plan_copy)
+            key = plan_key(plan_copy)
+            if key in old_remind_map:
+                # 复用id和status，禁止直接更改status
+                plan_copy["remind_id"] = old_remind_map[key].get("remind_id", uuid.uuid4().hex)
+                plan_copy["status"] = old_remind_map[key].get("status", "")
+            else:
+                plan_copy["remind_id"] = uuid.uuid4().hex
+                plan_copy["status"] = ""  # 初始为空
+            if plan_copy.get("start_date"):
+                new_remind_map[key] = plan_copy
             else:
                 todo.append(plan_copy)
+
+        # 把未出现在新计划里的旧提醒（非今天新建）也保留
+        for key, item in old_remind_map.items():
+            if key not in new_remind_map:
+                new_remind_map[key] = item
+
+        # 最终保存
+        remind = list(new_remind_map.values())
         save_json_file(REMIND_FILE, remind)
         save_json_file(TODO_FILE, todo)
 

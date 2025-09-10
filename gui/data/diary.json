@@ -1,24 +1,86 @@
 {
-  "continuous_days": 0,
-  "continuous_days_last_date": "",
+  "continuous_days": 1,
   "records": [
     {
-      "date": "2025-09-10",
+      "date": "2025-09-01",
+      "honor": [
+        {
+          "category": "写歌",
+          "content": "完成了《时光如诗因为有了你》这首歌的创作",
+          "major": true,
+          "score": 3.0,
+          "unit": "天",
+          "project": "",
+          "tags": ""
+        }
+      ],
+      "plan": [],
+      "rules": "",
+      "followed_plan": false,
+      "timestamp": ""
+    },
+    {
+      "date": "2025-09-03",
+      "honor": [
+        {
+          "category": "交易",
+          "content": "完成了可转债股性债性的研究，通过叠加最差国债和最差可转债回测确认，可转债不但能提升国债曲线，而且并未带来额外风险。由于是新指标，先按国债6-7成分配可转债仓位。",
+          "major": true,
+          "score": 3.0,
+          "unit": "天",
+          "project": "",
+          "tags": ""
+        }
+      ],
+      "plan": [],
+      "rules": "",
+      "followed_plan": false,
+      "timestamp": ""
+    },
+    {
+      "date": "2025-09-04",
+      "honor": [
+        {
+          "category": "生活",
+          "content": "科目一考试98分",
+          "major": true,
+          "score": 1.0,
+          "unit": "天",
+          "project": "学车",
+          "tags": ""
+        }
+      ],
+      "plan": [],
+      "rules": "",
+      "followed_plan": false,
+      "timestamp": ""
+    },
+    {
+      "date": "2025-09-08",
       "honor": [
         {
           "category": "量化",
-          "content": "提醒页面初步研发",
+          "content": "完成了VUE架构的前端页面，包含了\n1、账户持仓、标的查看；\n2、策略管理和智能拉伸收缩仓位；\n3、仓位配置。\n4、对接了echarts,尝试了可视化。",
+          "major": true,
+          "score": 5.0,
+          "unit": "天",
+          "project": "智能量化前端二期",
+          "tags": ""
+        },
+        {
+          "category": "交易",
+          "content": "根据雪人仓位，补充了黄金仓位。",
           "major": false,
-          "score": 4.0,
+          "score": 1.0,
           "unit": "小时",
-          "project": "GUI二期",
+          "project": "",
           "tags": ""
         },
         {
           "category": "量化",
-          "content": "todolist",
+          "content": "完成了GUI交易执行和日记部分的开发，试用了两个前端框架",
           "major": true,
-          "score": 1.0,
+          "score": 3.0,
           "unit": "天",
           "project": "GUI二期",
           "tags": ""
@@ -26,9 +88,262 @@
       ],
       "plan": [
         {
-          "content": "测试提醒",
+          "content": "智能分配仓位中，需要考虑拆单，把能下的仓位先买入",
+          "priority": 3,
+          "start_date": "",
+          "start_time": "",
+          "category": "交易",
+          "project": "",
+          "tags": ""
+        },
+        {
+          "content": "云飞的策略自动跟踪。",
+          "priority": 3,
+          "start_date": "",
+          "start_time": "",
+          "category": "交易",
+          "project": "",
+          "tags": ""
+        },
+        {
+          "content": "生活和娱乐的计划也列进来，准备做日历，老子要活的香喷喷！",
+          "priority": 3,
+          "start_date": "",
+          "start_time": "",
+          "category": "交易",
+          "project": "",
+          "tags": ""
+        },
+        {
+          "content": "日历和todolist",
+          "priority": 3,
+          "start_date": "",
+          "start_time": "",
+          "category": "交易",
+          "project": "",
+          "tags": ""
+        },
+        {
+          "content": "看病，唱歌，总结歌曲，看电影",
+          "priority": 3,
+          "start_date": "2025-09-09",
+          "start_time": "",
+          "category": "交易",
+          "project": "",
+          "tags": ""
+        },
+        {
+          "content": "学车，前进后退",
           "priority": 3,
           "start_date": "2025-09-10",
+          "start_time": "10:30",
+          "category": "交易",
+          "project": "",
+          "tags": ""
+        },
+        {
+          "content": "学车",
+          "priority": 3,
+          "start_date": "2025-09-11",
+          "start_time": "13:00",
+          "category": "交易",
+          "project": "",
+          "tags": ""
+        },
+        {
+          "content": "前后端部署上线学习和尝试",
+          "priority": 3,
+          "start_date": "",
+          "start_time": "",
+          "category": "交易",
+          "project": "",
+          "tags": ""
+        }
+      ],
+      "rules": "参考雪人的仓位，改动30%仓位，其他按策略比例均衡配置",
+      "followed_plan": true,
+      "timestamp": "2025-09-08T23:40:51"
+    },
+    {
+      "date": "2025-09-09",
+      "honor": [
+        {
+          "category": "量化",
+          "content": "后台增加了13点自动成交检查",
+          "major": false,
+          "score": 1.0,
+          "unit": "小时",
+          "project": "量化后端",
+          "tags": ""
+        },
+        {
+          "category": "量化",
+          "content": "云飞偷鸡项目调研",
+          "major": false,
+          "score": 1.0,
+          "unit": "小时",
+          "project": "云飞偷鸡",
+          "tags": ""
+        },
+        {
+          "category": "娱乐",
+          "content": "看成龙电影捕风追影，梁家辉真是个厉害角色",
+          "major": false,
+          "score": 3.0,
+          "unit": "小时",
+          "project": "",
+          "tags": ""
+        },
+        {
+          "category": "生活",
+          "content": "迁移了笔记本电脑的todolist",
+          "major": false,
+          "score": 1.0,
+          "unit": "小时",
+          "project": "",
+          "tags": ""
+        },
+        {
+          "category": "量化",
+          "content": "完善了日志分类、项目、标签属性，修复了若干bug",
+          "major": false,
+          "score": 1.0,
+          "unit": "小时",
+          "project": "",
+          "tags": ""
+        },
+        {
+          "category": "量化",
+          "content": "打通了SSH方式的gitpush",
+          "major": true,
+          "score": 1.0,
+          "unit": "小时",
+          "project": "量化后端",
+          "tags": ""
+        },
+        {
+          "category": "生活",
+          "content": "复查神经性皮炎发现已经治好了",
+          "major": true,
+          "score": 3.0,
+          "unit": "小时",
+          "project": "",
+          "tags": ""
+        }
+      ],
+      "plan": [
+        {
+          "content": "tushare关注",
+          "priority": 3,
+          "start_date": "",
+          "start_time": "",
+          "category": "量化",
+          "project": "",
+          "tags": ""
+        },
+        {
+          "content": "成就计划思考",
+          "priority": 3,
+          "start_date": "",
+          "start_time": "",
+          "category": "生活",
+          "project": "",
+          "tags": ""
+        },
+        {
+          "content": "云飞偷鸡项目，找云飞订阅最多的策略，验证是否有云飞突刺。",
+          "priority": 5,
+          "start_date": "",
+          "start_time": "",
+          "category": "量化",
+          "project": "",
+          "tags": ""
+        },
+        {
+          "content": "总结歌曲",
+          "priority": 3,
+          "start_date": "",
+          "start_time": "",
+          "category": "娱乐",
+          "project": "",
+          "tags": ""
+        },
+        {
+          "content": "微盘股准备",
+          "priority": 3,
+          "start_date": "",
+          "start_time": "",
+          "category": "交易",
+          "project": "",
+          "tags": ""
+        },
+        {
+          "content": "柳永尝试",
+          "priority": 4,
+          "start_date": "",
+          "start_time": "",
+          "category": "写歌",
+          "project": "",
+          "tags": ""
+        },
+        {
+          "content": "歌词学习，郑智化，beyond，beatles研究",
+          "priority": 3,
+          "start_date": "",
+          "start_time": "",
+          "category": "写歌",
+          "project": "",
+          "tags": ""
+        },
+        {
+          "content": "垫乐制作尝试",
+          "priority": 3,
+          "start_date": "",
+          "start_time": "",
+          "category": "写歌",
+          "project": "",
+          "tags": ""
+        },
+        {
+          "content": "策略跟踪自动记录和激励",
+          "priority": 3,
+          "start_date": "",
+          "start_time": "",
+          "category": "量化",
+          "project": "",
+          "tags": ""
+        },
+        {
+          "content": "量化教学，准备课程",
+          "priority": 3,
+          "start_date": "",
+          "start_time": "",
+          "category": "量化",
+          "project": "",
+          "tags": ""
+        },
+        {
+          "content": "量化推广 国联、孙辉、刘梦楠",
+          "priority": 3,
+          "start_date": "",
+          "start_time": "",
+          "category": "量化",
+          "project": "",
+          "tags": ""
+        },
+        {
+          "content": "史晓系统学习",
+          "priority": 3,
+          "start_date": "",
+          "start_time": "",
+          "category": "生活",
+          "project": "",
+          "tags": ""
+        },
+        {
+          "content": "搬家",
+          "priority": 3,
+          "start_date": "",
           "start_time": "",
           "category": "交易",
           "project": "",
@@ -36,8 +351,37 @@
         }
       ],
       "rules": "",
-      "followed_plan": false,
-      "timestamp": "2025-09-10T09:17:51"
+      "followed_plan": true,
+      "timestamp": "2025-09-09T23:58:54"
+    },
+    {
+      "date": "2025-09-10",
+      "honor": [
+        {
+          "category": "交易",
+          "content": "测试标签",
+          "major": false,
+          "score": 0.0,
+          "unit": "小时",
+          "project": "",
+          "tags": "标签"
+        }
+      ],
+      "plan": [
+        {
+          "content": "todolist研发",
+          "priority": 3,
+          "start_date": "2025-09-10",
+          "start_time": "",
+          "category": "量化",
+          "project": "GUI二期",
+          "tags": ""
+        }
+      ],
+      "rules": "",
+      "followed_plan": true,
+      "timestamp": "2025-09-10T09:37:18"
     }
-  ]
+  ],
+  "continuous_days_last_date": "2025-09-10"
 }
