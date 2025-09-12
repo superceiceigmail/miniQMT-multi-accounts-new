@@ -128,8 +128,10 @@ def save_diary(diary_data):
         json.dump(diary_data, f, ensure_ascii=False, indent=2)
     debug_print("save_diary:", diary_data)
 
-def add_diary_record(honors, plans, rules, followed_plan):
-    today_str = date.today().isoformat()
+def add_diary_record(honors, plans, rules, followed_plan, record_date=None):
+    if record_date is None:
+        record_date = date.today().isoformat()
+    today_str = record_date
     diary_data = load_diary()
     records = diary_data["records"]
     already = False
@@ -222,6 +224,7 @@ class DiaryPage(tb.Frame):
     def __init__(self, master):
         super().__init__(master)
         self.page = 1
+        self.editing_date = date.today().isoformat() # 当前编辑的日记日期
         self.create_widgets()
         self.load_today_content()
         self.load_diary_page()
@@ -530,7 +533,8 @@ class DiaryPage(tb.Frame):
                 self._plan_fulltext_map.pop(item, None)
 
     def load_today_content(self):
-        today_str = date.today().isoformat()
+        self.editing_date = date.today().isoformat() # 每次加载今日内容时更新为当天
+        today_str = self.editing_date
         diary_data = load_diary()
         rec = next((r for r in diary_data["records"] if r["date"] == today_str), None)
         self.honor_tree.delete(*self.honor_tree.get_children())
@@ -610,15 +614,10 @@ class DiaryPage(tb.Frame):
         self.on_plan_date_change()
 
     def save_today(self, auto=False):
-        today_str = date.today().isoformat()
+        # 使用editing_date作为保存的日记日期，避免跨日后重复
+        today_str = self.editing_date
         diary_data = load_diary()
         rec = next((r for r in diary_data["records"] if r["date"] == today_str), None)
-        if rec is None and (
-                self.honor_tree.get_children() or self.plan_tree.get_children() or self.rules_text.get("1.0",
-                                                                                                       "end").strip()):
-            self.load_today_content()
-            messagebox.showinfo("提示", "已进入新的一天，页面内容已自动刷新，请填写今日内容。")
-            return
 
         honors = []
         for row in self.honor_tree.get_children():
@@ -659,12 +658,10 @@ class DiaryPage(tb.Frame):
             })
         rules = self.rules_text.get("1.0", "end").strip()
         followed = self.followed_var.get()
-        if not honors and not plans and not rules:
-            if not auto:
-                messagebox.showwarning("提示", "请填写至少一项内容！")
-            return
+
+        # 允许空内容也保存
         self.save_plan_to_remind_and_todo(plans)
-        add_diary_record(honors, plans, rules, followed)
+        add_diary_record(honors, plans, rules, followed, record_date=today_str)
         self.update_encourage()
         self.load_diary_page()
         self.update_today_remind()

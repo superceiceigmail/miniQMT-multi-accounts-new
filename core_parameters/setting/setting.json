@@ -1,17 +1,26 @@
 {
   "sell_stocks_info": [
     {
-      "name": "黄金主题",
-      "ratio": "1.22"
+      "name": "美国消费",
+      "ratio": "1.83"
     },
     {
-      "name": "黄金LOF",
-      "ratio": "1.22"
-    },
-    {
-      "name": "国债",
-      "ratio": "22.95"
+      "name": "标普医疗",
+      "ratio": "1.83"
     }
   ],
-  "buy_stocks_info": []
+  "buy_stocks_info": [
+    {
+      "name": "嘉实原油",
+      "ratio": "3.04"
+    },
+    {
+      "name": "原油易方达",
+      "ratio": "3.04"
+    },
+    {
+      "name": "十年国债",
+      "ratio": "19.32"
+    }
+  ]
 }

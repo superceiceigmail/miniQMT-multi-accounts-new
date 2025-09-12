@@ -1,5 +1,5 @@
 {
-  "continuous_days": 1,
+  "continuous_days": 3,
   "records": [
     {
       "date": "2025-09-01",
@@ -376,7 +376,7 @@
           "tags": ""
         },
         {
-          "category": "交易",
+          "category": "量化",
           "content": "生活和娱乐的计划也列进来做日历，老子要活的香喷喷！",
           "major": false,
           "score": 1.0,
@@ -385,7 +385,7 @@
           "tags": ""
         },
         {
-          "category": "交易",
+          "category": "写歌",
           "content": "完成柳永《鹤冲天·黄金榜上》",
           "major": true,
           "score": 10.0,
@@ -417,7 +417,80 @@
       "rules": "老子要活的香喷喷！",
       "followed_plan": true,
       "timestamp": "2025-09-10T23:59:29"
+    },
+    {
+      "date": "2025-09-11",
+      "honor": [
+        {
+          "category": "生活",
+          "content": "右入库学习",
+          "major": false,
+          "score": 4.0,
+          "unit": "小时",
+          "project": "学车",
+          "tags": ""
+        },
+        {
+          "category": "量化",
+          "content": "完成初爬",
+          "major": true,
+          "score": 4.0,
+          "unit": "小时",
+          "project": "云飞研究",
+          "tags": ""
+        },
+        {
+          "category": "量化",
+          "content": "爬虫初探",
+          "major": true,
+          "score": 2.0,
+          "unit": "小时",
+          "project": "云飞研究",
+          "tags": ""
+        }
+      ],
+      "plan": [],
+      "rules": "新策略\n1、必须验证3个月再实盘\n2、同产品多个策略如果无法验证相关性，按一个策略配置仓位",
+      "followed_plan": true,
+      "timestamp": "2025-09-11T23:59:38"
+    },
+    {
+      "date": "2025-09-12",
+      "honor": [
+        {
+          "category": "量化",
+          "content": "云飞重爬",
+          "major": true,
+          "score": 1.0,
+          "unit": "天",
+          "project": "云飞研究",
+          "tags": ""
+        }
+      ],
+      "plan": [
+        {
+          "content": "开始准备街唱",
+          "priority": 3,
+          "start_date": "2025-09-12",
+          "start_time": "",
+          "category": "娱乐",
+          "project": "",
+          "tags": ""
+        },
+        {
+          "content": "准备执行抢买计划",
+          "priority": 4,
+          "start_date": "",
+          "start_time": "",
+          "category": "交易",
+          "project": "",
+          "tags": ""
+        }
+      ],
+      "rules": "",
+      "followed_plan": true,
+      "timestamp": "2025-09-12T15:45:38"
     }
   ],
-  "continuous_days_last_date": "2025-09-10"
+  "continuous_days_last_date": "2025-09-12"
 }

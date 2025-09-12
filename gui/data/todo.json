@@ -121,13 +121,14 @@
   },
   {
     "content": "柳永尝试",
-    "priority": 4,
+    "priority": 3,
     "start_date": "",
     "start_time": "",
     "category": "写歌",
     "project": "",
     "tags": "",
-    "created_date": "2025-09-09"
+    "created_date": "2025-09-09",
+    "major": false
   },
   {
     "content": "歌词学习，郑智化，beyond，beatles研究",
@@ -193,5 +194,17 @@
     "tags": "",
     "created_date": "2025-09-09",
     "major": false
+  },
+  {
+    "content": "准备执行抢买计划",
+    "priority": 4,
+    "start_date": "",
+    "start_time": "",
+    "category": "交易",
+    "project": "",
+    "tags": "",
+    "created_date": "2025-09-12",
+    "remind_id": "8696b0bb6e7c4b238f7c4aef87856e8b",
+    "status": ""
   }
 ]
