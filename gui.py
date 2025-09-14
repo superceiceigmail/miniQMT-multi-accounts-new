@@ -92,6 +92,9 @@ def main():
         diary_frame.pack_forget()
         todolist_frame.pack(fill=BOTH, expand=True)
         remind_frame.pack_forget()
+        # 每次切换到todolist页面都刷新
+        if hasattr(todolist_frame, "refresh"):
+            todolist_frame.refresh()
     def show_remind():
         exec_frame.pack_forget()
         diary_frame.pack_forget()

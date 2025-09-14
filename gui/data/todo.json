@@ -1,6 +1,6 @@
 [
   {
-    "content": "云飞偷鸡项目，找云飞订阅最多的策略，验证是否有云飞突刺。",
+    "content": "云飞生成交易计划",
     "priority": 5,
     "start_date": "",
     "start_time": "",
@@ -11,15 +11,27 @@
     "major": true
   },
   {
-    "content": "爬虫学习",
+    "content": "云飞定时执行交易计划",
     "priority": 5,
     "start_date": "",
     "start_time": "",
-    "created_date": "2025-09-10",
+    "created_date": "2025-09-14",
     "category": "量化",
     "project": "",
     "tags": "",
-    "major": false
+    "major": true
+  },
+  {
+    "content": "ETF和指数对应表的实现",
+    "priority": 5,
+    "start_date": "",
+    "start_time": "",
+    "category": "量化",
+    "project": "云飞研究",
+    "tags": "",
+    "created_date": "2025-09-14",
+    "remind_id": "9f9411fd177341cc97305af7cadff217",
+    "status": ""
   },
   {
     "content": "把仓位搞到网上去",
@@ -32,6 +44,17 @@
     "created_date": "2025-09-10",
     "remind_id": "69408dd716fd484ab2c429b77ae01232",
     "status": ""
+  },
+  {
+    "content": "BALL计划",
+    "priority": 4,
+    "start_date": "",
+    "start_time": "",
+    "created_date": "2025-09-13",
+    "category": "量化",
+    "project": "",
+    "tags": "",
+    "major": true
   },
   {
     "content": "tushare关注",
@@ -78,6 +101,18 @@
     "major": false
   },
   {
+    "content": "云飞球，十二只球滚动，按日期定投分散风险",
+    "priority": 4,
+    "start_date": "",
+    "start_time": "",
+    "category": "交易",
+    "project": "",
+    "tags": "",
+    "created_date": "2025-09-14",
+    "remind_id": "fdddc1d323dc42048f1c16098e10fbec",
+    "status": ""
+  },
+  {
     "content": "云飞的策略自动跟踪。",
     "priority": 3,
     "start_date": "",
@@ -96,6 +131,30 @@
     "category": "交易",
     "project": "",
     "tags": ""
+  },
+  {
+    "content": "云飞球",
+    "priority": 3,
+    "start_date": "",
+    "start_time": "",
+    "category": "交易",
+    "project": "",
+    "tags": "",
+    "created_date": "2025-09-13",
+    "remind_id": "244a8110abbd4dbd8d37fa87aa6a3448",
+    "status": ""
+  },
+  {
+    "content": "记录云飞综合成交曲线",
+    "priority": 3,
+    "start_date": "",
+    "start_time": "",
+    "category": "交易",
+    "project": "",
+    "tags": "",
+    "created_date": "2025-09-14",
+    "remind_id": "91723bf9485145bf9583660d336de4e1",
+    "status": ""
   },
   {
     "content": "智能分配仓位中，需要考虑拆单，把能下的仓位先买入",
@@ -194,17 +253,5 @@
     "tags": "",
     "created_date": "2025-09-09",
     "major": false
-  },
-  {
-    "content": "准备执行抢买计划",
-    "priority": 4,
-    "start_date": "",
-    "start_time": "",
-    "category": "交易",
-    "project": "",
-    "tags": "",
-    "created_date": "2025-09-12",
-    "remind_id": "8696b0bb6e7c4b238f7c4aef87856e8b",
-    "status": ""
   }
 ]

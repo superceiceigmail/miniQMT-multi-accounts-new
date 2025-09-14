@@ -1,5 +1,5 @@
 {
-  "continuous_days": 3,
+  "continuous_days": 5,
   "records": [
     {
       "date": "2025-09-01",
@@ -465,6 +465,33 @@
           "unit": "天",
           "project": "云飞研究",
           "tags": ""
+        },
+        {
+          "category": "娱乐",
+          "content": "唱歌",
+          "major": false,
+          "score": 3.0,
+          "unit": "小时",
+          "project": "",
+          "tags": ""
+        },
+        {
+          "category": "量化",
+          "content": "云飞数据处理",
+          "major": true,
+          "score": 1.0,
+          "unit": "天",
+          "project": "云飞研究",
+          "tags": ""
+        },
+        {
+          "category": "量化",
+          "content": "里程碑奖励：\n云飞研究第一阶段完成，实现了数据的爬取和初步处理。\n下一步要进行自动交易的研究和尝试。",
+          "major": true,
+          "score": 2.0,
+          "unit": "天",
+          "project": "云飞研究",
+          "tags": ""
         }
       ],
       "plan": [
@@ -489,8 +516,100 @@
       ],
       "rules": "",
       "followed_plan": true,
-      "timestamp": "2025-09-12T15:45:38"
+      "timestamp": "2025-09-13T06:10:25"
+    },
+    {
+      "date": "2025-09-13",
+      "honor": [
+        {
+          "category": "量化",
+          "content": "云飞策略细分",
+          "major": true,
+          "score": 1.0,
+          "unit": "天",
+          "project": "云飞研究",
+          "tags": ""
+        },
+        {
+          "category": "量化",
+          "content": "云飞策略精选",
+          "major": true,
+          "score": 1.0,
+          "unit": "天",
+          "project": "云飞研究",
+          "tags": ""
+        }
+      ],
+      "plan": [
+        {
+          "content": "对接云飞接口",
+          "priority": 5,
+          "start_date": "",
+          "start_time": "",
+          "category": "交易",
+          "project": "",
+          "tags": ""
+        },
+        {
+          "content": "云飞球，十二只球滚动，按日期定投分散风险",
+          "priority": 4,
+          "start_date": "",
+          "start_time": "",
+          "category": "交易",
+          "project": "",
+          "tags": ""
+        },
+        {
+          "content": "记录云飞综合成交曲线",
+          "priority": 3,
+          "start_date": "",
+          "start_time": "",
+          "category": "交易",
+          "project": "",
+          "tags": ""
+        }
+      ],
+      "rules": "",
+      "followed_plan": true,
+      "timestamp": "2025-09-14T06:38:28"
+    },
+    {
+      "date": "2025-09-14",
+      "honor": [
+        {
+          "category": "生活",
+          "content": "看房",
+          "major": false,
+          "score": 6.0,
+          "unit": "小时",
+          "project": "",
+          "tags": ""
+        },
+        {
+          "category": "交易",
+          "content": "对接云飞接口，策略拉取，批次分割，定时任务，需要几天测试",
+          "major": true,
+          "score": 1.0,
+          "unit": "天",
+          "project": "云飞研究",
+          "tags": ""
+        }
+      ],
+      "plan": [
+        {
+          "content": "ETF和指数对应表的实现",
+          "priority": 5,
+          "start_date": "",
+          "start_time": "",
+          "category": "量化",
+          "project": "云飞研究",
+          "tags": ""
+        }
+      ],
+      "rules": "",
+      "followed_plan": true,
+      "timestamp": "2025-09-14T21:31:12"
     }
   ],
-  "continuous_days_last_date": "2025-09-12"
+  "continuous_days_last_date": "2025-09-14"
 }
