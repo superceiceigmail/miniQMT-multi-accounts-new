@@ -26,9 +26,11 @@ HEADERS = {
 SCHEDULE_TIMES = [
     "10:43:00",
     "13:00:05",
-    "14:32:00",
+    "16:29:00",
     "14:50:05",
 ]
+
+SAMPLE_ACCOUNT_AMOUNT = 660000  # 样板账号金额
 
 def load_batch_status():
     today = datetime.now().strftime("%Y-%m-%d")
@@ -60,10 +62,8 @@ def is_logged_in(html_text):
 def kill_and_reset_geph():
     try:
         print("检测到SSL错误，尝试关闭迷雾通及重置系统代理！")
-        # 关闭 geph 相关所有进程
         for proc in ["geph4-client.exe", "gephgui-wry.exe", "geph4.exe"]:
             subprocess.run(['taskkill', '/F', '/IM', proc], check=False)
-        # 恢复 Windows 系统代理
         subprocess.run('netsh winhttp reset proxy', shell=True)
         subprocess.run('reg delete "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Internet Settings" /v ProxyServer /f', shell=True)
         subprocess.run('reg delete "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Internet Settings" /v ProxyEnable /f', shell=True)
@@ -73,9 +73,10 @@ def kill_and_reset_geph():
 
 def login():
     session = requests.Session()
+    session.trust_env = False  # 禁用系统代理
     session.headers.update(HEADERS)
     try:
-        resp = session.get(LOGIN_URL)
+        resp = session.get(LOGIN_URL, proxies={})  # 禁用代理
     except SSLError as e:
         print("遇到SSL错误:", e)
         kill_and_reset_geph()
@@ -97,7 +98,11 @@ def login():
         'ckb_UserAgreement': 'on',
         'btn_login': '登 录',
     }
-    login_resp = session.post(LOGIN_URL, data=data)
+    try:
+        login_resp = session.post(LOGIN_URL, data=data, proxies={})
+    except Exception as e:
+        print("登录请求异常:", e)
+        return None
     if not is_logged_in(login_resp.text):
         print("登录失败，请检查用户名密码或表单字段。")
         return None
@@ -161,16 +166,59 @@ def extract_operation_action(op_html):
         return '继续持有'
     return '未知'
 
-def print_strategy_info(strategy):
-    print(f"\n>>> 策略【{strategy['name']}】 操作时间: {strategy['time']}")
-    print("变动信息:")
-    print(BeautifulSoup(strategy['operation_block'], 'lxml').get_text())
-    print("当前持仓:")
-    for h in strategy['holding_block']:
-        print("  " + h)
-    print("==============")
+def get_bracket_content(s):
+    # 支持中英文括号
+    m = re.search(r"(?:\(|（)(.*?)(?:\)|）)", s)
+    return m.group(1) if m else ""
 
-def fetch_and_check_batch(batch_no, batch_time, batch_names, batch_status):
+def find_strategy_by_id_and_bracket(cfg, strategies):
+    json_id = str(cfg['策略ID'])
+    json_id_prefix = json_id[:-1] if len(json_id) > 1 else json_id
+    json_bracket = get_bracket_content(cfg['策略名称'])
+    for s in strategies:
+        # 先找ID前缀
+        id_match = re.search(r"L?(\d+):", s['name'])
+        if not id_match:
+            continue
+        web_id = id_match.group(1)
+        if web_id.startswith(json_id_prefix):
+            web_bracket = get_bracket_content(s['name'])
+            # 括号内容一致才算同一策略
+            if json_bracket and web_bracket and json_bracket == web_bracket:
+                return s
+    return None
+
+def run_scheduler_with_staggered_batches():
+    with open(INPUT_JSON, 'r', encoding='utf-8') as f:
+        strategy_cfgs = json.load(f)
+    batch_groups = defaultdict(list)
+    for cfg in strategy_cfgs:
+        batch = cfg.get("交易批次", 1)
+        batch_groups[batch].append(cfg)
+    batch_cfgs_map = {b: clist for b, clist in batch_groups.items()}
+    batch_status = load_batch_status()
+    now = datetime.now()
+    timers = []
+    for idx, tstr in enumerate(SCHEDULE_TIMES, 1):
+        schedule_time = datetime.strptime(now.strftime('%Y-%m-%d') + ' ' + tstr, '%Y-%m-%d %H:%M:%S')
+        delta = (schedule_time - now).total_seconds()
+        random_delay = random.uniform(3, 5)
+        batch_cfgs = batch_cfgs_map.get(idx, [])
+        if batch_status.get(str(idx)):
+            continue  # 已采集，无需安排
+        if schedule_time < now:
+            print(f"第{idx}批次时间已过，立即补抓，策略：{[c['策略名称'] for c in batch_cfgs]}")
+            threading.Thread(target=fetch_and_check_batch, args=(idx, tstr, batch_cfgs, batch_status)).start()
+        else:
+            print(f"第{idx}批次将于{schedule_time.strftime('%Y-%m-%d %H:%M:%S')}启动，距离现在{int(delta)}秒，策略：{[c['策略名称'] for c in batch_cfgs]}，附加延迟{random_delay:.2f}秒")
+            t = threading.Timer(delta + random_delay, fetch_and_check_batch, args=(idx, tstr, batch_cfgs, batch_status))
+            timers.append(t)
+            t.start()
+    print("全部定时任务已安排。")
+    for t in timers:
+        t.join()
+
+def fetch_and_check_batch(batch_no, batch_time, batch_cfgs, batch_status):
     today_str = datetime.now().strftime('%Y-%m-%d')
     session = None
     while session is None:
@@ -181,7 +229,7 @@ def fetch_and_check_batch(batch_no, batch_time, batch_names, batch_status):
 
     while True:
         try:
-            resp = session.get(BASE_URL + '/F2/b_follow.aspx', headers=HEADERS, timeout=10)
+            resp = session.get(BASE_URL + '/F2/b_follow.aspx', headers=HEADERS, timeout=10, proxies={})
             resp.encoding = resp.apparent_encoding
             if not is_logged_in(resp.text):
                 print("登录失效，重新登录...")
@@ -194,18 +242,29 @@ def fetch_and_check_batch(batch_no, batch_time, batch_names, batch_status):
                 continue
             strategies = parse_b_follow_page(resp.text)
             found_today = False
-            for s in strategies:
-                for name in batch_names:
-                    if name in s['name']:
-                        if s['date'] == today_str:
-                            found_today = True
-                            action = extract_operation_action(s['operation_block'])
-                            if action == '继续持有' or action == '空仓':
-                                print(f"策略【{s['name']}】操作为{action}，跳过")
-                                continue
-                            print_strategy_info(s)
-                        else:
-                            print(f"策略【{s['name']}】不是今日[{today_str}]操作，10秒后刷新重试...")
+            for cfg in batch_cfgs:
+                s = find_strategy_by_id_and_bracket(cfg, strategies)
+                if not s:
+                    print(f"策略【{cfg['策略名称']}】未找到！")
+                    continue
+                if s['date'] == today_str:
+                    found_today = True
+                    action = extract_operation_action(s['operation_block'])
+                    if action == '继续持有' or action == '空仓':
+                        print(f"策略【{s['name']}】操作为{action}，跳过")
+                        continue
+                    config_amount = cfg.get('配置仓位', 0)
+                    sample_amount = round(config_amount * SAMPLE_ACCOUNT_AMOUNT, 2)
+                    print(f"\n>>> 策略【{s['name']}】 操作时间: {s['time']}")
+                    print("变动信息:")
+                    print(BeautifulSoup(s['operation_block'], 'lxml').get_text())
+                    print(f"配置仓位: {config_amount}，样板操作金额: {sample_amount}")
+                    print("当前持仓:")
+                    for h in s['holding_block']:
+                        print("  " + h)
+                    print("==============")
+                else:
+                    print(f"策略【{s['name']}】不是今日[{today_str}]操作，10秒后刷新重试...")
             if found_today:
                 batch_status[str(batch_no)] = True
                 save_batch_status(batch_status)
@@ -227,37 +286,51 @@ def fetch_and_check_batch(batch_no, batch_time, batch_names, batch_status):
             print("10秒后重试")
             time.sleep(10)
 
-def run_scheduler_with_staggered_batches():
+def collect_today_strategies():
     with open(INPUT_JSON, 'r', encoding='utf-8') as f:
         strategy_cfgs = json.load(f)
-    batch_groups = defaultdict(list)
+    batch_dict = defaultdict(list)
     for cfg in strategy_cfgs:
         batch = cfg.get("交易批次", 1)
-        batch_groups[batch].append(cfg)
-    batch_names_map = {b: [c["策略名称"] for c in clist] for b, clist in batch_groups.items()}
-    batch_status = load_batch_status()
-    now = datetime.now()
-    timers = []
-    for idx, tstr in enumerate(SCHEDULE_TIMES, 1):
-        schedule_time = datetime.strptime(now.strftime('%Y-%m-%d') + ' ' + tstr, '%Y-%m-%d %H:%M:%S')
-        delta = (schedule_time - now).total_seconds()
-        random_delay = random.uniform(3, 5)
-        batch_names = batch_names_map.get(idx, [])
-        if batch_status.get(str(idx)):
-            continue  # 已采集，无需安排
-        if schedule_time < now:
-            # 已过时间点，立即补抓
-            print(f"第{idx}批次时间已过，立即补抓，策略：{batch_names}")
-            threading.Thread(target=fetch_and_check_batch, args=(idx, tstr, batch_names, batch_status)).start()
-        else:
-            # 未到时间点，正常定时
-            print(f"第{idx}批次将于{schedule_time.strftime('%Y-%m-%d %H:%M:%S')}启动，距离现在{int(delta)}秒，策略：{batch_names}，附加延迟{random_delay:.2f}秒")
-            t = threading.Timer(delta + random_delay, fetch_and_check_batch, args=(idx, tstr, batch_names, batch_status))
-            timers.append(t)
-            t.start()
-    print("全部定时任务已安排。")
-    for t in timers:
-        t.join()
+        batch_dict[batch].append(cfg)
+
+    session = login()
+    if not session:
+        print("无法登录，无法汇总今日策略信息")
+        return
+    try:
+        resp = session.get(BASE_URL + '/F2/b_follow.aspx', headers=HEADERS, timeout=10, proxies={})
+        resp.encoding = resp.apparent_encoding
+    except Exception as e:
+        print("拉取策略页面失败：", e)
+        return
+    strategies = parse_b_follow_page(resp.text)
+
+    today_str = datetime.now().strftime('%Y-%m-%d')
+    print("\n==================== 今日策略汇总 ====================")
+    for batch in sorted(batch_dict.keys()):
+        print(f"\n#### 交易批次 {batch}")
+        for cfg in batch_dict[batch]:
+            s = find_strategy_by_id_and_bracket(cfg, strategies)
+            name = cfg['策略名称']
+            if not s:
+                print(f"策略【{name}】未找到！")
+                continue
+            # 1. 变更操作
+            if s['date'] == today_str and extract_operation_action(s['operation_block']) == '买卖':
+                config_amount = cfg.get('配置仓位', 0)
+                sample_amount = round(config_amount * SAMPLE_ACCOUNT_AMOUNT/100, 2)
+                print(f"【{name}】操作时间: {s['time']}\n操作: {BeautifulSoup(s['operation_block'], 'lxml').get_text().strip()}")
+                print(f"  配置仓位: {config_amount}，样板操作金额: {sample_amount}")
+            # 2. 最终持仓
+            print(f"【{name}】当前持仓:")
+            if s['holding_block']:
+                for h in s['holding_block']:
+                    print("  " + h)
+            else:
+                print("  （无持仓信息）")
+    print("\n==================== 汇总结束 ========================")
 
 if __name__ == '__main__':
     run_scheduler_with_staggered_batches()
+    collect_today_strategies()
