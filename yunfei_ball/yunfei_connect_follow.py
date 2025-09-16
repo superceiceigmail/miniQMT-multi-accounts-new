@@ -1,0 +1,263 @@
+import os
+import sys
+import time
+import random
+import requests
+import re
+import json
+import threading
+import subprocess
+from datetime import datetime, timedelta
+from bs4 import BeautifulSoup
+from collections import defaultdict
+from requests.exceptions import SSLError
+
+USERNAME = 'ceicei'
+PASSWORD = 'ceicei628'
+LOGIN_URL = 'https://www.ycyflh.com/F2/login.aspx'
+BASE_URL = 'https://www.ycyflh.com'
+INPUT_JSON = 'allocation.json'
+BATCH_STATUS_FILE = "pending_batches.json"
+
+HEADERS = {
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'
+}
+
+SCHEDULE_TIMES = [
+    "10:43:00",
+    "13:00:05",
+    "14:32:00",
+    "14:50:05",
+]
+
+def load_batch_status():
+    today = datetime.now().strftime("%Y-%m-%d")
+    try:
+        with open(BATCH_STATUS_FILE, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+        return data.get(today, {})
+    except Exception:
+        return {}
+
+def save_batch_status(batch_status):
+    today = datetime.now().strftime("%Y-%m-%d")
+    try:
+        with open(BATCH_STATUS_FILE, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+    except Exception:
+        data = {}
+    data[today] = batch_status
+    with open(BATCH_STATUS_FILE, 'w', encoding='utf-8') as f:
+        json.dump(data, f, indent=2, ensure_ascii=False)
+
+def get_value_by_name(soup, name):
+    tag = soup.find('input', {'name': name})
+    return tag['value'] if tag else ''
+
+def is_logged_in(html_text):
+    return ("退出" in html_text or "个人资料" in html_text or "Hi," in html_text)
+
+def kill_and_reset_geph():
+    try:
+        print("检测到SSL错误，尝试关闭迷雾通及重置系统代理！")
+        # 关闭 geph 相关所有进程
+        for proc in ["geph4-client.exe", "gephgui-wry.exe", "geph4.exe"]:
+            subprocess.run(['taskkill', '/F', '/IM', proc], check=False)
+        # 恢复 Windows 系统代理
+        subprocess.run('netsh winhttp reset proxy', shell=True)
+        subprocess.run('reg delete "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Internet Settings" /v ProxyServer /f', shell=True)
+        subprocess.run('reg delete "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Internet Settings" /v ProxyEnable /f', shell=True)
+        print("已关闭所有 geph 进程并重置系统代理设置")
+    except Exception as e:
+        print("关闭 geph 或重置代理失败:", e)
+
+def login():
+    session = requests.Session()
+    session.headers.update(HEADERS)
+    try:
+        resp = session.get(LOGIN_URL)
+    except SSLError as e:
+        print("遇到SSL错误:", e)
+        kill_and_reset_geph()
+        time.sleep(5)
+        return None
+    except Exception as e:
+        print("其他网络异常:", e)
+        return None
+    soup = BeautifulSoup(resp.text, 'html.parser')
+    viewstate = get_value_by_name(soup, '__VIEWSTATE')
+    eventvalidation = get_value_by_name(soup, '__EVENTVALIDATION')
+    viewstategen = get_value_by_name(soup, '__VIEWSTATEGENERATOR')
+    data = {
+        '__VIEWSTATE': viewstate,
+        '__EVENTVALIDATION': eventvalidation,
+        '__VIEWSTATEGENERATOR': viewstategen,
+        'txt_name_2020_byf': USERNAME,
+        'txt_pwd_2020_byf': PASSWORD,
+        'ckb_UserAgreement': 'on',
+        'btn_login': '登 录',
+    }
+    login_resp = session.post(LOGIN_URL, data=data)
+    if not is_logged_in(login_resp.text):
+        print("登录失败，请检查用户名密码或表单字段。")
+        return None
+    print("登录成功")
+    return session
+
+def parse_b_follow_page(html):
+    soup = BeautifulSoup(html, 'lxml')
+    strategies = []
+    for table in soup.find_all('table', {'border': '1'}):
+        name = ''
+        ttime = ''
+        op_block = ''
+        holding_block = ''
+        th = table.find('th', attrs={'colspan': '2'})
+        if not th: continue
+        a = th.find('a')
+        if a:
+            name = a.get_text(strip=True)
+        else:
+            name = th.get_text(strip=True)
+        tds = table.find_all('td', attrs={'colspan': '2'})
+        if len(tds) > 0:
+            ttime_match = re.search(r'\[(\d{4}-\d{2}-\d{2} \d{2}:\d{2})\]', tds[0].get_text())
+            ttime = ttime_match.group(1) if ttime_match else ''
+            divs = tds[0].find_all('div')
+            if len(divs) > 1:
+                op_block = ''.join(str(divs[1]))
+            else:
+                op_block = tds[0].get_text(separator=' ', strip=True)
+        holdings_td = None
+        for td in tds:
+            if '目前持仓' in td.get_text():
+                holdings_td = td
+                break
+        holding_lines = []
+        if holdings_td:
+            for line in holdings_td.stripped_strings:
+                m = re.match(r'([^\s：:]+)[：:]\s*([\d\.]+)%', line)
+                if m:
+                    holding_lines.append(f"{m.group(1)}：{m.group(2)}%")
+                elif '空仓' in line:
+                    holding_lines.append('空仓')
+        strategies.append({
+            "name": name,
+            "date": ttime.split()[0] if ttime else '',
+            "time": ttime,
+            "operation_block": op_block,
+            "holding_block": holding_lines
+        })
+    return strategies
+
+def extract_operation_action(op_html):
+    if not op_html: return '继续持有'
+    text = BeautifulSoup(op_html, 'lxml').get_text()
+    if '买入' in text or '卖出' in text:
+        return '买卖'
+    if '空仓' in text:
+        return '空仓'
+    if '继续持有' in text:
+        return '继续持有'
+    return '未知'
+
+def print_strategy_info(strategy):
+    print(f"\n>>> 策略【{strategy['name']}】 操作时间: {strategy['time']}")
+    print("变动信息:")
+    print(BeautifulSoup(strategy['operation_block'], 'lxml').get_text())
+    print("当前持仓:")
+    for h in strategy['holding_block']:
+        print("  " + h)
+    print("==============")
+
+def fetch_and_check_batch(batch_no, batch_time, batch_names, batch_status):
+    today_str = datetime.now().strftime('%Y-%m-%d')
+    session = None
+    while session is None:
+        session = login()
+        if session is None:
+            print("无法登录，5秒后重试")
+            time.sleep(5)
+
+    while True:
+        try:
+            resp = session.get(BASE_URL + '/F2/b_follow.aspx', headers=HEADERS, timeout=10)
+            resp.encoding = resp.apparent_encoding
+            if not is_logged_in(resp.text):
+                print("登录失效，重新登录...")
+                session = None
+                while session is None:
+                    session = login()
+                    if session is None:
+                        print("无法登录，5秒后重试")
+                        time.sleep(5)
+                continue
+            strategies = parse_b_follow_page(resp.text)
+            found_today = False
+            for s in strategies:
+                for name in batch_names:
+                    if name in s['name']:
+                        if s['date'] == today_str:
+                            found_today = True
+                            action = extract_operation_action(s['operation_block'])
+                            if action == '继续持有' or action == '空仓':
+                                print(f"策略【{s['name']}】操作为{action}，跳过")
+                                continue
+                            print_strategy_info(s)
+                        else:
+                            print(f"策略【{s['name']}】不是今日[{today_str}]操作，10秒后刷新重试...")
+            if found_today:
+                batch_status[str(batch_no)] = True
+                save_batch_status(batch_status)
+                break
+            print("本批次部分策略还未更新到今日，10秒后重试")
+            time.sleep(10)
+        except SSLError as e:
+            print("遇到SSL错误:", e)
+            kill_and_reset_geph()
+            time.sleep(5)
+            session = None
+            while session is None:
+                session = login()
+                if session is None:
+                    print("无法登录，5秒后重试")
+                    time.sleep(5)
+        except Exception as e:
+            print("抓取异常", e)
+            print("10秒后重试")
+            time.sleep(10)
+
+def run_scheduler_with_staggered_batches():
+    with open(INPUT_JSON, 'r', encoding='utf-8') as f:
+        strategy_cfgs = json.load(f)
+    batch_groups = defaultdict(list)
+    for cfg in strategy_cfgs:
+        batch = cfg.get("交易批次", 1)
+        batch_groups[batch].append(cfg)
+    batch_names_map = {b: [c["策略名称"] for c in clist] for b, clist in batch_groups.items()}
+    batch_status = load_batch_status()
+    now = datetime.now()
+    timers = []
+    for idx, tstr in enumerate(SCHEDULE_TIMES, 1):
+        schedule_time = datetime.strptime(now.strftime('%Y-%m-%d') + ' ' + tstr, '%Y-%m-%d %H:%M:%S')
+        delta = (schedule_time - now).total_seconds()
+        random_delay = random.uniform(3, 5)
+        batch_names = batch_names_map.get(idx, [])
+        if batch_status.get(str(idx)):
+            continue  # 已采集，无需安排
+        if schedule_time < now:
+            # 已过时间点，立即补抓
+            print(f"第{idx}批次时间已过，立即补抓，策略：{batch_names}")
+            threading.Thread(target=fetch_and_check_batch, args=(idx, tstr, batch_names, batch_status)).start()
+        else:
+            # 未到时间点，正常定时
+            print(f"第{idx}批次将于{schedule_time.strftime('%Y-%m-%d %H:%M:%S')}启动，距离现在{int(delta)}秒，策略：{batch_names}，附加延迟{random_delay:.2f}秒")
+            t = threading.Timer(delta + random_delay, fetch_and_check_batch, args=(idx, tstr, batch_names, batch_status))
+            timers.append(t)
+            t.start()
+    print("全部定时任务已安排。")
+    for t in timers:
+        t.join()
+
+if __name__ == '__main__':
+    run_scheduler_with_staggered_batches()

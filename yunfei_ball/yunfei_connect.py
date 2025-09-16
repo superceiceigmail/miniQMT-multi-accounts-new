@@ -20,11 +20,10 @@ HEADERS = {
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'
 }
 
-# =========== 1. 定义五个时间点（24小时制） ===============
 SCHEDULE_TIMES = [
-    "09:33:00",
+    "14:52:00",
     "13:00:05",
-    "14:31:00",
+    "14:30:33",
     "14:50:05",
 ]
 
@@ -63,15 +62,49 @@ def extract_operation_and_holdings(html):
     soup = BeautifulSoup(html, 'lxml')
     main_text = soup.get_text('\n', strip=True)
 
-    # 操作类型和操作区块
+    # 操作区块
     op_block_match = re.search(r'订阅.*?\n(.*?)\n*【目前持仓】', main_text, re.S)
     op_block = op_block_match.group(1).strip() if op_block_match else ""
+
     # 操作区块持仓明细
     op_proportions = re.findall(r'(?:继续持有|买入|卖出)\s*([^\(\s;]+)[\(（]?([\d\.]+)?%?[\)）]?', op_block)
     operation_list = []
     for s, p in op_proportions:
         p_clean = p.strip() + "%" if p and p.strip() else ""
         operation_list.append({"symbol": s.strip(), "proportion": p_clean})
+
+    # 仓位变化形式，如“xxx 仓位0%→32.58%”
+    wzs = re.findall(r'([^\s;；\(\)]+)\s*仓位\s*([\d\.]+)%→([\d\.]+)%', op_block)
+    operation_wz = []
+    for symbol, from_p, to_p in wzs:
+        from_p = float(from_p)
+        to_p = float(to_p)
+        if from_p < to_p:
+            operation_wz.append({"symbol": symbol, "action": "买入", "from": from_p, "to": to_p, "proportion": to_p - from_p})
+        elif from_p > to_p:
+            operation_wz.append({"symbol": symbol, "action": "卖出", "from": from_p, "to": to_p, "proportion": from_p - to_p})
+
+    # 继续持有内容
+    continue_hold = re.findall(r'继续持有\s*([^\(\s;]+)[\(（]?([\d\.]+)?%?[\)）]?', op_block)
+
+    # 提取买入卖出明细
+    buy_sell_trades = []
+    # 买入明细
+    for match in re.findall(r'买入\s*([^\s;；\(\)]+)[\(（]?([\d\.]+)?%?[\)）]?', op_block):
+        symbol, p = match
+        p = float(p) if p else 0.0
+        buy_sell_trades.append({"symbol": symbol, "action": "买入", "proportion": p})
+    # 卖出明细
+    for match in re.findall(r'卖出\s*([^\s;；\(\)]+)[\(（]?([\d\.]+)?%?[\)）]?', op_block):
+        symbol, p = match
+        p = float(p) if p else 0.0
+        buy_sell_trades.append({"symbol": symbol, "action": "卖出", "proportion": p})
+
+    # 合并仓位变化和买卖明细（仓位变化优先，避免重复）
+    op_symbols = set([o['symbol'] for o in operation_wz])
+    for t in buy_sell_trades:
+        if t['symbol'] not in op_symbols:
+            operation_wz.append(t)
 
     # 持仓区块
     holdings_list = []
@@ -95,7 +128,7 @@ def extract_operation_and_holdings(html):
     op_date = date_match.group(1) if date_match else ""
 
     return {
-        "operation_block": operation_list,
+        "operation_block": operation_wz,  # 只保留需要切换的内容
         "holdings_block": holdings_list,
         "operation_date": op_date
     }
@@ -117,100 +150,124 @@ def fetch_strategy_once(session, cfg):
     page_info = extract_operation_and_holdings(resp.text)
     return page_info
 
-def combine_positions(strategy_cfgs, all_ops):
-    # 汇总同名标的的仓位
-    combined = defaultdict(lambda: {"仓位": 0.0, "策略": []})
+def combine_switch_trades(strategy_cfgs, all_ops):
+    """
+    合并所有策略的买卖计划，买卖相抵
+    """
+    trade_plan = {}  # symbol: {'买入': total, '卖出': total}
     for cfg, op in zip(strategy_cfgs, all_ops):
-        strategy_name = cfg.get("策略名称", "")
-        strategy_id = cfg.get("策略ID")
         allocation = float(cfg.get("配置仓位", 0))
-        for item in op["operation_block"]:
-            symbol = item["symbol"]
-            prop_str = item.get("proportion", "").replace("%", "")
-            if not prop_str:
-                continue
-            try:
-                prop = float(prop_str)
-            except:
-                continue
-            position = allocation * prop / 100
-            combined[symbol]["仓位"] += position
-            combined[symbol]["策略"].append({"策略名称": strategy_name, "策略ID": strategy_id, "标的": symbol, "仓位": position})
-    # 合并输出
-    result = []
-    for symbol, info in combined.items():
-        result.append({
-            "标的": symbol,
-            "合并仓位": round(info["仓位"], 2),
-            "明细": info["策略"]
-        })
-    return result
+        for trade in op["operation_block"]:
+            symbol = trade["symbol"]
+            direction = trade["action"]
+            prop = float(trade["proportion"])
+            real = allocation * prop / 100
+            if symbol not in trade_plan:
+                trade_plan[symbol] = {'买入': 0.0, '卖出': 0.0}
+            trade_plan[symbol][direction] += real
+    # 买卖相抵
+    plan = []
+    for symbol, v in trade_plan.items():
+        buy, sell = v['买入'], v['卖出']
+        diff = buy - sell
+        if abs(diff) < 1e-6:
+            continue
+        if diff > 0:
+            plan.append({"symbol": symbol, "action": "买入", "amount": round(diff, 2)})
+        else:
+            plan.append({"symbol": symbol, "action": "卖出", "amount": round(-diff, 2)})
+    return plan
 
-def print_batch_plan(batch_no, batch_time, combined_positions):
+def print_strategy_info(cfg, op):
+    print(f"\n>>> 策略【{cfg.get('策略名称', '')}】(ID: {cfg.get('策略ID', '')}) 操作日期: {op.get('operation_date', '')}")
+    print("--- 需要切换部分 ---")
+    if op.get("operation_block"):
+        for item in op.get("operation_block", []):
+            print(f"  [{item.get('action', '')}] 标的: {item.get('symbol', '')}，目标仓位变化: {item.get('proportion', '')}%")
+    else:
+        print("  无需要切换内容")
+    print("--- 当前持仓 ---")
+    if op.get("holdings_block"):
+        for item in op.get("holdings_block", []):
+            print(f"  标的: {item.get('symbol', '')}，仓位: {item.get('proportion', '')}")
+    else:
+        print("  无持仓内容")
+    print("==============")
+
+def print_trade_plan(batch_no, batch_time, plan):
     print(f"\n====== 第{batch_no}批次({batch_time}) 合并交易计划 ======")
-    for item in combined_positions:
-        print(f"标的: {item['标的']}，合并仓位: {item['合并仓位']}%")
-        for detail in item["明细"]:
-            print(f"    策略名称: {detail['策略名称']}，策略ID: {detail['策略ID']}，单策略仓位: {round(detail['仓位'], 2)}%")
+    for item in plan:
+        print(f"标的：{item['symbol']}，{item['action']} {item['amount']}%")
     print("=" * 60)
 
 def fetch_batch(batch_no, batch_time, strategy_cfgs):
     print(f"\n------ 批次{batch_no} 开始，时间点: {batch_time}, 当前时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} ------")
+    if not strategy_cfgs:
+        print("本批次无策略，跳过。")
+        return
+
+    today_str = datetime.now().strftime('%Y-%m-%d')
     session = login()
     if session is None:
         print("无法登录，跳过本批次")
         return
 
-    today_str = datetime.now().strftime("%Y-%m-%d")
-    max_retry = 10
-    retry = 0
-    finished = [False] * len(strategy_cfgs)
-    all_ops = [None] * len(strategy_cfgs)
+    for idx, cfg in enumerate(strategy_cfgs):
+        print(f"\n>>> 处理第 {idx+1} 个策略")
+        print("策略配置：", json.dumps(cfg, ensure_ascii=False, indent=2))  # 打印json中策略信息
 
-    while retry < max_retry and not all(finished):
-        for idx, cfg in enumerate(strategy_cfgs):
-            if finished[idx]:
-                continue
+        retry_count = 0
+        max_retry = 20
+        while retry_count < max_retry:
             try:
                 op = fetch_strategy_once(session, cfg)
-                # 只关心操作日期为今日的
                 if op["operation_date"] == today_str:
-                    all_ops[idx] = op
-                    finished[idx] = True
+                    print_strategy_info(cfg, op)  # 打印操作相关信息
+                    # 只对本策略生成交易计划，不合并
+                    plan = combine_switch_trades([cfg], [op])
+                    print_trade_plan(batch_no, batch_time, plan)
+                    break  # 处理下一个策略
                 else:
-                    print(f'策略{cfg.get("策略名称")} 操作日期[{op["operation_date"]}]不是今日[{today_str}]，重试...')
+                    print(f"策略 {cfg.get('策略名称')} 操作日期[{op['operation_date']}]不是今日[{today_str}]，重试...")
             except Exception as e:
-                print(f"策略{cfg.get('策略名称')} 抓取异常: {e}")
-        if not all(finished):
-            retry += 1
-            print(f"第{retry}次未全部拉到，20秒后重试...")
-            time.sleep(20)
+                print(f"策略 {cfg.get('策略名称')} 抓取异常: {e}")
+            retry_count += 1
+            if retry_count < max_retry:
+                print("20秒后重试该策略...")
+                time.sleep(20)
         else:
-            break
+            print(f"策略 {cfg.get('策略名称')} 达到最大重试次数，跳过。")
+        # 批次策略之间岔开 1~2 秒（防并发，模拟人工）
+        delay = random.uniform(1, 2)
+        print(f"策略间延迟 {delay:.2f} 秒")
+        time.sleep(delay)
 
-    # 打印本批次已拉到的
-    valid_cfgs = [cfg for idx, cfg in enumerate(strategy_cfgs) if all_ops[idx] is not None]
-    valid_ops = [op for op in all_ops if op is not None]
-    combined = combine_positions(valid_cfgs, valid_ops)
-    print_batch_plan(batch_no, batch_time, combined)
-
-def run_scheduler():
+def run_scheduler_with_staggered_batches():
     # 读取json配置
     with open(INPUT_JSON, 'r', encoding='utf-8') as f:
         strategy_cfgs = json.load(f)
+    # 按交易批次分组
+    batch_groups = defaultdict(list)
+    for cfg in strategy_cfgs:
+        batch = cfg.get("交易批次", 1)
+        batch_groups[batch].append(cfg)
     now = datetime.now()
+    timers = []
     for idx, tstr in enumerate(SCHEDULE_TIMES, 1):
         schedule_time = datetime.strptime(now.strftime('%Y-%m-%d') + ' ' + tstr, '%Y-%m-%d %H:%M:%S')
         if schedule_time < now:
-            # 今天已过，顺延到明天
             schedule_time += timedelta(days=1)
         delta = (schedule_time - now).total_seconds()
-        print(f"第{idx}批次将于{schedule_time.strftime('%Y-%m-%d %H:%M:%S')}启动，距离现在{int(delta)}秒")
-        threading.Timer(delta, fetch_batch, args=(idx, tstr, strategy_cfgs)).start()
+        random_delay = random.uniform(3, 5)  # 3~5秒的随机延迟
+        batch_cfgs = batch_groups.get(idx, [])
+        print(f"第{idx}批次将于{schedule_time.strftime('%Y-%m-%d %H:%M:%S')}启动，距离现在{int(delta)}秒，本批次{len(batch_cfgs)}个策略，附加延迟{random_delay:.2f}秒")
+        t = threading.Timer(delta + random_delay, fetch_batch, args=(idx, tstr, batch_cfgs))
+        timers.append(t)
+        t.start()
     print("全部定时任务已安排。")
+    # 主线程常驻，直到所有定时任务结束
+    for t in timers:
+        t.join()
 
 if __name__ == '__main__':
-    run_scheduler()
-    # 主线程常驻，直到所有定时任务结束
-    while True:
-        time.sleep(60)
+    run_scheduler_with_staggered_batches()

@@ -1,5 +1,5 @@
 {
-  "continuous_days": 5,
+  "continuous_days": 7,
   "records": [
     {
       "date": "2025-09-01",
@@ -609,7 +609,71 @@
       "rules": "",
       "followed_plan": true,
       "timestamp": "2025-09-14T21:31:12"
+    },
+    {
+      "date": "2025-09-15",
+      "honor": [
+        {
+          "category": "量化",
+          "content": "云飞连接测试",
+          "major": true,
+          "score": 8.0,
+          "unit": "小时",
+          "project": "云飞研究",
+          "tags": ""
+        },
+        {
+          "category": "交易",
+          "content": "云飞仓位手动配置",
+          "major": true,
+          "score": 1.0,
+          "unit": "小时",
+          "project": "云飞球",
+          "tags": ""
+        }
+      ],
+      "plan": [
+        {
+          "content": "学车",
+          "priority": 3,
+          "start_date": "2025-09-15",
+          "start_time": "13:30",
+          "category": "生活",
+          "project": "学车",
+          "tags": ""
+        },
+        {
+          "content": "学车",
+          "priority": 3,
+          "start_date": "2025-09-17",
+          "start_time": "13:00",
+          "category": "生活",
+          "project": "学车",
+          "tags": ""
+        }
+      ],
+      "rules": "",
+      "followed_plan": true,
+      "timestamp": "2025-09-16T09:38:43"
+    },
+    {
+      "date": "2025-09-16",
+      "honor": [],
+      "plan": [
+        {
+          "content": "看房，伺候女儿",
+          "priority": 3,
+          "start_date": "2025-09-15",
+          "start_time": "",
+          "category": "交易",
+          "project": "",
+          "tags": ""
+        }
+      ],
+      "rules": "",
+      "followed_plan": true,
+      "timestamp": "2025-09-16T09:42:03"
     }
   ],
-  "continuous_days_last_date": "2025-09-14"
+  "continuous_days_last_date": "2025-09-16"
 }
