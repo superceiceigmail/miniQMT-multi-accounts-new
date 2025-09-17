@@ -26,8 +26,8 @@ HEADERS = {
 SCHEDULE_TIMES = [
     "10:43:00",
     "13:00:05",
-    "16:29:00",
-    "14:50:05",
+    "14:38:00",
+    "14:38:05",
 ]
 
 SAMPLE_ACCOUNT_AMOUNT = 660000  # 样板账号金额
@@ -224,8 +224,8 @@ def fetch_and_check_batch(batch_no, batch_time, batch_cfgs, batch_status):
     while session is None:
         session = login()
         if session is None:
-            print("无法登录，5秒后重试")
-            time.sleep(5)
+            print("无法登录，15秒后重试")
+            time.sleep(15)
 
     while True:
         try:
@@ -237,8 +237,8 @@ def fetch_and_check_batch(batch_no, batch_time, batch_cfgs, batch_status):
                 while session is None:
                     session = login()
                     if session is None:
-                        print("无法登录，5秒后重试")
-                        time.sleep(5)
+                        print("无法登录，15秒后重试")
+                        time.sleep(15)
                 continue
             strategies = parse_b_follow_page(resp.text)
             found_today = False
@@ -264,27 +264,27 @@ def fetch_and_check_batch(batch_no, batch_time, batch_cfgs, batch_status):
                         print("  " + h)
                     print("==============")
                 else:
-                    print(f"策略【{s['name']}】不是今日[{today_str}]操作，10秒后刷新重试...")
+                    print(f"策略【{s['name']}】不是今日[{today_str}]操作，30秒后刷新重试...")
             if found_today:
                 batch_status[str(batch_no)] = True
                 save_batch_status(batch_status)
                 break
-            print("本批次部分策略还未更新到今日，10秒后重试")
-            time.sleep(10)
+            print("本批次部分策略还未更新到今日，30秒后重试")
+            time.sleep(30)
         except SSLError as e:
             print("遇到SSL错误:", e)
             kill_and_reset_geph()
-            time.sleep(5)
+            time.sleep(15)
             session = None
             while session is None:
                 session = login()
                 if session is None:
-                    print("无法登录，5秒后重试")
-                    time.sleep(5)
+                    print("无法登录，15秒后重试")
+                    time.sleep(15)
         except Exception as e:
             print("抓取异常", e)
-            print("10秒后重试")
-            time.sleep(10)
+            print("30秒后重试")
+            time.sleep(30)
 
 def collect_today_strategies():
     with open(INPUT_JSON, 'r', encoding='utf-8') as f:

@@ -1,5 +1,5 @@
 {
-  "continuous_days": 7,
+  "continuous_days": 8,
   "records": [
     {
       "date": "2025-09-01",
@@ -459,7 +459,7 @@
       "honor": [
         {
           "category": "量化",
-          "content": "云飞重爬",
+          "content": "云飞重爬，从关注列表爬到详情页，全部拉取并按关注人数排序和精选",
           "major": true,
           "score": 1.0,
           "unit": "天",
@@ -491,7 +491,7 @@
           "score": 2.0,
           "unit": "天",
           "project": "云飞研究",
-          "tags": ""
+          "tags": "里程碑"
         }
       ],
       "plan": [
@@ -615,7 +615,7 @@
       "honor": [
         {
           "category": "量化",
-          "content": "云飞连接测试",
+          "content": "云飞连接测试，完成策略拉取、分析和仓位配置，正在向实盘目标挺近",
           "major": true,
           "score": 8.0,
           "unit": "小时",
@@ -685,13 +685,68 @@
           "unit": "小时",
           "project": "云飞球",
           "tags": ""
+        },
+        {
+          "category": "交易",
+          "content": "完成云飞第二阶段研究，在自动化遇阻的复杂局面下，果断选择简化方案，先只做跟踪，优先实现了对九支策略快爬和手动实盘。",
+          "major": true,
+          "score": 4.0,
+          "unit": "小时",
+          "project": "云飞研究",
+          "tags": "里程碑"
+        }
+      ],
+      "plan": [
+        {
+          "content": "稍微了解下雪球",
+          "priority": 3,
+          "start_date": "2025-09-17",
+          "start_time": "",
+          "category": "生活",
+          "project": "",
+          "tags": ""
+        }
+      ],
+      "rules": "",
+      "followed_plan": true,
+      "timestamp": "2025-09-17T00:28:12"
+    },
+    {
+      "date": "2025-09-17",
+      "honor": [
+        {
+          "category": "量化",
+          "content": "完成雪球调研，决定赞不考虑",
+          "major": false,
+          "score": 1.0,
+          "unit": "小时",
+          "project": "",
+          "tags": ""
+        },
+        {
+          "category": "量化",
+          "content": "完成民宿搬家",
+          "major": false,
+          "score": 1.0,
+          "unit": "小时",
+          "project": "",
+          "tags": ""
+        },
+        {
+          "category": "生活",
+          "content": "学车，继续倒车入库",
+          "major": false,
+          "score": 3.0,
+          "unit": "小时",
+          "project": "",
+          "tags": ""
         }
       ],
       "plan": [],
       "rules": "",
       "followed_plan": true,
-      "timestamp": "2025-09-16T18:46:25"
+      "timestamp": "2025-09-17T22:08:26"
     }
   ],
-  "continuous_days_last_date": "2025-09-16"
+  "continuous_days_last_date": "2025-09-17"
 }
