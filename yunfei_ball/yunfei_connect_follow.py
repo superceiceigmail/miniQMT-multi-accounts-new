@@ -24,13 +24,13 @@ HEADERS = {
 }
 
 SCHEDULE_TIMES = [
-    "10:43:00",
-    "13:00:05",
-    "14:38:00",
-    "14:38:05",
+    "10:15:00",
+    "13:01:05",
+    "14:32:00",
+    "14:52:05",
 ]
 
-SAMPLE_ACCOUNT_AMOUNT = 660000  # 样板账号金额
+SAMPLE_ACCOUNT_AMOUNT = 730000  # 样板账号金额
 
 def load_batch_status():
     today = datetime.now().strftime("%Y-%m-%d")

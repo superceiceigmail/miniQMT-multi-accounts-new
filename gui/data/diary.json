@@ -1,5 +1,5 @@
 {
-  "continuous_days": 8,
+  "continuous_days": 11,
   "records": [
     {
       "date": "2025-09-01",
@@ -745,8 +745,52 @@
       "plan": [],
       "rules": "",
       "followed_plan": true,
-      "timestamp": "2025-09-17T22:08:26"
+      "timestamp": "2025-09-18T07:45:20"
+    },
+    {
+      "date": "2025-09-18",
+      "honor": [
+        {
+          "category": "交易",
+          "content": "入账2万第一次",
+          "major": true,
+          "score": 1.0,
+          "unit": "小时",
+          "project": "增仓",
+          "tags": ""
+        }
+      ],
+      "plan": [],
+      "rules": "",
+      "followed_plan": true,
+      "timestamp": "2025-09-18T18:27:13"
+    },
+    {
+      "date": "2025-09-19",
+      "honor": [],
+      "plan": [],
+      "rules": "",
+      "followed_plan": true,
+      "timestamp": "2025-09-20T10:32:08"
+    },
+    {
+      "date": "2025-09-20",
+      "honor": [
+        {
+          "category": "生活",
+          "content": "宁海房子确定了",
+          "major": true,
+          "score": 5.0,
+          "unit": "天",
+          "project": "",
+          "tags": ""
+        }
+      ],
+      "plan": [],
+      "rules": "",
+      "followed_plan": true,
+      "timestamp": "2025-09-20T11:50:30"
     }
   ],
-  "continuous_days_last_date": "2025-09-17"
+  "continuous_days_last_date": "2025-09-20"
 }

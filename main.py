@@ -14,7 +14,6 @@ try:
     import psutil
     from utils.log_utils import ensure_utf8_stdio, setup_logging
 except Exception as err:
-
     raise
 
 from xtquant import xtdata
@@ -33,6 +32,9 @@ from processor.orders_reorder_tool import reorder_orders
 from preprocessing.qmt_connector import ensure_qmt_and_connect
 from preprocessing.trade_time_checker import check_trade_times
 from preprocessing.qmt_daily_restart_checker import check_and_restart
+
+# 新增：导入 git push 工具
+from utils.git_push_tool import push_project_to_github
 
 # ========== 配置 ==========
 AUTO_BUY_511880_TIME = (9, 33, 0)
@@ -430,6 +432,17 @@ def main():
         replace_existing=True
     )
     logging.info(f"银华日利卖出后20秒检查任务定时: {chk_sell_h:02d}:{chk_sell_m:02d}:{chk_sell_s:02d}")
+
+    # ========== 新增：miniQMT-frontend 自动 push GitHub 任务 ==========
+    scheduler.add_job(
+        push_project_to_github,
+        trigger=CronTrigger(hour=9, minute=36, second=0),
+        args=[r"C:\Users\ceicei\PycharmProjects\miniQMT-frontend"],
+        id="push_miniQMT_frontend_to_github",
+        replace_existing=True
+    )
+    logging.info("miniQMT-frontend 自动推送GitHub任务定时: 9:36:00")
+    # ===============================================================
 
     scheduler.start()
 

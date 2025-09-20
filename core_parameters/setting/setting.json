@@ -1,46 +1,38 @@
 {
   "sell_stocks_info": [
     {
-      "name": "美国精选",
-      "ratio": "1.83"
+      "name": "黄金LOF",
+      "ratio": "2.06"
     },
     {
-      "name": "可转债",
-      "ratio": "10.65"
-    },
-    {
-      "name": "银华日利",
-      "ratio": "36.50"
+      "name": "30年国债",
+      "ratio": "10.30"
     }
   ],
   "buy_stocks_info": [
     {
-      "name": "美国消费",
-      "ratio": "1.06"
+      "name": "金融科技",
+      "ratio": "1.77"
     },
     {
-      "name": "黄金主题",
-      "ratio": "2.13"
+      "name": "软件",
+      "ratio": "1.77"
     },
     {
-      "name": "黄金LOF",
-      "ratio": "2.13"
+      "name": "军工",
+      "ratio": "1.77"
     },
     {
-      "name": "30年国债",
-      "ratio": "20.38"
+      "name": "证券保险",
+      "ratio": "1.77"
     },
     {
-      "name": "国债30年",
-      "ratio": "15.51"
+      "name": "中证2000",
+      "ratio": "1.77"
     },
     {
-      "name": "煤炭ETF",
-      "ratio": "0.76"
-    },
-    {
-      "name": "十年国债",
-      "ratio": "6.69"
+      "name": "软件51",
+      "ratio": "1.77"
     }
   ]
 }
