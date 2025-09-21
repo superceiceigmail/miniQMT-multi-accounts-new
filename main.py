@@ -376,12 +376,12 @@ def main():
 
     scheduler.add_job(
         print_positions_task,
-        trigger=CronTrigger(hour=9, minute=36, second=0),
+        trigger=CronTrigger(hour=9, minute=35, second=0),
         args=[xt_trader, account_id, reverse_mapping, account_asset_info],
         id="print_positions_task",
         replace_existing=True
     )
-    logging.info("定时持仓打印任务定时1: 9:36:00")
+    logging.info("定时持仓打印任务定时1: 9:35:00")
 
     scheduler.add_job(
         print_positions_task,

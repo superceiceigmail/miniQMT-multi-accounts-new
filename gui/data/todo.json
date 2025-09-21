@@ -22,30 +22,6 @@
     "major": true
   },
   {
-    "content": "ETF和指数对应表的实现",
-    "priority": 5,
-    "start_date": "",
-    "start_time": "",
-    "category": "量化",
-    "project": "云飞研究",
-    "tags": "",
-    "created_date": "2025-09-14",
-    "remind_id": "9f9411fd177341cc97305af7cadff217",
-    "status": ""
-  },
-  {
-    "content": "把仓位搞到网上去",
-    "priority": 4,
-    "start_date": "",
-    "start_time": "",
-    "category": "量化",
-    "project": "",
-    "tags": "",
-    "created_date": "2025-09-10",
-    "remind_id": "69408dd716fd484ab2c429b77ae01232",
-    "status": ""
-  },
-  {
     "content": "BALL计划",
     "priority": 4,
     "start_date": "",
@@ -176,6 +152,17 @@
     "project": "",
     "tags": "",
     "created_date": "2025-09-09",
+    "major": false
+  },
+  {
+    "content": "歌曲注册",
+    "priority": 5,
+    "start_date": "",
+    "start_time": "",
+    "created_date": "2025-09-21",
+    "category": "写歌",
+    "project": "",
+    "tags": "",
     "major": false
   },
   {

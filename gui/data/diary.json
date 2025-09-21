@@ -1,5 +1,5 @@
 {
-  "continuous_days": 11,
+  "continuous_days": 0,
   "records": [
     {
       "date": "2025-09-01",
@@ -784,12 +784,39 @@
           "unit": "天",
           "project": "",
           "tags": ""
+        },
+        {
+          "category": "生活",
+          "content": "初次完成vercel的尝试，实现了https://mini-qmt-frontend.vercel.app的发布",
+          "major": false,
+          "score": 4.0,
+          "unit": "小时",
+          "project": "",
+          "tags": ""
         }
       ],
       "plan": [],
       "rules": "",
       "followed_plan": true,
-      "timestamp": "2025-09-20T11:50:30"
+      "timestamp": "2025-09-21T14:29:23"
+    },
+    {
+      "date": "2025-09-21",
+      "honor": [
+        {
+          "category": "量化",
+          "content": "ETF和指数对应表的实现",
+          "major": false,
+          "score": 4.0,
+          "unit": "小时",
+          "project": "云飞研究",
+          "tags": ""
+        }
+      ],
+      "plan": [],
+      "rules": "",
+      "followed_plan": false,
+      "timestamp": "2025-09-21T16:52:45"
     }
   ],
   "continuous_days_last_date": "2025-09-20"

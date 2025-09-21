@@ -18,6 +18,7 @@ LOGIN_URL = 'https://www.ycyflh.com/F2/login.aspx'
 BASE_URL = 'https://www.ycyflh.com'
 INPUT_JSON = 'allocation.json'
 BATCH_STATUS_FILE = "pending_batches.json"
+CODE_INDEX_PATH = "code_index.json"
 
 HEADERS = {
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'
@@ -31,6 +32,51 @@ SCHEDULE_TIMES = [
 ]
 
 SAMPLE_ACCOUNT_AMOUNT = 730000  # 样板账号金额
+
+############################
+# 代码映射与买卖操作处理函数
+############################
+
+def load_name_to_code_map(json_path):
+    with open(json_path, 'r', encoding='utf-8') as f:
+        code_map = json.load(f)
+    name_to_code = {}
+    for code, namelist in code_map.items():
+        for name in namelist:
+            if name not in name_to_code:
+                name_to_code[name] = code
+    return name_to_code
+
+def add_code_to_operation(operation_text, name_to_code):
+    """
+    将操作字符串中的证券名称加上代码后缀，如“买入 国债指数;”=>“买入 国债指数(511880);”
+    只替换买入/卖出/调仓/换入/换出等常见操作。
+    """
+    def repl(m):
+        action = m.group(1)
+        asset = m.group(2)
+        code = name_to_code.get(asset)
+        if code:
+            return f"{action} {asset}({code})"
+        else:
+            return f"{action} {asset}"
+    # 支持中英文分号
+    return re.sub(r'(买入|卖出|调仓|换入|换出)\s*([^\s;；，,.]+)', repl, operation_text)
+
+def handle_trade_operation(op_block_html, name_to_code):
+    """处理买卖操作，第一步：打印带代码的操作信息（后续对接真实交易）"""
+    op_text = BeautifulSoup(op_block_html, 'lxml').get_text()
+    op_text_with_code = add_code_to_operation(op_text, name_to_code)
+    print("买卖操作明细：")
+    print(op_text_with_code)
+    # todo: 后续在这里对接真实交易逻辑
+
+# 全局加载代码映射
+name_to_code = load_name_to_code_map(CODE_INDEX_PATH)
+
+##########################
+# 下面是原有业务逻辑
+##########################
 
 def load_batch_status():
     today = datetime.now().strftime("%Y-%m-%d")
@@ -256,8 +302,8 @@ def fetch_and_check_batch(batch_no, batch_time, batch_cfgs, batch_status):
                     config_amount = cfg.get('配置仓位', 0)
                     sample_amount = round(config_amount * SAMPLE_ACCOUNT_AMOUNT, 2)
                     print(f"\n>>> 策略【{s['name']}】 操作时间: {s['time']}")
-                    print("变动信息:")
-                    print(BeautifulSoup(s['operation_block'], 'lxml').get_text())
+                    # 新增：用带代码的买卖明细函数
+                    handle_trade_operation(s['operation_block'], name_to_code)
                     print(f"配置仓位: {config_amount}，样板操作金额: {sample_amount}")
                     print("当前持仓:")
                     for h in s['holding_block']:
@@ -320,7 +366,8 @@ def collect_today_strategies():
             if s['date'] == today_str and extract_operation_action(s['operation_block']) == '买卖':
                 config_amount = cfg.get('配置仓位', 0)
                 sample_amount = round(config_amount * SAMPLE_ACCOUNT_AMOUNT/100, 2)
-                print(f"【{name}】操作时间: {s['time']}\n操作: {BeautifulSoup(s['operation_block'], 'lxml').get_text().strip()}")
+                # 用带代码的买卖明细
+                handle_trade_operation(s['operation_block'], name_to_code)
                 print(f"  配置仓位: {config_amount}，样板操作金额: {sample_amount}")
             # 2. 最终持仓
             print(f"【{name}】当前持仓:")
