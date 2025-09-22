@@ -1,94 +1,5 @@
 [
   {
-    "content": "云飞生成交易计划",
-    "priority": 5,
-    "start_date": "",
-    "start_time": "",
-    "category": "量化",
-    "project": "",
-    "tags": "",
-    "created_date": "2025-09-09",
-    "major": true
-  },
-  {
-    "content": "云飞定时执行交易计划",
-    "priority": 5,
-    "start_date": "",
-    "start_time": "",
-    "created_date": "2025-09-14",
-    "category": "量化",
-    "project": "",
-    "tags": "",
-    "major": true
-  },
-  {
-    "content": "BALL计划",
-    "priority": 4,
-    "start_date": "",
-    "start_time": "",
-    "created_date": "2025-09-13",
-    "category": "量化",
-    "project": "",
-    "tags": "",
-    "major": true
-  },
-  {
-    "content": "tushare关注",
-    "priority": 3,
-    "start_date": "",
-    "start_time": "",
-    "category": "量化",
-    "project": "",
-    "tags": "",
-    "created_date": "2025-09-09",
-    "major": false
-  },
-  {
-    "content": "策略跟踪自动记录和激励",
-    "priority": 2,
-    "start_date": "",
-    "start_time": "",
-    "category": "量化",
-    "project": "",
-    "tags": "",
-    "created_date": "2025-09-09",
-    "major": false
-  },
-  {
-    "content": "量化教学，准备课程",
-    "priority": 1,
-    "start_date": "",
-    "start_time": "",
-    "category": "量化",
-    "project": "",
-    "tags": "",
-    "created_date": "2025-09-09",
-    "major": false
-  },
-  {
-    "content": "量化推广 国联、刘梦楠等",
-    "priority": 1,
-    "start_date": "",
-    "start_time": "",
-    "category": "量化",
-    "project": "",
-    "tags": "",
-    "created_date": "2025-09-09",
-    "major": false
-  },
-  {
-    "content": "云飞球，十二只球滚动，按日期定投分散风险",
-    "priority": 4,
-    "start_date": "",
-    "start_time": "",
-    "category": "交易",
-    "project": "",
-    "tags": "",
-    "created_date": "2025-09-14",
-    "remind_id": "fdddc1d323dc42048f1c16098e10fbec",
-    "status": ""
-  },
-  {
     "content": "云飞的策略自动跟踪。",
     "priority": 3,
     "start_date": "",
@@ -155,6 +66,72 @@
     "major": false
   },
   {
+    "content": "云飞定时执行交易计划",
+    "priority": 5,
+    "start_date": "",
+    "start_time": "",
+    "created_date": "2025-09-14",
+    "category": "量化",
+    "project": "",
+    "tags": "",
+    "major": true
+  },
+  {
+    "content": "BALL计划，云飞球，十二只球滚动，按日期定投分散风险",
+    "priority": 4,
+    "start_date": "",
+    "start_time": "",
+    "created_date": "2025-09-13",
+    "category": "量化",
+    "project": "",
+    "tags": "",
+    "major": true
+  },
+  {
+    "content": "tushare关注",
+    "priority": 3,
+    "start_date": "",
+    "start_time": "",
+    "category": "量化",
+    "project": "",
+    "tags": "",
+    "created_date": "2025-09-09",
+    "major": false
+  },
+  {
+    "content": "策略跟踪自动记录和激励",
+    "priority": 2,
+    "start_date": "",
+    "start_time": "",
+    "category": "量化",
+    "project": "",
+    "tags": "",
+    "created_date": "2025-09-09",
+    "major": false
+  },
+  {
+    "content": "量化教学，准备课程",
+    "priority": 1,
+    "start_date": "",
+    "start_time": "",
+    "category": "量化",
+    "project": "",
+    "tags": "",
+    "created_date": "2025-09-09",
+    "major": false
+  },
+  {
+    "content": "量化推广 国联、刘梦楠等",
+    "priority": 1,
+    "start_date": "",
+    "start_time": "",
+    "category": "量化",
+    "project": "",
+    "tags": "",
+    "created_date": "2025-09-09",
+    "major": false
+  },
+  {
     "content": "歌曲注册",
     "priority": 5,
     "start_date": "",
@@ -178,7 +155,7 @@
   },
   {
     "content": "歌词学习，郑智化，beyond，beatles研究",
-    "priority": 3,
+    "priority": 4,
     "start_date": "",
     "start_time": "",
     "category": "写歌",
@@ -240,5 +217,17 @@
     "tags": "",
     "created_date": "2025-09-09",
     "major": false
+  },
+  {
+    "content": "本周计划：\n1、云飞观察和演进，本周要完成自动交易，下周完成前端对比\n2、搬家\n3、beyond学习",
+    "priority": 4,
+    "start_date": "",
+    "start_time": "",
+    "category": "生活",
+    "project": "周计划",
+    "tags": "",
+    "created_date": "2025-09-22",
+    "remind_id": "7c527087f4eb4247ab1c97ce20ee26f1",
+    "status": ""
   }
 ]

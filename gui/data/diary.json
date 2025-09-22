@@ -1,5 +1,5 @@
 {
-  "continuous_days": 0,
+  "continuous_days": 1,
   "records": [
     {
       "date": "2025-09-01",
@@ -817,7 +817,35 @@
       "rules": "",
       "followed_plan": false,
       "timestamp": "2025-09-21T16:52:45"
+    },
+    {
+      "date": "2025-09-22",
+      "honor": [
+        {
+          "category": "量化",
+          "content": "云飞生成交易计划",
+          "major": true,
+          "score": 4.0,
+          "unit": "小时",
+          "project": "云飞研究",
+          "tags": ""
+        }
+      ],
+      "plan": [
+        {
+          "content": "本周计划：\n1、云飞观察和演进，本周要完成自动交易，下周完成前端对比\n2、搬家\n3、beyond学习",
+          "priority": 4,
+          "start_date": "",
+          "start_time": "",
+          "category": "生活",
+          "project": "周计划",
+          "tags": ""
+        }
+      ],
+      "rules": "",
+      "followed_plan": true,
+      "timestamp": "2025-09-22T10:10:56"
     }
   ],
-  "continuous_days_last_date": "2025-09-20"
+  "continuous_days_last_date": "2025-09-22"
 }

@@ -369,7 +369,7 @@ def main():
         cancel_and_reorder_task,
         trigger=CronTrigger(hour=13, minute=0, second=3),
         args=[xt_trader, account_id, reverse_mapping, "13:00:03"],
-        id="cancel_and_reorder_task_13am",
+        id="cancel_and_reorder_task_130003",
         replace_existing=True
     )
     logging.info("撤单和重下任务定时: 13:00:03")
@@ -378,7 +378,7 @@ def main():
         print_positions_task,
         trigger=CronTrigger(hour=9, minute=35, second=0),
         args=[xt_trader, account_id, reverse_mapping, account_asset_info],
-        id="print_positions_task",
+        id="print_positions_task_0935",
         replace_existing=True
     )
     logging.info("定时持仓打印任务定时1: 9:35:00")
@@ -387,10 +387,10 @@ def main():
         print_positions_task,
         trigger=CronTrigger(hour=14, minute=57, second=0),
         args=[xt_trader, account_id, reverse_mapping, account_asset_info],
-        id="print_positions_task",
+        id="print_positions_task_1457",
         replace_existing=True
     )
-    logging.info("定时持仓打印任务定时: 14:57:00")
+    logging.info("定时持仓打印任务定时2: 14:57:00")
 
     # 银华日利自动交易任务
     buy_h, buy_m, buy_s = AUTO_BUY_511880_TIME
