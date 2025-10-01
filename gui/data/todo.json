@@ -1,5 +1,29 @@
 [
   {
+    "content": "云飞双账号规划；1、先完成云飞调仓和自动交易",
+    "priority": 5,
+    "start_date": "",
+    "start_time": "",
+    "category": "交易",
+    "project": "云飞自动交易",
+    "tags": "",
+    "created_date": "2025-10-01",
+    "remind_id": "539401300e2f47fd8827d4da65f4f018",
+    "status": ""
+  },
+  {
+    "content": "10月要开始布局加仓，布置云飞加仓、自动交易和双账号管理事宜。生活上完成搬家，尝试上海找工作摸底。10月命名为探索月，需要决策下阶段方向",
+    "priority": 5,
+    "start_date": "",
+    "start_time": "",
+    "category": "交易",
+    "project": "",
+    "tags": "月计划",
+    "created_date": "2025-10-02",
+    "remind_id": "5b201659c06344fd80194200a9f16df3",
+    "status": ""
+  },
+  {
     "content": "云飞的策略自动跟踪。",
     "priority": 3,
     "start_date": "",
@@ -8,28 +32,6 @@
     "category": "交易",
     "project": "",
     "tags": ""
-  },
-  {
-    "content": "前后端部署上线学习和尝试",
-    "priority": 3,
-    "start_date": "",
-    "start_time": "",
-    "created_date": "2025-09-08",
-    "category": "交易",
-    "project": "",
-    "tags": ""
-  },
-  {
-    "content": "云飞球",
-    "priority": 3,
-    "start_date": "",
-    "start_time": "",
-    "category": "交易",
-    "project": "",
-    "tags": "",
-    "created_date": "2025-09-13",
-    "remind_id": "244a8110abbd4dbd8d37fa87aa6a3448",
-    "status": ""
   },
   {
     "content": "记录云飞综合成交曲线",
@@ -63,6 +65,72 @@
     "project": "",
     "tags": "",
     "created_date": "2025-09-09",
+    "major": false
+  },
+  {
+    "content": "云飞仓位重配",
+    "priority": 5,
+    "start_date": "",
+    "start_time": "",
+    "created_date": "2025-10-01",
+    "category": "生活",
+    "project": "",
+    "tags": "",
+    "major": false
+  },
+  {
+    "content": "试用suno studio",
+    "priority": 3,
+    "start_date": "",
+    "start_time": "",
+    "created_date": "2025-10-01",
+    "category": "生活",
+    "project": "",
+    "tags": "",
+    "major": false
+  },
+  {
+    "content": "搬家",
+    "priority": 3,
+    "start_date": "",
+    "start_time": "",
+    "category": "生活",
+    "project": "",
+    "tags": "",
+    "created_date": "2025-09-09",
+    "major": false
+  },
+  {
+    "content": "成就计划思考",
+    "priority": 3,
+    "start_date": "",
+    "start_time": "",
+    "category": "生活",
+    "project": "",
+    "tags": "",
+    "created_date": "2025-09-09",
+    "major": true
+  },
+  {
+    "content": "史晓系统学习",
+    "priority": 1,
+    "start_date": "",
+    "start_time": "",
+    "category": "生活",
+    "project": "",
+    "tags": "",
+    "created_date": "2025-09-09",
+    "major": false
+  },
+  {
+    "content": "本周是搬家放松周，要完成放松娱乐和搬家两件事情。云飞暂停，音乐为主。",
+    "priority": 1,
+    "start_date": "",
+    "start_time": "",
+    "created_date": "2025-10-01",
+    "category": "生活",
+    "project": "",
+    "tags": "",
     "major": false
   },
   {
@@ -143,25 +211,14 @@
     "major": false
   },
   {
-    "content": "柳永尝试",
-    "priority": 3,
-    "start_date": "",
-    "start_time": "",
-    "category": "写歌",
-    "project": "",
-    "tags": "",
-    "created_date": "2025-09-09",
-    "major": false
-  },
-  {
-    "content": "歌词学习，郑智化，beyond，beatles研究",
+    "content": "歌词学习，郑智化，beyond，汪峰，beatles研究",
     "priority": 4,
     "start_date": "",
     "start_time": "",
+    "created_date": "2025-09-30",
     "category": "写歌",
     "project": "",
     "tags": "",
-    "created_date": "2025-09-09",
     "major": true
   },
   {
@@ -175,41 +232,8 @@
     "created_date": "2025-09-09"
   },
   {
-    "content": "搬家",
-    "priority": 3,
-    "start_date": "",
-    "start_time": "",
-    "category": "生活",
-    "project": "",
-    "tags": "",
-    "created_date": "2025-09-09",
-    "major": false
-  },
-  {
-    "content": "成就计划思考",
-    "priority": 3,
-    "start_date": "",
-    "start_time": "",
-    "category": "生活",
-    "project": "",
-    "tags": "",
-    "created_date": "2025-09-09",
-    "major": true
-  },
-  {
-    "content": "史晓系统学习",
-    "priority": 1,
-    "start_date": "",
-    "start_time": "",
-    "category": "生活",
-    "project": "",
-    "tags": "",
-    "created_date": "2025-09-09",
-    "major": false
-  },
-  {
     "content": "总结唱歌技巧",
-    "priority": 3,
+    "priority": 4,
     "start_date": "",
     "start_time": "",
     "category": "娱乐",
@@ -217,17 +241,5 @@
     "tags": "",
     "created_date": "2025-09-09",
     "major": false
-  },
-  {
-    "content": "本周计划：\n1、云飞观察和演进，本周要完成自动交易，下周完成前端对比\n2、搬家\n3、beyond学习",
-    "priority": 4,
-    "start_date": "",
-    "start_time": "",
-    "category": "生活",
-    "project": "周计划",
-    "tags": "",
-    "created_date": "2025-09-22",
-    "remind_id": "7c527087f4eb4247ab1c97ce20ee26f1",
-    "status": ""
   }
 ]

@@ -1,5 +1,5 @@
 {
-  "continuous_days": 1,
+  "continuous_days": 5,
   "records": [
     {
       "date": "2025-09-01",
@@ -829,6 +829,15 @@
           "unit": "小时",
           "project": "云飞研究",
           "tags": ""
+        },
+        {
+          "category": "生活",
+          "content": "模拟学车。练歌",
+          "major": false,
+          "score": 4.0,
+          "unit": "小时",
+          "project": "",
+          "tags": ""
         }
       ],
       "plan": [
@@ -844,8 +853,214 @@
       ],
       "rules": "",
       "followed_plan": true,
-      "timestamp": "2025-09-22T10:10:56"
+      "timestamp": "2025-09-23T07:48:05"
+    },
+    {
+      "date": "2025-09-23",
+      "honor": [
+        {
+          "category": "量化",
+          "content": "研究了github推送阿里云的流程，不顺",
+          "major": false,
+          "score": 2.0,
+          "unit": "小时",
+          "project": "",
+          "tags": ""
+        }
+      ],
+      "plan": [],
+      "rules": "",
+      "followed_plan": true,
+      "timestamp": "2025-09-24T07:39:41"
+    },
+    {
+      "date": "2025-09-24",
+      "honor": [],
+      "plan": [],
+      "rules": "",
+      "followed_plan": true,
+      "timestamp": "2025-09-25T11:15:15"
+    },
+    {
+      "date": "2025-09-25",
+      "honor": [
+        {
+          "category": "生活",
+          "content": "完成宁海房子交接",
+          "major": true,
+          "score": 4.0,
+          "unit": "小时",
+          "project": "",
+          "tags": ""
+        },
+        {
+          "category": "生活",
+          "content": "练车，上下",
+          "major": false,
+          "score": 3.0,
+          "unit": "小时",
+          "project": "",
+          "tags": ""
+        }
+      ],
+      "plan": [],
+      "rules": "",
+      "followed_plan": true,
+      "timestamp": "2025-09-26T09:15:46"
+    },
+    {
+      "date": "2025-09-26",
+      "honor": [
+        {
+          "category": "生活",
+          "content": "四姨家过渡结束",
+          "major": false,
+          "score": 4.0,
+          "unit": "小时",
+          "project": "",
+          "tags": ""
+        },
+        {
+          "category": "生活",
+          "content": "齐宾搬家完成",
+          "major": false,
+          "score": 3.0,
+          "unit": "小时",
+          "project": "",
+          "tags": ""
+        },
+        {
+          "category": "生活",
+          "content": "sunoAI5熟悉",
+          "major": false,
+          "score": 2.0,
+          "unit": "小时",
+          "project": "",
+          "tags": ""
+        }
+      ],
+      "plan": [],
+      "rules": "",
+      "followed_plan": true,
+      "timestamp": "2025-09-26T20:34:22"
+    },
+    {
+      "date": "2025-09-28",
+      "honor": [
+        {
+          "category": "写歌",
+          "content": "学习beyond，完成非凡的存在初稿",
+          "major": true,
+          "score": 20.0,
+          "unit": "天",
+          "project": "",
+          "tags": ""
+        },
+        {
+          "category": "生活",
+          "content": "新房打扫卫生",
+          "major": false,
+          "score": 4.0,
+          "unit": "小时",
+          "project": "",
+          "tags": ""
+        }
+      ],
+      "plan": [],
+      "rules": "",
+      "followed_plan": true,
+      "timestamp": "2025-09-29T08:32:39"
+    },
+    {
+      "date": "2025-09-29",
+      "honor": [
+        {
+          "category": "写歌",
+          "content": "非凡的存在修改测试",
+          "major": false,
+          "score": 4.0,
+          "unit": "小时",
+          "project": "",
+          "tags": ""
+        }
+      ],
+      "plan": [],
+      "rules": "",
+      "followed_plan": true,
+      "timestamp": "2025-09-30T12:31:28"
+    },
+    {
+      "date": "2025-09-30",
+      "honor": [
+        {
+          "category": "生活",
+          "content": "成就APP营收可能性调研，谷歌gemini试用",
+          "major": false,
+          "score": 2.0,
+          "unit": "小时",
+          "project": "",
+          "tags": ""
+        }
+      ],
+      "plan": [],
+      "rules": "",
+      "followed_plan": true,
+      "timestamp": "2025-10-01T06:13:28"
+    },
+    {
+      "date": "2025-10-01",
+      "honor": [
+        {
+          "category": "生活",
+          "content": "9月是代码月，完成了可转债研究、云飞爬虫和数据分析以及交易跟踪、GUI交易日记、todolist、和交易执行的开发。生活上完成了科目一，找到了宁海的房子，完成了过渡，写歌完成了非凡的存在，尝试了柳永。",
+          "major": false,
+          "score": 0.0,
+          "unit": "小时",
+          "project": "",
+          "tags": "月总结"
+        },
+        {
+          "category": "量化",
+          "content": "节日期间云飞好像不能用，交易口暂时测试不了，只调整了仓位",
+          "major": false,
+          "score": 1.0,
+          "unit": "小时",
+          "project": "",
+          "tags": ""
+        },
+        {
+          "category": "量化",
+          "content": "双类型账号框架思考，决定分离成两个项目运行",
+          "major": true,
+          "score": 1.0,
+          "unit": "天",
+          "project": "天鹅计划",
+          "tags": ""
+        }
+      ],
+      "plan": [
+        {
+          "content": "10月要开始布局加仓，布置云飞加仓、自动交易和双账号管理事宜。生活上完成搬家，尝试上海找工作摸底。10月命名为探索月，需要决策下阶段方向",
+          "priority": 5,
+          "start_date": "",
+          "start_time": "",
+          "category": "交易",
+          "project": "",
+          "tags": "月计划"
+        }
+      ],
+      "rules": "",
+      "followed_plan": true,
+      "timestamp": "2025-10-02T07:17:17"
+    },
+    {
+      "date": "2025-10-02",
+      "honor": [],
+      "plan": [],
+      "rules": "",
+      "followed_plan": true,
+      "timestamp": "2025-10-02T07:18:57"
     }
   ],
-  "continuous_days_last_date": "2025-09-22"
+  "continuous_days_last_date": "2025-10-02"
 }
