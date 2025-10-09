@@ -1,3 +1,5 @@
+# main.py
+
 try:
     import os
     import sys
@@ -16,6 +18,8 @@ try:
     from utils.log_utils import ensure_utf8_stdio, setup_logging
     # 导入新的配置加载工具
     from utils.config_loader import load_json_file
+    # 【新增】导入新的股票代码加载工具
+    from utils.stock_data_loader import load_stock_code_maps
 except Exception as err:
     raise
 
@@ -29,7 +33,7 @@ from processor.trade_plan_execution import execute_trade_plan
 from processor.position_connector import print_positions
 from processor.asset_connector import print_account_asset
 from processor.order_cancel_tool import cancel_orders
-from utils.stock_code_mapper import load_stock_codes, generate_reverse_mapping
+from utils.stock_code_mapper import generate_reverse_mapping
 # 交易计划生成文件不需要再传 sell_stocks_info 和 buy_stocks_info
 from processor.trade_plan_generation import print_trade_plan
 from processor.orders_reorder_tool import reorder_orders
@@ -51,9 +55,9 @@ ACCOUNT_CONFIG_MAP = {
 account_name = None
 
 
-# ========== 日志回调 ==========
+# ========== 日志回调 (保持不变) ==========
 class MyXtQuantTraderCallback(XtQuantTraderCallback):
-    def on_disconnected(self):
+    def on_disconnected(self, *args, **kwargs):
         logging.error(f"{datetime.now()} - 连接断开")
 
     def on_stock_order(self, order):
@@ -79,7 +83,7 @@ class MyXtQuantTraderCallback(XtQuantTraderCallback):
         logging.info(f"{datetime.now()} - 账户状态回调")
 
 
-# ========== 工具函数 ==========
+# ========== 工具函数 (保持不变) ==========
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('-a', '--account', required=True, help='账户别名或ID')
@@ -105,8 +109,6 @@ def handle_exit(signum, frame):
     logging.shutdown()
     sys.exit(0)
 
-
-# 移除 load_json_file 函数，它已被移至 utils/config_loader.py
 
 def load_trade_plan(file_path):
     abs_path = os.path.abspath(file_path)
@@ -289,7 +291,6 @@ def main():
     for msg in msg_list:
         logging.error(msg)
 
-    # 【优化点】不再在此处加载 setting.json，只需记录其路径
     setting_file_path = 'core_parameters/setting/setting.json'
 
     # 设定交易计划执行日期为当天
@@ -305,19 +306,12 @@ def main():
     check_and_restart(config_path)
     ensure_qmt_and_connect(config_path, xt_trader, logger=logging)
 
+    # 【修改点】使用新的加载工具获取 reverse_mapping
     logging.info("开始加载股票代码")
-    stock_code_file_path = r"core_parameters/stocks/core_stock_code.json"
-    full_code_file_path = r"utils/stocks_code_search_tool/stocks_data/name_vs_code.json"
     try:
-        stock_code_dict = load_json_file(stock_code_file_path)
-        code2name = load_json_file(full_code_file_path)
-        full_name2code = {v: k for k, v in code2name.items()}
-
-        def get_stock_code(name):
-            return stock_code_dict.get(name) or full_name2code.get(name)
-
-        reverse_mapping = generate_reverse_mapping(stock_code_dict)
-        logging.info("股票代码加载成功")
+        # 只需获取 reverse_mapping，其他信息由 print_trade_plan 内部自己加载
+        _, _, reverse_mapping = load_stock_code_maps()
+        logging.info("股票代码加载成功，并生成 reverse_mapping")
     except Exception as e:
         logging.error(f"❌ 加载股票代码失败: {e}")
         xt_trader.stop()
@@ -326,12 +320,11 @@ def main():
     account_asset_info = print_account_asset(xt_trader, account_id)
     positions = print_positions(xt_trader, account_id, reverse_mapping, account_asset_info)
 
-    # 【优化点】调用 print_trade_plan 时，传入 setting_file_path 而非数据
+    # 【修改点】调用 print_trade_plan 时，不再传入 stock_code_dict
     print_trade_plan(
         config=config,
         account_asset_info=account_asset_info,
         positions=positions,
-        stock_code_dict=stock_code_dict,
         trade_date=trade_date,
         setting_file_path=setting_file_path,  # 传入文件路径
         trade_plan_file=trade_plan_file
@@ -344,6 +337,7 @@ def main():
     check1_hour, check1_minute, check1_second = map(int, check_time_first.split(":"))
     check2_hour, check2_minute, check2_second = map(int, check_time_second.split(":"))
 
+    # ... (定时任务配置保持不变)
     scheduler.add_job(
         sell_execution_task,
         trigger=CronTrigger(hour=sell_hour, minute=sell_minute, second=sell_second),

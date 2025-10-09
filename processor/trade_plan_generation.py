@@ -1,13 +1,18 @@
+# processor/trade_plan_generation.py
+
 import os
 import json
 import math
 import logging
+from datetime import datetime
 from utils.date_utils import get_weekday
 from utils.log_utils import emit, LogCollector
-# 导入配置加载工具
 from utils.config_loader import load_json_file
+# 【新增】导入新的加载工具
+from utils.stock_data_loader import load_stock_code_maps
 
 def parse_proportion(value):
+    # ... (保持不变)
     if isinstance(value, str):
         value = value.strip()
         if value.endswith("%"):
@@ -17,6 +22,7 @@ def parse_proportion(value):
     return float(value)
 
 def merge_stocks_by_name(stocks):
+    # ... (保持不变)
     merged = {}
     for stock in stocks:
         name = stock["name"]
@@ -29,6 +35,7 @@ def merge_stocks_by_name(stocks):
     return list(merged.values())
 
 def normalize_code(code):
+    # ... (保持不变)
     if not code:
         return ""
     code = str(code).strip().upper()
@@ -41,13 +48,15 @@ def normalize_code(code):
             return code + '.SZ'
     return code
 
+
 def print_trade_plan(
     config,
     account_asset_info,
     positions,
-    stock_code_dict,
-    trade_date,
-    setting_file_path, # 【修改点】接收文件路径
+    # 【修复点】将非可选参数 setting_file_path 提前
+    setting_file_path,
+    # 可选参数放在后面
+    trade_date=None,
     trade_plan_file=None,
     logger=None,
     collect_text=False,
@@ -56,7 +65,22 @@ def print_trade_plan(
     logger = logger or logging.getLogger(__name__)
     collector = collector or (LogCollector() if collect_text else None)
 
-    # 【修改点】在函数内部加载交易倾向数据
+    # 1. 确保 trade_date
+    if not trade_date:
+        trade_date = datetime.now().strftime('%Y-%m-%d')
+        emit(logger, f"trade_date 未传入，使用当前日期: {trade_date}", level="debug", collector=collector)
+
+    # 2. 【修改点】内部加载股票代码
+    try:
+        # 使用新工具加载，只获取查找函数
+        _, get_stock_code, _ = load_stock_code_maps()
+        emit(logger, "股票代码字典加载成功 (在 trade_plan_generation 内部)", level="debug", collector=collector)
+    except IOError as e:
+        emit(logger, f"[错误] {e}", level="error", collector=collector)
+        # 抛出异常中断后续计划生成
+        raise ValueError(f"无法加载股票代码：{e}") from e
+
+    # 3. 加载交易倾向数据
     try:
         setting_data = load_json_file(setting_file_path)
         sell_stocks_info = setting_data["sell_stocks_info"]
@@ -64,7 +88,6 @@ def print_trade_plan(
         emit(logger, f"交易倾向数据已从文件 `{setting_file_path}` 加载", level="debug", collector=collector)
     except Exception as e:
         emit(logger, f"[错误] 无法加载或解析交易倾向文件 `{setting_file_path}`: {e}", level="error", collector=collector)
-        # 抛出异常中断后续计划生成
         raise ValueError(f"无法加载交易倾向文件：{e}") from e
 
     emit(logger, "")
@@ -112,7 +135,8 @@ def print_trade_plan(
     for stock in merged_sell:
         name = stock["name"]
         ratio = float(stock["ratio"]) / 100
-        code = stock_code_dict.get(name)
+        # 【修改点】使用内部加载的 get_stock_code
+        code = get_stock_code(name)
         norm_code = normalize_code(code)
 
         pos = None
@@ -184,16 +208,16 @@ def print_trade_plan(
     for stock in merged_buy:
         name = stock["name"]
         ratio = float(stock["ratio"]) / 100
-        code = stock_code_dict.get(name)
+        # 【修改点】使用内部加载的 get_stock_code
+        code = get_stock_code(name)
         norm_code = normalize_code(code)
         if not norm_code:
             emit(
                 logger,
-                f"[错误] 买入计划中【{name}】没有找到有效股票代码，请检查 stock_code_dict 或输入配置！",
+                f"[错误] 买入计划中【{name}】没有找到有效股票代码，请检查配置！",
                 level="error",
                 collector=collector
             )
-            # 加载失败直接中断，不生成无效计划
             raise ValueError(f"买入计划中【{name}】没有找到有效股票代码，程序终止。")
 
         op_money = op_asset * ratio
