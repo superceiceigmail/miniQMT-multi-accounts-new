@@ -32,6 +32,6 @@ def qmt_restart_program(program_name, program_path):
         subprocess.Popen(program_path, shell=True)
         logging.info(f"程序 {program_name} 已成功启动。")
         logging.info(f"请输入账号信息，30秒后将继续连接。")
-
+        time.sleep(30)
     else:
         logging.warning(f"路径 {program_path} 不存在，无法启动程序！")

@@ -1,5 +1,5 @@
 {
-  "continuous_days": 5,
+  "continuous_days": 3,
   "records": [
     {
       "date": "2025-09-01",
@@ -1055,12 +1055,83 @@
     },
     {
       "date": "2025-10-02",
+      "honor": [
+        {
+          "category": "生活",
+          "content": "练歌，小有成就",
+          "major": false,
+          "score": 3.0,
+          "unit": "小时",
+          "project": "",
+          "tags": ""
+        }
+      ],
+      "plan": [],
+      "rules": "",
+      "followed_plan": true,
+      "timestamp": "2025-10-03T07:42:52"
+    },
+    {
+      "date": "2025-10-03",
+      "honor": [
+        {
+          "category": "生活",
+          "content": "带了东西小搬家",
+          "major": false,
+          "score": 2.0,
+          "unit": "小时",
+          "project": "",
+          "tags": ""
+        },
+        {
+          "category": "写歌",
+          "content": "非凡的存在重制",
+          "major": true,
+          "score": 1.0,
+          "unit": "天",
+          "project": "",
+          "tags": ""
+        }
+      ],
+      "plan": [],
+      "rules": "",
+      "followed_plan": true,
+      "timestamp": "2025-10-05T11:45:44"
+    },
+    {
+      "date": "2025-10-07",
+      "honor": [
+        {
+          "category": "交易",
+          "content": "完成搬家",
+          "major": true,
+          "score": 5.0,
+          "unit": "天",
+          "project": "",
+          "tags": ""
+        }
+      ],
+      "plan": [],
+      "rules": "",
+      "followed_plan": true,
+      "timestamp": "2025-10-08T21:36:58"
+    },
+    {
+      "date": "2025-10-08",
       "honor": [],
       "plan": [],
       "rules": "",
       "followed_plan": true,
-      "timestamp": "2025-10-02T07:18:57"
+      "timestamp": "2025-10-09T07:47:09"
+    },
+    {
+      "date": "2025-10-09",
+      "honor": [],
+      "plan": [],
+      "rules": "",
+      "followed_plan": true,
+      "timestamp": "2025-10-09T08:03:39"
     }
   ],
-  "continuous_days_last_date": "2025-10-02"
+  "continuous_days_last_date": "2025-10-09"
 }

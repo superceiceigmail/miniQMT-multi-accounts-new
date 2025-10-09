@@ -1,5 +1,5 @@
 {
-  "last_update": "2025-09-30T14:57:00.017510",
+  "last_update": "2025-10-09T08:03:40.738986",
   "positions": [
     {
       "stock_code": "511090.SH",
@@ -7,7 +7,7 @@
       "volume": 1000,
       "can_use_volume": 1000,
       "avg_price": 117.758,
-      "market_value": 117380.0
+      "market_value": 117385.0
     },
     {
       "stock_code": "511130.SH",
@@ -15,7 +15,7 @@
       "volume": 700,
       "can_use_volume": 700,
       "avg_price": 105.98142857142857,
-      "market_value": 74014.5
+      "market_value": 74036.2
     },
     {
       "stock_code": "511260.SH",
@@ -23,7 +23,7 @@
       "volume": 800,
       "can_use_volume": 800,
       "avg_price": 134.41299999999998,
-      "market_value": 107404.8
+      "market_value": 107403.2
     },
     {
       "stock_code": "512660.SH",
@@ -31,7 +31,7 @@
       "volume": 20100,
       "can_use_volume": 20100,
       "avg_price": 1.1892189054726368,
-      "market_value": 24823.500000000004
+      "market_value": 24803.4
     },
     {
       "stock_code": "513300.SH",
@@ -39,7 +39,7 @@
       "volume": 1000,
       "can_use_volume": 1000,
       "avg_price": 1.965,
-      "market_value": 2211.0
+      "market_value": 2210.0
     },
     {
       "stock_code": "515030.SH",
@@ -54,15 +54,15 @@
       "stock_name": "黄金ETF",
       "volume": 1900,
       "can_use_volume": 1900,
-      "avg_price": 8.063315789473684,
-      "market_value": 15883.999999999998
+      "avg_price": 8.065947368421051,
+      "market_value": 15844.1
     },
     {
       "stock_code": "588000.SH",
       "stock_name": "科创50",
       "volume": 9800,
-      "can_use_volume": 5800,
-      "avg_price": 1.5442857142857143,
+      "can_use_volume": 9800,
+      "avg_price": 1.544795918367347,
       "market_value": 15386.0
     },
     {
@@ -71,7 +71,7 @@
       "volume": 6500,
       "can_use_volume": 6500,
       "avg_price": 1.3867692307692308,
-      "market_value": 9217.0
+      "market_value": 9223.5
     },
     {
       "stock_code": "131990.SZ",
@@ -85,9 +85,9 @@
       "stock_code": "159682.SZ",
       "stock_name": "创业50ETF",
       "volume": 17100,
-      "can_use_volume": 10900,
-      "avg_price": 1.3603567251461988,
-      "market_value": 25496.100000000002
+      "can_use_volume": 17100,
+      "avg_price": 1.3609415204678361,
+      "market_value": 25513.2
     },
     {
       "stock_code": "159941.SZ",
@@ -95,7 +95,7 @@
       "volume": 2300,
       "can_use_volume": 2300,
       "avg_price": 1.3382608695652174,
-      "market_value": 3077.4
+      "market_value": 3079.7
     },
     {
       "stock_code": "160140.SZ",
@@ -111,7 +111,7 @@
       "volume": 11600,
       "can_use_volume": 11600,
       "avg_price": 1.7952327586206898,
-      "market_value": 21309.2
+      "market_value": 21286.0
     },
     {
       "stock_code": "160723.SZ",
@@ -135,15 +135,7 @@
       "volume": 16700,
       "can_use_volume": 16700,
       "avg_price": 1.1915808383233535,
-      "market_value": 19572.399999999998
-    },
-    {
-      "stock_code": "164701.SZ",
-      "stock_name": "黄金LOF",
-      "volume": 20200,
-      "can_use_volume": 20200,
-      "avg_price": 1.5666188118811881,
-      "market_value": 32380.6
+      "market_value": 19589.100000000002
     },
     {
       "stock_code": "162415.SZ",
@@ -151,15 +143,15 @@
       "volume": 4800,
       "can_use_volume": 4800,
       "avg_price": 3.0940416666666666,
-      "market_value": 14841.6
+      "market_value": 14875.2
     },
     {
-      "stock_code": "511880.SH",
-      "stock_name": "银华日利",
-      "volume": 0,
-      "can_use_volume": 0,
-      "avg_price": 0.0,
-      "market_value": 0.0
+      "stock_code": "164701.SZ",
+      "stock_name": "黄金LOF",
+      "volume": 20200,
+      "can_use_volume": 20200,
+      "avg_price": 1.5668663366336635,
+      "market_value": 32320.0
     }
   ]
 }
