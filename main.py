@@ -1,6 +1,7 @@
 try:
     import os
     import sys
+
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8")
         sys.stderr.reconfigure(encoding="utf-8")
@@ -13,6 +14,8 @@ try:
     import traceback
     import psutil
     from utils.log_utils import ensure_utf8_stdio, setup_logging
+    # 导入新的配置加载工具
+    from utils.config_loader import load_json_file
 except Exception as err:
     raise
 
@@ -27,13 +30,12 @@ from processor.position_connector import print_positions
 from processor.asset_connector import print_account_asset
 from processor.order_cancel_tool import cancel_orders
 from utils.stock_code_mapper import load_stock_codes, generate_reverse_mapping
+# 交易计划生成文件不需要再传 sell_stocks_info 和 buy_stocks_info
 from processor.trade_plan_generation import print_trade_plan
 from processor.orders_reorder_tool import reorder_orders
 from preprocessing.qmt_connector import ensure_qmt_and_connect
 from preprocessing.trade_time_checker import check_trade_times
 from preprocessing.qmt_daily_restart_checker import check_and_restart
-
-# 新增：导入 git push 工具
 from utils.git_push_tool import push_project_to_github
 
 # ========== 配置 ==========
@@ -48,30 +50,41 @@ ACCOUNT_CONFIG_MAP = {
 
 account_name = None
 
+
 # ========== 日志回调 ==========
 class MyXtQuantTraderCallback(XtQuantTraderCallback):
     def on_disconnected(self):
         logging.error(f"{datetime.now()} - 连接断开")
+
     def on_stock_order(self, order):
         logging.info(f"{datetime.now()} - 委托回调: {order.order_remark}")
+
     def on_stock_trade(self, trade):
-        logging.info(f"{datetime.now()} - 成交回调: {trade.order_remark}, 成交价格: {trade.traded_price}, 成交数量: {trade.traded_volume}")
+        logging.info(
+            f"{datetime.now()} - 成交回调: {trade.order_remark}, 成交价格: {trade.traded_price}, 成交数量: {trade.traded_volume}")
+
     def on_order_error(self, order_error):
         logging.error(f"{datetime.now()} - 委托报错: {order_error.order_remark}, 错误信息: {order_error.error_msg}")
+
     def on_cancel_error(self, cancel_error):
         logging.error(f"{datetime.now()} - 撤单失败回调")
+
     def on_order_stock_async_response(self, response):
         logging.info(f"{datetime.now()} - 异步委托回调: {response.order_remark}")
+
     def on_cancel_order_stock_async_response(self, response):
         logging.info(f"{datetime.now()} - 撤单异步回调")
+
     def on_account_status(self, status):
         logging.info(f"{datetime.now()} - 账户状态回调")
+
 
 # ========== 工具函数 ==========
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('-a', '--account', required=True, help='账户别名或ID')
     return parser.parse_args()
+
 
 def handle_exit(signum, frame):
     global account_name
@@ -92,18 +105,8 @@ def handle_exit(signum, frame):
     logging.shutdown()
     sys.exit(0)
 
-def load_json_file(path):
-    abs_path = os.path.abspath(path)
-    logging.debug(f"准备打开文件: {abs_path}")
-    try:
-        with open(abs_path, 'r', encoding='utf-8') as f:
-            logging.debug("文件已打开，准备解析 JSON")
-            data = json.load(f)
-            logging.debug("JSON 解析完成")
-            return data
-    except Exception as e:
-        logging.error(f"读取JSON文件失败: {abs_path}, 错误: {e}")
-        raise
+
+# 移除 load_json_file 函数，它已被移至 utils/config_loader.py
 
 def load_trade_plan(file_path):
     abs_path = os.path.abspath(file_path)
@@ -116,10 +119,12 @@ def load_trade_plan(file_path):
         logging.error(f"❌ 无法加载交易计划文件 `{abs_path}`: {e}")
         return None
 
+
 def cancel_and_reorder_task(xt_trader, account_id, reverse_mapping, check_time):
     cancel_orders(xt_trader, account_id, reverse_mapping)
     time.sleep(6)
     reorder_orders(xt_trader, account_id, reverse_mapping)
+
 
 def add_seconds_to_hms(h: int, m: int, s: int, delta: int = 20):
     total = (h * 3600 + m * 60 + s + delta) % (24 * 3600)
@@ -127,6 +132,7 @@ def add_seconds_to_hms(h: int, m: int, s: int, delta: int = 20):
     nm = (total % 3600) // 60
     ns = total % 60
     return nh, nm, ns
+
 
 def sell_execution_task(xt_trader, account_id, trade_plan_file):
     logging.info(f"--- 卖出任务 --- 当前时间：{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
@@ -141,6 +147,7 @@ def sell_execution_task(xt_trader, account_id, trade_plan_file):
     except Exception as e:
         logging.error(f"❌ 卖出任务执行失败: {e}")
 
+
 def buy_execution_task(xt_trader, account_id, trade_plan_file):
     logging.info(f"--- 买入任务 --- 当前时间：{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     try:
@@ -154,10 +161,12 @@ def buy_execution_task(xt_trader, account_id, trade_plan_file):
     except Exception as e:
         logging.error(f"❌ 买入任务执行失败: {e}")
 
+
 def print_positions_task(xt_trader, account_id, reverse_mapping, account_asset_info):
     logging.info(f"--- 定时打印持仓任务 --- 当前时间：{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     positions = print_positions(xt_trader, account_id, reverse_mapping, account_asset_info)
     logging.info(f"持仓信息: {positions}")
+
 
 def buy_all_funds_to_511880(xt_trader, account_id):
     logging.info(f"--- 自动买入银华日利 --- 当前时间：{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
@@ -182,11 +191,13 @@ def buy_all_funds_to_511880(xt_trader, account_id):
             logging.info("资金不足以买入最小单位，跳过。")
             return
         async_seq = xt_trader.order_stock_async(
-            account, "511880.SH", _XTCONST_.STOCK_BUY, volume, _XTCONST_.FIX_PRICE, price, "auto_yinhuarili", "511880.SH"
+            account, "511880.SH", _XTCONST_.STOCK_BUY, volume, _XTCONST_.FIX_PRICE, price, "auto_yinhuarili",
+            "511880.SH"
         )
         logging.info(f"已委托买入银华日利 {volume} 股，单价 {price}，异步号 {async_seq}")
     except Exception as e:
         logging.error(f"买入511880异常: {e}")
+
 
 def sell_all_511880(xt_trader, account_id):
     logging.info(f"--- 自动卖出银华日利 --- 当前时间：{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
@@ -211,11 +222,13 @@ def sell_all_511880(xt_trader, account_id):
             logging.info("银华日利可卖数量不足最小单位，跳过。")
             return
         async_seq = xt_trader.order_stock_async(
-            account, "511880.SH", _XTCONST_.STOCK_SELL, volume, _XTCONST_.FIX_PRICE, price, "auto_yinhuarili", "511880.SH"
+            account, "511880.SH", _XTCONST_.STOCK_SELL, volume, _XTCONST_.FIX_PRICE, price, "auto_yinhuarili",
+            "511880.SH"
         )
         logging.info(f"已委托卖出银华日利 {volume} 股，单价 {price}，异步号 {async_seq}")
     except Exception as e:
         logging.error(f"卖出511880异常: {e}")
+
 
 # ========== 主入口 ==========
 def main():
@@ -258,7 +271,8 @@ def main():
         return
 
     # 打印账户信息
-    logging.info(f"账户号: {config['account_id']} 卖出时间: {config['sell_time']} 买入时间: {config['buy_time']} 首次检查: {config['check_time_first']} 二次检查: {config['check_time_second']}")
+    logging.info(
+        f"账户号: {config['account_id']} 卖出时间: {config['sell_time']} 买入时间: {config['buy_time']} 首次检查: {config['check_time_first']} 二次检查: {config['check_time_second']}")
 
     # 赋值
     path_qmt = config['path_qmt']
@@ -275,10 +289,8 @@ def main():
     for msg in msg_list:
         logging.error(msg)
 
-    # 读取初始交易倾向
-    setting_data = load_json_file('core_parameters/setting/setting.json')
-    sell_stocks_info = setting_data["sell_stocks_info"]
-    buy_stocks_info = setting_data["buy_stocks_info"]
+    # 【优化点】不再在此处加载 setting.json，只需记录其路径
+    setting_file_path = 'core_parameters/setting/setting.json'
 
     # 设定交易计划执行日期为当天
     trade_date = datetime.now().strftime('%Y-%m-%d')
@@ -300,8 +312,10 @@ def main():
         stock_code_dict = load_json_file(stock_code_file_path)
         code2name = load_json_file(full_code_file_path)
         full_name2code = {v: k for k, v in code2name.items()}
+
         def get_stock_code(name):
             return stock_code_dict.get(name) or full_name2code.get(name)
+
         reverse_mapping = generate_reverse_mapping(stock_code_dict)
         logging.info("股票代码加载成功")
     except Exception as e:
@@ -311,14 +325,15 @@ def main():
 
     account_asset_info = print_account_asset(xt_trader, account_id)
     positions = print_positions(xt_trader, account_id, reverse_mapping, account_asset_info)
+
+    # 【优化点】调用 print_trade_plan 时，传入 setting_file_path 而非数据
     print_trade_plan(
         config=config,
         account_asset_info=account_asset_info,
         positions=positions,
         stock_code_dict=stock_code_dict,
         trade_date=trade_date,
-        sell_stocks_info=sell_stocks_info,
-        buy_stocks_info=buy_stocks_info,
+        setting_file_path=setting_file_path,  # 传入文件路径
         trade_plan_file=trade_plan_file
     )
     time.sleep(5)
@@ -463,6 +478,7 @@ def main():
         scheduler.shutdown()
         xt_trader.stop()
         logging.info("交易线程已停止。")
+
 
 if __name__ == "__main__":
     try:

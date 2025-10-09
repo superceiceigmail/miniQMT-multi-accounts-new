@@ -1129,7 +1129,7 @@
       "honor": [
         {
           "category": "量化",
-          "content": "修复了启动重连次数太多的问题",
+          "content": "修复了启动重连次数太多的问题，补充了tudolist排序功能。",
           "major": false,
           "score": 1.0,
           "unit": "小时",
@@ -1140,7 +1140,7 @@
       "plan": [],
       "rules": "",
       "followed_plan": true,
-      "timestamp": "2025-10-09T09:59:22"
+      "timestamp": "2025-10-09T13:31:02"
     }
   ],
   "continuous_days_last_date": "2025-10-09"

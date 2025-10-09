@@ -3,7 +3,9 @@ import json
 import math
 import logging
 from utils.date_utils import get_weekday
-from utils.log_utils import emit, LogCollector  # 新增
+from utils.log_utils import emit, LogCollector
+# 导入配置加载工具
+from utils.config_loader import load_json_file
 
 def parse_proportion(value):
     if isinstance(value, str):
@@ -45,15 +47,25 @@ def print_trade_plan(
     positions,
     stock_code_dict,
     trade_date,
-    sell_stocks_info,
-    buy_stocks_info,
+    setting_file_path, # 【修改点】接收文件路径
     trade_plan_file=None,
     logger=None,
     collect_text=False,
-    collector: LogCollector | None = None,  # 新增：也可直接传入 collector
+    collector: LogCollector | None = None,
 ):
     logger = logger or logging.getLogger(__name__)
     collector = collector or (LogCollector() if collect_text else None)
+
+    # 【修改点】在函数内部加载交易倾向数据
+    try:
+        setting_data = load_json_file(setting_file_path)
+        sell_stocks_info = setting_data["sell_stocks_info"]
+        buy_stocks_info = setting_data["buy_stocks_info"]
+        emit(logger, f"交易倾向数据已从文件 `{setting_file_path}` 加载", level="debug", collector=collector)
+    except Exception as e:
+        emit(logger, f"[错误] 无法加载或解析交易倾向文件 `{setting_file_path}`: {e}", level="error", collector=collector)
+        # 抛出异常中断后续计划生成
+        raise ValueError(f"无法加载交易倾向文件：{e}") from e
 
     emit(logger, "")
     emit(logger, "===== 原始交易计划 =====", collector=collector)
@@ -181,6 +193,7 @@ def print_trade_plan(
                 level="error",
                 collector=collector
             )
+            # 加载失败直接中断，不生成无效计划
             raise ValueError(f"买入计划中【{name}】没有找到有效股票代码，程序终止。")
 
         op_money = op_asset * ratio
