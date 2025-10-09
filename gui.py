@@ -44,7 +44,7 @@ def main():
         command=lambda: save_plan(plan_text.get(1.0, END), PLAN_FILE),
         bootstyle="primary-outline"
     )
-    btn_save.pack(pady=4, anchor="e")
+    btn_save.pack(pady=4, anchor="w")
 
     top_frame = tb.Frame(exec_frame)
     top_frame.pack(side=TOP, fill=X, pady=2)
