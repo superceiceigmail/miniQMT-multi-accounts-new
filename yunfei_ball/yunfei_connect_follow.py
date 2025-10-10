@@ -11,6 +11,7 @@ from datetime import datetime, timedelta
 from bs4 import BeautifulSoup
 from collections import defaultdict
 from requests.exceptions import SSLError
+from generate_setting import generate_setting_file
 
 USERNAME = 'ceicei'
 PASSWORD = 'ceicei628'
@@ -27,8 +28,8 @@ HEADERS = {
 SCHEDULE_TIMES = [
     "9:45:00",
     "13:01:05",
-    "14:32:00",
-    "14:52:05",
+    "14:31:20",
+    "14:51:25",
 ]
 
 SAMPLE_ACCOUNT_AMOUNT = 730000  # 样板账号金额
@@ -63,13 +64,12 @@ def add_code_to_operation(operation_text, name_to_code):
     # 支持中英文分号
     return re.sub(r'(买入|卖出|调仓|换入|换出)\s*([^\s;；，,.]+)', repl, operation_text)
 
-def handle_trade_operation(op_block_html, name_to_code):
-    """处理买卖操作，第一步：打印带代码的操作信息（后续对接真实交易）"""
+def handle_trade_operation(op_block_html, name_to_code, batch_no, ratio, sample_amount):
     op_text = BeautifulSoup(op_block_html, 'lxml').get_text()
     op_text_with_code = add_code_to_operation(op_text, name_to_code)
     print("买卖操作明细：")
     print(op_text_with_code)
-    # todo: 后续在这里对接真实交易逻辑
+    generate_setting_file(batch_no, op_text_with_code, ratio, sample_amount)
 
 # 全局加载代码映射
 name_to_code = load_name_to_code_map(CODE_INDEX_PATH)
@@ -303,7 +303,7 @@ def fetch_and_check_batch(batch_no, batch_time, batch_cfgs, batch_status):
                     sample_amount = round(config_amount * SAMPLE_ACCOUNT_AMOUNT, 2)
                     print(f"\n>>> 策略【{s['name']}】 操作时间: {s['time']}")
                     # 新增：用带代码的买卖明细函数
-                    handle_trade_operation(s['operation_block'], name_to_code)
+                    handle_trade_operation(s['operation_block'], name_to_code, batch, config_amount, sample_amount)
                     print(f"配置仓位: {config_amount}，样板操作金额: {sample_amount}")
                     print("当前持仓:")
                     for h in s['holding_block']:
@@ -367,7 +367,7 @@ def collect_today_strategies():
                 config_amount = cfg.get('配置仓位', 0)
                 sample_amount = round(config_amount * SAMPLE_ACCOUNT_AMOUNT/100, 2)
                 # 用带代码的买卖明细
-                handle_trade_operation(s['operation_block'], name_to_code)
+                handle_trade_operation(s['operation_block'], name_to_code, batch, config_amount, sample_amount)
                 print(f"  配置仓位: {config_amount}，样板操作金额: {sample_amount}")
             # 2. 最终持仓
             print(f"【{name}】当前持仓:")

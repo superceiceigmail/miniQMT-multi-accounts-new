@@ -1,5 +1,5 @@
 {
-  "continuous_days": 3,
+  "continuous_days": 4,
   "records": [
     {
       "date": "2025-09-01",
@@ -1135,13 +1135,49 @@
           "unit": "小时",
           "project": "",
           "tags": ""
+        },
+        {
+          "category": "交易",
+          "content": "完成了交易计划产生函数的入参简化，完成了云飞部分的规划思路，现在只要改变输入路径应该就能跑通",
+          "major": false,
+          "score": 4.0,
+          "unit": "小时",
+          "project": "",
+          "tags": ""
         }
       ],
       "plan": [],
       "rules": "",
       "followed_plan": true,
-      "timestamp": "2025-10-09T13:31:02"
+      "timestamp": "2025-10-10T13:06:35"
+    },
+    {
+      "date": "2025-10-10",
+      "honor": [
+        {
+          "category": "生活",
+          "content": "第二账户QMT对接",
+          "major": false,
+          "score": 2.0,
+          "unit": "小时",
+          "project": "",
+          "tags": ""
+        },
+        {
+          "category": "生活",
+          "content": "歌唱技巧升级",
+          "major": false,
+          "score": 3.0,
+          "unit": "小时",
+          "project": "",
+          "tags": ""
+        }
+      ],
+      "plan": [],
+      "rules": "",
+      "followed_plan": true,
+      "timestamp": "2025-10-10T19:46:34"
     }
   ],
-  "continuous_days_last_date": "2025-10-09"
+  "continuous_days_last_date": "2025-10-10"
 }

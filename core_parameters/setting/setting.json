@@ -1,11 +1,38 @@
 {
   "sell_stocks_info": [
+    {
+      "name": "嘉实黄金",
+      "ratio": "1.02"
+    },
+    {
+      "name": "黄金主题",
+      "ratio": "2.18"
+    },
+    {
+      "name": "黄金LOF",
+      "ratio": "2.18"
+    },
+    {
+      "name": "30年国债",
+      "ratio": "19.94"
+    },
+    {
+      "name": "国债30年",
+      "ratio": "11.21"
+    },
+    {
+      "name": "原油易方达",
+      "ratio": "1.46"
+    }
   ],
   "buy_stocks_info": [
     {
-      "name": "黄金主题",
-      "ratio": "0.21"
+      "name": "煤炭ETF",
+      "ratio": "1.46"
+    },
+    {
+      "name": "纳指生物科技",
+      "ratio": "1.46"
     }
   ]
 }
-
