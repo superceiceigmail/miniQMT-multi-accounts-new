@@ -1,37 +1,13 @@
 {
-  "last_update": "2025-10-09T13:26:25.221296",
+  "last_update": "2025-10-10T23:51:52.861080",
   "positions": [
-    {
-      "stock_code": "511090.SH",
-      "stock_name": "30年国债",
-      "volume": 1000,
-      "can_use_volume": 1000,
-      "avg_price": 117.758,
-      "market_value": 117553.0
-    },
-    {
-      "stock_code": "511130.SH",
-      "stock_name": "国债30年",
-      "volume": 700,
-      "can_use_volume": 700,
-      "avg_price": 105.98142857142857,
-      "market_value": 74041.8
-    },
     {
       "stock_code": "511260.SH",
       "stock_name": "十年国债",
       "volume": 800,
       "can_use_volume": 800,
       "avg_price": 134.41299999999998,
-      "market_value": 107503.2
-    },
-    {
-      "stock_code": "511880.SH",
-      "stock_name": "银华日利",
-      "volume": 900,
-      "can_use_volume": 900,
-      "avg_price": 100.966,
-      "market_value": 90855.90000000001
+      "market_value": 107452.0
     },
     {
       "stock_code": "512660.SH",
@@ -39,7 +15,23 @@
       "volume": 20100,
       "can_use_volume": 20100,
       "avg_price": 1.1892189054726368,
-      "market_value": 25044.6
+      "market_value": 24783.300000000003
+    },
+    {
+      "stock_code": "513100.SH",
+      "stock_name": "纳指3100",
+      "volume": 4000,
+      "can_use_volume": 4000,
+      "avg_price": 1.85925,
+      "market_value": 7440.0
+    },
+    {
+      "stock_code": "513290.SH",
+      "stock_name": "纳指生物科技",
+      "volume": 7500,
+      "can_use_volume": 7500,
+      "avg_price": 1.3376666666666666,
+      "market_value": 10027.5
     },
     {
       "stock_code": "513300.SH",
@@ -47,7 +39,7 @@
       "volume": 1000,
       "can_use_volume": 1000,
       "avg_price": 1.965,
-      "market_value": 2253.0
+      "market_value": 2262.0
     },
     {
       "stock_code": "515030.SH",
@@ -55,31 +47,31 @@
       "volume": 6800,
       "can_use_volume": 6800,
       "avg_price": 1.6732352941176472,
-      "market_value": 13253.2
+      "market_value": 12430.4
+    },
+    {
+      "stock_code": "515220.SH",
+      "stock_name": "煤炭ETF",
+      "volume": 9100,
+      "can_use_volume": 9100,
+      "avg_price": 1.0945494505494504,
+      "market_value": 10192.000000000002
     },
     {
       "stock_code": "518880.SH",
       "stock_name": "黄金ETF",
-      "volume": 1900,
-      "can_use_volume": 1900,
-      "avg_price": 8.065947368421051,
-      "market_value": 16607.899999999998
+      "volume": 2800,
+      "can_use_volume": 2800,
+      "avg_price": 8.241964285714285,
+      "market_value": 24085.600000000002
     },
     {
       "stock_code": "588000.SH",
       "stock_name": "科创50",
-      "volume": 9800,
-      "can_use_volume": 9800,
-      "avg_price": 1.544795918367347,
-      "market_value": 16179.800000000001
-    },
-    {
-      "stock_code": "588190.SH",
-      "stock_name": "科创100ETF",
-      "volume": 6500,
-      "can_use_volume": 6500,
-      "avg_price": 1.3867692307692308,
-      "market_value": 9418.5
+      "volume": 5100,
+      "can_use_volume": 5100,
+      "avg_price": 1.4746274509803923,
+      "market_value": 7792.8
     },
     {
       "stock_code": "131990.SZ",
@@ -92,18 +84,18 @@
     {
       "stock_code": "159682.SZ",
       "stock_name": "创业50ETF",
-      "volume": 17100,
-      "can_use_volume": 17100,
-      "avg_price": 1.3609415204678361,
-      "market_value": 25786.8
+      "volume": 11800,
+      "can_use_volume": 11800,
+      "avg_price": 1.2929237288135593,
+      "market_value": 16791.4
     },
     {
       "stock_code": "159941.SZ",
       "stock_name": "纳指9941",
-      "volume": 2300,
-      "can_use_volume": 2300,
-      "avg_price": 1.3382608695652174,
-      "market_value": 3132.6000000000004
+      "volume": 9800,
+      "can_use_volume": 9800,
+      "avg_price": 1.3577551020408163,
+      "market_value": 13386.800000000001
     },
     {
       "stock_code": "160140.SZ",
@@ -111,39 +103,23 @@
       "volume": 11553,
       "can_use_volume": 11553,
       "avg_price": 1.3101462823509047,
-      "market_value": 15042.006000000001
+      "market_value": 14961.134999999998
     },
     {
       "stock_code": "160719.SZ",
       "stock_name": "嘉实黄金",
-      "volume": 11600,
-      "can_use_volume": 11600,
-      "avg_price": 1.7952327586206898,
-      "market_value": 22202.4
-    },
-    {
-      "stock_code": "160723.SZ",
-      "stock_name": "嘉实原油",
-      "volume": 0,
-      "can_use_volume": 0,
-      "avg_price": null,
-      "market_value": 0.0
+      "volume": 7600,
+      "can_use_volume": 7600,
+      "avg_price": 1.7486447368421054,
+      "market_value": 14303.2
     },
     {
       "stock_code": "161116.SZ",
       "stock_name": "黄金主题",
-      "volume": 22300,
-      "can_use_volume": 22300,
-      "avg_price": 1.4363448430493275,
-      "market_value": 35033.299999999996
-    },
-    {
-      "stock_code": "161129.SZ",
-      "stock_name": "原油易方达",
-      "volume": 4000,
-      "can_use_volume": 4000,
-      "avg_price": 1.2804,
-      "market_value": 4684.0
+      "volume": 12800,
+      "can_use_volume": 12800,
+      "avg_price": 1.35269453125,
+      "market_value": 19788.8
     },
     {
       "stock_code": "162415.SZ",
@@ -151,15 +127,15 @@
       "volume": 9600,
       "can_use_volume": 9600,
       "avg_price": 3.084041666666667,
-      "market_value": 29577.6
+      "market_value": 29404.800000000003
     },
     {
       "stock_code": "164701.SZ",
       "stock_name": "黄金LOF",
-      "volume": 20200,
-      "can_use_volume": 20200,
-      "avg_price": 1.5668663366336635,
-      "market_value": 33633.0
+      "volume": 10600,
+      "can_use_volume": 10600,
+      "avg_price": 1.5047264150943396,
+      "market_value": 17309.8
     }
   ]
 }

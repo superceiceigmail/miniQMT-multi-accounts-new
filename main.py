@@ -15,6 +15,7 @@ try:
     from datetime import datetime
     import traceback
     import psutil
+    from collections import defaultdict
     from utils.log_utils import ensure_utf8_stdio, setup_logging
     # 导入新的配置加载工具
     from utils.config_loader import load_json_file
@@ -41,8 +42,22 @@ from preprocessing.qmt_connector import ensure_qmt_and_connect
 from preprocessing.trade_time_checker import check_trade_times
 from preprocessing.qmt_daily_restart_checker import check_and_restart
 from utils.git_push_tool import push_project_to_github
+# 【修改】导入 fetch_and_check_batch_with_trade_plan
+from yunfei_ball.yunfei_connect_follow import fetch_and_check_batch_with_trade_plan, INPUT_JSON
+# 【删除】以下导入不再需要
+# from yunfei_ball.yunfei_connect_follow import run_scheduler_with_staggered_batches
+# from apscheduler.schedulers.background import BackgroundScheduler
+# from apscheduler.triggers.date import DateTrigger
+# from yunfei_ball.yunfei_connect_follow import get_batch_schedules, run_batch
 
 # ========== 配置 ==========
+SCHEDULE_TIMES = [
+    "23:53:00",
+    "23:53:05",
+    "14:31:20",
+    "14:51:25",
+]
+
 AUTO_BUY_511880_TIME = (9, 33, 0)
 AUTO_SELL_511880_TIME = (14, 56, 0)
 
@@ -231,6 +246,58 @@ def sell_all_511880(xt_trader, account_id):
     except Exception as e:
         logging.error(f"卖出511880异常: {e}")
 
+# 【新增】加载云飞策略配置
+def load_yunfei_configs():
+    try:
+        with open(INPUT_JSON, 'r', encoding='utf-8') as f:
+            strategy_cfgs = json.load(f)
+        batch_groups = defaultdict(list)
+        for cfg in strategy_cfgs:
+            batch = cfg.get("交易批次", 1)
+            batch_groups[batch].append(cfg)
+        return {b: clist for b, clist in batch_groups.items()}
+    except Exception as e:
+        logging.error(f"❌ 无法加载云飞配置 allocation.json: {e}")
+        return {}
+
+# 【新增】添加云飞定时任务到调度器
+def add_yunfei_jobs(scheduler, xt_trader, config, account_asset_info, positions):
+    batch_cfgs_map = load_yunfei_configs()
+    if not batch_cfgs_map:
+        logging.warning("云飞策略配置为空，跳过云飞跟投任务设置。")
+        return
+
+    for idx, tstr in enumerate(SCHEDULE_TIMES, 1):
+        batch_cfgs = batch_cfgs_map.get(idx, [])
+        if not batch_cfgs:
+            logging.info(f"批次{idx}无策略配置，跳过。")
+            continue
+
+        try:
+            h, m, s = map(int, tstr.split(':'))
+        except ValueError:
+            logging.error(f"时间格式错误: {tstr}，跳过批次{idx}。")
+            continue
+
+        job_id = f"yunfei_batch_{idx}_at_{tstr.replace(':', '')}"
+
+        scheduler.add_job(
+            fetch_and_check_batch_with_trade_plan,
+            trigger=CronTrigger(hour=h, minute=m, second=s),
+            args=[
+                idx,  # batch_no
+                tstr,  # batch_time
+                batch_cfgs,  # batch_cfgs
+                config,  # config
+                account_asset_info,  # account_asset_info
+                positions,  # positions
+                print_trade_plan # print_trade_plan 函数
+            ],
+            id=job_id,
+            replace_existing=True
+        )
+        logging.info(f"✅ 云飞跟投任务定时：批次{idx} @ {tstr}，策略：{[c['策略名称'] for c in batch_cfgs]}")
+
 
 # ========== 主入口 ==========
 def main():
@@ -329,6 +396,10 @@ def main():
         setting_file_path=setting_file_path,  # 传入文件路径
         trade_plan_file=trade_plan_file
     )
+
+    # 【删除】不再需要调用 run_scheduler_with_staggered_batches
+    # run_scheduler_with_staggered_batches(config, account_asset_info, positions, print_trade_plan)
+
     time.sleep(5)
     logging.info("布置定时任务")
     scheduler = BackgroundScheduler()
@@ -337,7 +408,7 @@ def main():
     check1_hour, check1_minute, check1_second = map(int, check_time_first.split(":"))
     check2_hour, check2_minute, check2_second = map(int, check_time_second.split(":"))
 
-    # ... (定时任务配置保持不变)
+    # ... (原有定时任务配置保持不变)
     scheduler.add_job(
         sell_execution_task,
         trigger=CronTrigger(hour=sell_hour, minute=sell_minute, second=sell_second),
@@ -452,6 +523,9 @@ def main():
     )
     logging.info("miniQMT-frontend 自动推送GitHub任务定时: 9:36:00")
     # ===============================================================
+
+    # 【新增】添加云飞跟投定时任务
+    add_yunfei_jobs(scheduler, xt_trader, config, account_asset_info, positions)
 
     scheduler.start()
 
