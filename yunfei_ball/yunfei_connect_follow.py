@@ -26,13 +26,6 @@ HEADERS = {
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'
 }
 
-SCHEDULE_TIMES = [
-    "22:40:00",
-    "22:36:05",
-    "14:31:20",
-    "14:51:25",
-]
-
 SAMPLE_ACCOUNT_AMOUNT = 730000
 
 
