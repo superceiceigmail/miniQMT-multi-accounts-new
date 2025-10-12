@@ -1,5 +1,3 @@
-# main.py
-
 try:
     import os
     import sys
@@ -35,8 +33,8 @@ from processor.position_connector import print_positions
 from processor.asset_connector import print_account_asset
 from processor.order_cancel_tool import cancel_orders
 from utils.stock_code_mapper import generate_reverse_mapping
-# 交易计划生成文件不需要再传 sell_stocks_info 和 buy_stocks_info
-from processor.trade_plan_generation import print_trade_plan
+# 【修改】导入新的 final plan 生成函数，并重命名 (假设您在对应文件中已修改)
+from processor.trade_plan_generation import print_trade_plan as generate_trade_plan_final_func
 from processor.orders_reorder_tool import reorder_orders
 from preprocessing.qmt_connector import ensure_qmt_and_connect
 from preprocessing.trade_time_checker import check_trade_times
@@ -44,11 +42,6 @@ from preprocessing.qmt_daily_restart_checker import check_and_restart
 from utils.git_push_tool import push_project_to_github
 # 【修改】导入 fetch_and_check_batch_with_trade_plan
 from yunfei_ball.yunfei_connect_follow import fetch_and_check_batch_with_trade_plan, INPUT_JSON
-# 【删除】以下导入不再需要
-# from yunfei_ball.yunfei_connect_follow import run_scheduler_with_staggered_batches
-# from apscheduler.schedulers.background import BackgroundScheduler
-# from apscheduler.triggers.date import DateTrigger
-# from yunfei_ball.yunfei_connect_follow import get_batch_schedules, run_batch
 
 # ========== 配置 ==========
 SCHEDULE_TIMES = [
@@ -291,7 +284,8 @@ def add_yunfei_jobs(scheduler, xt_trader, config, account_asset_info, positions)
                 config,  # config
                 account_asset_info,  # account_asset_info
                 positions,  # positions
-                print_trade_plan # print_trade_plan 函数
+                # 【修改】传入新的函数名
+                generate_trade_plan_final_func
             ],
             id=job_id,
             replace_existing=True
@@ -362,7 +356,8 @@ def main():
 
     # 设定交易计划执行日期为当天
     trade_date = datetime.now().strftime('%Y-%m-%d')
-    trade_plan_file = f'./tradeplan/final/trade_plan_{account_id}_{trade_date.replace("-", "")}.json'
+    # 【修改】主流程的最终计划文件名也同步修改
+    trade_plan_file = f'./tradeplan/final/trade_plan_final_{account_id}_{trade_date.replace("-", "")}.json'
 
     xt_trader = XtQuantTrader(path_qmt, session_id)
     callback = MyXtQuantTraderCallback()
@@ -376,7 +371,7 @@ def main():
     # 【修改点】使用新的加载工具获取 reverse_mapping
     logging.info("开始加载股票代码")
     try:
-        # 只需获取 reverse_mapping，其他信息由 print_trade_plan 内部自己加载
+        # 只需获取 reverse_mapping，其他信息由 generate_trade_plan_final_func 内部自己加载
         _, _, reverse_mapping = load_stock_code_maps()
         logging.info("股票代码加载成功，并生成 reverse_mapping")
     except Exception as e:
@@ -387,8 +382,8 @@ def main():
     account_asset_info = print_account_asset(xt_trader, account_id)
     positions = print_positions(xt_trader, account_id, reverse_mapping, account_asset_info)
 
-    # 【修改点】调用 print_trade_plan 时，不再传入 stock_code_dict
-    print_trade_plan(
+    # 【修改】调用新的 final plan 生成函数
+    generate_trade_plan_final_func(
         config=config,
         account_asset_info=account_asset_info,
         positions=positions,
@@ -398,7 +393,7 @@ def main():
     )
 
     # 【删除】不再需要调用 run_scheduler_with_staggered_batches
-    # run_scheduler_with_staggered_batches(config, account_asset_info, positions, print_trade_plan)
+    # run_scheduler_with_staggered_batches(config, account_asset_info, positions, generate_trade_plan_final_func)
 
     time.sleep(5)
     logging.info("布置定时任务")

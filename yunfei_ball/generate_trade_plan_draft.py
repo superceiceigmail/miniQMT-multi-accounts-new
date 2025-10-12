@@ -2,6 +2,7 @@ import json
 import re
 import os
 
+
 def parse_trade_operations(operation_str, ratio, sample_amount):
     """
     解析买卖操作字符串，返回买入和卖出计划列表
@@ -29,9 +30,11 @@ def parse_trade_operations(operation_str, ratio, sample_amount):
             sell_stocks_info.append(stock_info)
     return sell_stocks_info, buy_stocks_info
 
-def generate_setting_file(batch_no, operation_str, ratio, sample_amount, output_dir="setting"):
+
+# 【修改】函数名结尾添加 _func
+def generate_trade_plan_draft_func(batch_no, operation_str, ratio, sample_amount, output_dir="setting"):
     """
-    生成单个批次的yunfei_setting{batch_no}.json
+    生成单个批次的 yunfei_trade_plan_draft_{batch_no}.json
     """
     sell_stocks_info, buy_stocks_info = parse_trade_operations(operation_str, ratio, sample_amount)
     plan = {
@@ -41,21 +44,27 @@ def generate_setting_file(batch_no, operation_str, ratio, sample_amount, output_
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
 
-    file_path = os.path.join(output_dir, f"yunfei_setting{batch_no}.json")
+    # 【修改】文件名改为 yunfei_trade_plan_draft_...
+    file_path = os.path.join(output_dir, f"yunfei_trade_plan_draft_{batch_no}.json")
     with open(file_path, 'w', encoding='utf-8') as f:
         json.dump(plan, f, indent=2, ensure_ascii=False)
-    print(f"已生成{file_path}")
 
-def batch_generate_setting_plans(batch_operations, ratio, sample_amount, output_dir="setting"):
+    # 【修改】更新打印信息
+    print(f"已生成交易计划草稿: {file_path}")
+
+    # 【新增】返回文件路径，让调用方直接使用
+    return file_path
+
+
+def batch_generate_trade_plan_drafts_func(batch_operations, ratio, sample_amount, output_dir="setting"):
     """
-    批量生成四个批次的计划
-    batch_operations: dict, 如 {1: "卖出 科创50(588000); 买入 日经ETF(513520);", 2: "..."}
-    ratio: float
-    sample_amount: float
+    批量生成四个批次的计划 (示例函数)
     """
     for batch_no in range(1, 5):
         operation_str = batch_operations.get(batch_no, "")
-        generate_setting_file(batch_no, operation_str, ratio, sample_amount, output_dir)
+        # 【修改】调用更新后的函数
+        generate_trade_plan_draft_func(batch_no, operation_str, ratio, sample_amount, output_dir)
+
 
 # 示例调用
 if __name__ == "__main__":
@@ -67,4 +76,5 @@ if __name__ == "__main__":
     }
     ratio = 1.03
     sample_amount = 751900.0
-    batch_generate_trade_plans(batch_ops, ratio, sample_amount)
+    # 【修改】调用更新后的示例函数
+    batch_generate_trade_plan_drafts_func(batch_ops, ratio, sample_amount)

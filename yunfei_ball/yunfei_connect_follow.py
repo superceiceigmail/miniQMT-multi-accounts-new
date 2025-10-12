@@ -10,8 +10,8 @@ from datetime import datetime, timedelta
 from bs4 import BeautifulSoup
 from collections import defaultdict
 from requests.exceptions import SSLError
-# 确保您的 yunfei_ball 目录下有 generate_setting.py 文件
-from yunfei_ball.generate_setting import generate_setting_file
+# 【修改】导入新的函数和模块 (假设您已将 generate_trade_plan_draft.py 重命名)
+from yunfei_ball.generate_trade_plan_draft import generate_trade_plan_draft_func
 
 USERNAME = 'ceicei'
 PASSWORD = 'ceicei628'
@@ -70,10 +70,12 @@ def handle_trade_operation(op_block_html, name_to_code, batch_no, ratio, sample_
     op_text_with_code = add_code_to_operation(op_text, name_to_code)
     print("买卖操作明细：")
     print(op_text_with_code)
-    setting_file_path = f'yunfei_ball/setting/yunfei_setting{batch_no}.json'
-    # 确保 generate_setting_file 函数接收并处理了所有参数
-    generate_setting_file(batch_no, op_text_with_code, ratio, sample_amount)
-    return setting_file_path
+
+    # 【修改】调用新的函数来生成草稿文件
+    # setting 目录保持不变
+    draft_plan_file_path = generate_trade_plan_draft_func(batch_no, op_text_with_code, ratio, sample_amount,
+                                                          output_dir="yunfei_ball/setting")
+    return draft_plan_file_path
 
 
 # 全局加载代码映射
@@ -97,10 +99,11 @@ def monitor_timers(timers, timer_info_list):
 
 
 # 【重要修正】函数签名、逻辑和日期判断
+# 【修改】修改传入的函数参数名，使其更清晰
 def fetch_and_check_batch_with_trade_plan(batch_no, batch_time, batch_cfgs, config, account_asset_info, positions,
-                                          print_trade_plan_func):
+                                          generate_trade_plan_final_func):
     """
-    负责登录、抓取数据、生成 setting 文件和 trade_plan 文件的核心逻辑。
+    负责登录、抓取数据、生成 draft 文件和 final 文件的核心逻辑。
     """
     print(f"批次{batch_no}任务已启动, 目标时间: {batch_time}, 当前时间: {datetime.now()}, 策略数: {len(batch_cfgs)}",
           flush=True)
@@ -176,41 +179,41 @@ def fetch_and_check_batch_with_trade_plan(batch_no, batch_time, batch_cfgs, conf
                         sample_amount = round(config_amount * SAMPLE_ACCOUNT_AMOUNT, 2)
 
                         print(f"\n>>> 策略【{s['name']}】 操作时间: {s['time']}")
-                        # 1. 生成setting文件
-                        setting_file_path = handle_trade_operation(s['operation_block'], name_to_code, batch_no,
-                                                                   config_amount, sample_amount)
+                        # 1. 生成draft文件
+                        draft_plan_file_path = handle_trade_operation(s['operation_block'], name_to_code, batch_no,
+                                                                      config_amount, sample_amount)
                         print(f"配置仓位: {config_amount}，样板操作金额: {sample_amount}")
                         print("当前持仓:")
                         for h in s['holding_block']:
                             print("  " + h)
                         print("==============")
 
-                        # 2. 生成trade_plan文件 (使用传入的函数)
-                        trade_date = datetime.now().strftime('%Y-%m-%d') # 【修正：改为 YYYY-MM-DD】
+                        # 2. 生成final文件 (使用传入的函数)
+                        trade_date = datetime.now().strftime('%Y-%m-%d')
                         account_id = config.get('account_id', 'unknown')
-                        trade_plan_file = f"{TRADE_PLAN_DIR}/yunfei_trade_plan_{account_id}_{trade_date}_batch{batch_no}.json"
+                        # 【修改】最终文件名改为 yunfei_trade_plan_final_...
+                        final_trade_plan_file = f"{TRADE_PLAN_DIR}/yunfei_trade_plan_final_{account_id}_{trade_date}_batch{batch_no}.json"
 
-                        # 【调用传入的 print_trade_plan 函数】
-                        print_trade_plan_func(
+                        # 【修改】调用传入的 final plan 生成函数
+                        generate_trade_plan_final_func(
                             config=config,
                             account_asset_info=account_asset_info,
                             positions=positions,
                             trade_date=trade_date,
-                            setting_file_path=setting_file_path,
-                            trade_plan_file=trade_plan_file
+                            # 【修改】传入 draft 文件的路径
+                            setting_file_path=draft_plan_file_path,
+                            # 【修改】传入 final 文件的路径
+                            trade_plan_file=final_trade_plan_file
                         )
-                        print("生成交易文件完毕:")
+                        print("生成最终交易计划完毕:")
                     else:
                         print(f"策略【{s['name']}】操作为{action}，跳过")
-                        # 无论操作是什么，只要日期 >= 今日，该策略就算更新完成了
                 else:
                     all_cfgs_checked = False
                     print(f"策略【{s['name']}】日期: {s['date']} < 今日日期: {today_str}，尚未更新...")
 
             if all_cfgs_checked:
-                # 所有策略都已更新到今日或未来，视为本批次已完成信息抓取
                 print(f"批次{batch_no}所有策略信息已更新到今日或未来，任务完成。")
-                # 【修正】读取最新状态并写入
                 batch_status = load_batch_status()
                 batch_status[str(batch_no)] = True
                 save_batch_status(batch_status)
@@ -235,7 +238,11 @@ def fetch_and_check_batch_with_trade_plan(batch_no, batch_time, batch_cfgs, conf
             time.sleep(30)
 
 
-# 其他辅助函数（保持不变）
+# ... 此处省略其他未改变的辅助函数 (load_batch_status, save_batch_status, login, etc.)
+# ...
+# ...
+# ...
+# 【为了简洁，以下辅助函数代码保持原样，无需修改】
 def load_batch_status():
     today = datetime.now().strftime("%Y-%m-%d")
     try:
@@ -473,7 +480,7 @@ def collect_today_strategies():
                 except ValueError:
                     pass
 
-            # 【修正】当日期 >= 今日 且 操作是买卖，则生成setting文件
+            # 【修正】当日期 >= 今日 且 操作是买卖，则生成draft文件
             if is_updated and extract_operation_action(s['operation_block']) == '买卖':
                 config_amount = cfg.get('配置仓位', 0)
                 # 【修正】统一 sample_amount 的计算方式

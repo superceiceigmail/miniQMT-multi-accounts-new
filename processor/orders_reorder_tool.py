@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 import os
 import json
 import logging
-REORDER_RECORD_DIR = "reorder_records"
+REORDER_RECORD_DIR = "runtime/reorder_records"
 def _get_today_reorder_record_file():
     today_str = datetime.now().strftime("%Y%m%d")
     # 自动创建目录（如果不存在）
