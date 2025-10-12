@@ -12,7 +12,7 @@ ACCOUNTS = {
     "shu": {"log_file": "logs/shu.log"},
     "1234": {"log_file": "logs/1234.log"}
 }
-PLAN_FILE = "core_parameters/setting/setting.json"
+PLAN_FILE = "tradeplan/trade_plan_draft.json"
 
 def main():
     root = tb.Window(themename="cosmo")

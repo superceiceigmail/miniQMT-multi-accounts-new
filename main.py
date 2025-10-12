@@ -358,11 +358,11 @@ def main():
     for msg in msg_list:
         logging.error(msg)
 
-    setting_file_path = 'core_parameters/setting/setting.json'
+    trade_plan_draft_file_path = 'tradeplan/trade_plan_draft.json'
 
     # 设定交易计划执行日期为当天
     trade_date = datetime.now().strftime('%Y-%m-%d')
-    trade_plan_file = f'./tradplan/trade_plan_{account_id}_{trade_date.replace("-", "")}.json'
+    trade_plan_file = f'./tradeplan/final/trade_plan_{account_id}_{trade_date.replace("-", "")}.json'
 
     xt_trader = XtQuantTrader(path_qmt, session_id)
     callback = MyXtQuantTraderCallback()
@@ -393,7 +393,7 @@ def main():
         account_asset_info=account_asset_info,
         positions=positions,
         trade_date=trade_date,
-        setting_file_path=setting_file_path,  # 传入文件路径
+        setting_file_path=trade_plan_draft_file_path,  # 传入文件路径
         trade_plan_file=trade_plan_file
     )
 

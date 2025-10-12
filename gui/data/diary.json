@@ -1,5 +1,5 @@
 {
-  "continuous_days": 4,
+  "continuous_days": 1,
   "records": [
     {
       "date": "2025-09-01",
@@ -1171,13 +1171,50 @@
           "unit": "小时",
           "project": "",
           "tags": ""
+        },
+        {
+          "category": "量化",
+          "content": "云飞自动交易推进到生成最终交易文件，解决了从main传参问题，解决了定时任务问题",
+          "major": true,
+          "score": 3.0,
+          "unit": "天",
+          "project": "云飞自动交易",
+          "tags": ""
         }
       ],
       "plan": [],
       "rules": "",
       "followed_plan": true,
-      "timestamp": "2025-10-10T23:54:21"
+      "timestamp": "2025-10-10T23:57:42"
+    },
+    {
+      "date": "2025-10-12",
+      "honor": [
+        {
+          "category": "生活",
+          "content": "接送王一伊，歌技升级",
+          "major": false,
+          "score": 8.0,
+          "unit": "小时",
+          "project": "",
+          "tags": ""
+        }
+      ],
+      "plan": [
+        {
+          "content": "代码整理",
+          "priority": 3,
+          "start_date": "2025-10-12",
+          "start_time": "",
+          "category": "量化",
+          "project": "",
+          "tags": ""
+        }
+      ],
+      "rules": "",
+      "followed_plan": true,
+      "timestamp": "2025-10-12T15:15:11"
     }
   ],
-  "continuous_days_last_date": "2025-10-10"
+  "continuous_days_last_date": "2025-10-12"
 }
