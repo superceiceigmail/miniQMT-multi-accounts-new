@@ -1,26 +1,21 @@
-try:
-    import os
-    import sys
+import os
+import sys
 
-    if hasattr(sys.stdout, "reconfigure"):
-        sys.stdout.reconfigure(encoding="utf-8")
-        sys.stderr.reconfigure(encoding="utf-8")
-    import logging
-    import time
-    import json
-    import argparse
-    import signal
-    from datetime import datetime
-    import traceback
-    import psutil
-    from collections import defaultdict
-    from utils.log_utils import ensure_utf8_stdio, setup_logging
-    # 导入新的配置加载工具
-    from utils.config_loader import load_json_file
-    # 【新增】导入新的股票代码加载工具
-    from utils.stock_data_loader import load_stock_code_maps
-except Exception as err:
-    raise
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8")
+    sys.stderr.reconfigure(encoding="utf-8")
+import logging
+import time
+import json
+import argparse
+import signal
+from datetime import datetime
+import traceback
+import psutil
+from collections import defaultdict
+from utils.log_utils import ensure_utf8_stdio, setup_logging
+from utils.config_loader import load_json_file
+from utils.stock_data_loader import load_stock_code_maps
 
 from xtquant import xtdata
 from apscheduler.schedulers.background import BackgroundScheduler
@@ -33,14 +28,12 @@ from processor.position_connector import print_positions
 from processor.asset_connector import print_account_asset
 from processor.order_cancel_tool import cancel_orders
 from utils.stock_code_mapper import generate_reverse_mapping
-# 【修改】导入新的 final plan 生成函数，并重命名 (假设您在对应文件中已修改)
 from processor.trade_plan_generation import print_trade_plan as generate_trade_plan_final_func
 from processor.orders_reorder_tool import reorder_orders
 from preprocessing.qmt_connector import ensure_qmt_and_connect
 from preprocessing.trade_time_checker import check_trade_times
 from preprocessing.qmt_daily_restart_checker import check_and_restart
 from utils.git_push_tool import push_project_to_github
-# 【修改】导入 fetch_and_check_batch_with_trade_plan
 from yunfei_ball.yunfei_connect_follow import fetch_and_check_batch_with_trade_plan, INPUT_JSON
 
 # ========== 配置 ==========
@@ -61,7 +54,6 @@ ACCOUNT_CONFIG_MAP = {
 }
 
 account_name = None
-
 
 # ========== 日志回调 (保持不变) ==========
 class MyXtQuantTraderCallback(XtQuantTraderCallback):
@@ -142,34 +134,6 @@ def add_seconds_to_hms(h: int, m: int, s: int, delta: int = 20):
     nm = (total % 3600) // 60
     ns = total % 60
     return nh, nm, ns
-
-
-def sell_execution_task(xt_trader, account_id, trade_plan_file):
-    logging.info(f"--- 卖出任务 --- 当前时间：{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-    try:
-        trade_plan = load_trade_plan(trade_plan_file)
-        if not trade_plan:
-            logging.error("❌ 交易计划加载失败，跳过本次执行。")
-            return
-        account = StockAccount(account_id)
-        execute_trade_plan(xt_trader, account, trade_plan, action='sell')
-        logging.info("✅ 卖出任务执行成功")
-    except Exception as e:
-        logging.error(f"❌ 卖出任务执行失败: {e}")
-
-
-def buy_execution_task(xt_trader, account_id, trade_plan_file):
-    logging.info(f"--- 买入任务 --- 当前时间：{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-    try:
-        trade_plan = load_trade_plan(trade_plan_file)
-        if not trade_plan:
-            logging.error("❌ 交易计划加载失败，跳过本次执行。")
-            return
-        account = StockAccount(account_id)
-        execute_trade_plan(xt_trader, account, trade_plan, action='buy')
-        logging.info("✅ 买入任务执行成功")
-    except Exception as e:
-        logging.error(f"❌ 买入任务执行失败: {e}")
 
 
 def print_positions_task(xt_trader, account_id, reverse_mapping, account_asset_info):
@@ -284,7 +248,6 @@ def add_yunfei_jobs(scheduler, xt_trader, config, account_asset_info, positions)
                 config,  # config
                 account_asset_info,  # account_asset_info
                 positions,  # positions
-                # 【修改】传入新的函数名
                 generate_trade_plan_final_func
             ],
             id=job_id,
@@ -292,6 +255,15 @@ def add_yunfei_jobs(scheduler, xt_trader, config, account_asset_info, positions)
         )
         logging.info(f"✅ 云飞跟投任务定时：批次{idx} @ {tstr}，策略：{[c['策略名称'] for c in batch_cfgs]}")
 
+# ========== 新增：读取买入标志 ==========
+def get_can_directly_buy(draft_file_path):
+    try:
+        with open(draft_file_path, 'r', encoding='utf-8') as f:
+            draft = json.load(f)
+        return draft.get("can_directly_buy", "否")
+    except Exception as e:
+        logging.error(f"读取 can_directly_buy 失败: {e}")
+        return "否"
 
 # ========== 主入口 ==========
 def main():
@@ -356,7 +328,6 @@ def main():
 
     # 设定交易计划执行日期为当天
     trade_date = datetime.now().strftime('%Y-%m-%d')
-    # 【修改】主流程的最终计划文件名也同步修改
     trade_plan_file = f'./tradeplan/final/trade_plan_final_{account_id}_{trade_date.replace("-", "")}.json'
 
     xt_trader = XtQuantTrader(path_qmt, session_id)
@@ -368,10 +339,9 @@ def main():
     check_and_restart(config_path)
     ensure_qmt_and_connect(config_path, xt_trader, logger=logging)
 
-    # 【修改点】使用新的加载工具获取 reverse_mapping
+    # 使用新的加载工具获取 reverse_mapping
     logging.info("开始加载股票代码")
     try:
-        # 只需获取 reverse_mapping，其他信息由 generate_trade_plan_final_func 内部自己加载
         _, _, reverse_mapping = load_stock_code_maps()
         logging.info("股票代码加载成功，并生成 reverse_mapping")
     except Exception as e:
@@ -382,18 +352,15 @@ def main():
     account_asset_info = print_account_asset(xt_trader, account_id)
     positions = print_positions(xt_trader, account_id, reverse_mapping, account_asset_info)
 
-    # 【修改】调用新的 final plan 生成函数
+    # 调用新的 final plan 生成函数
     generate_trade_plan_final_func(
         config=config,
         account_asset_info=account_asset_info,
         positions=positions,
         trade_date=trade_date,
-        setting_file_path=trade_plan_draft_file_path,  # 传入文件路径
+        setting_file_path=trade_plan_draft_file_path,
         trade_plan_file=trade_plan_file
     )
-
-    # 【删除】不再需要调用 run_scheduler_with_staggered_batches
-    # run_scheduler_with_staggered_batches(config, account_asset_info, positions, generate_trade_plan_final_func)
 
     time.sleep(5)
     logging.info("布置定时任务")
@@ -403,11 +370,47 @@ def main():
     check1_hour, check1_minute, check1_second = map(int, check_time_first.split(":"))
     check2_hour, check2_minute, check2_second = map(int, check_time_second.split(":"))
 
-    # ... (原有定时任务配置保持不变)
+    # ========== 变更：卖出任务和买入任务逻辑 ==========
+    def sell_execution_task(xt_trader, account_id, trade_plan_file, draft_file_path):
+        logging.info(f"--- 卖出任务 --- 当前时间：{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+        try:
+            can_directly_buy = get_can_directly_buy(draft_file_path)
+            trade_plan = load_trade_plan(trade_plan_file)
+            if not trade_plan:
+                logging.error("❌ 交易计划加载失败，跳过本次执行。")
+                return
+            account = StockAccount(account_id)
+            execute_trade_plan(xt_trader, account, trade_plan, action='sell')
+            logging.info("✅ 卖出任务执行成功")
+            if can_directly_buy == "是":
+                logging.info("can_directly_buy=是，卖出时同时买入")
+                execute_trade_plan(xt_trader, account, trade_plan, action='buy')
+                logging.info("✅ 卖出时已同步买入")
+        except Exception as e:
+            logging.error(f"❌ 卖出任务执行失败: {e}")
+
+    def buy_execution_task(xt_trader, account_id, trade_plan_file, draft_file_path):
+        logging.info(f"--- 买入任务 --- 当前时间：{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+        try:
+            can_directly_buy = get_can_directly_buy(draft_file_path)
+            if can_directly_buy == "是":
+                logging.info("can_directly_buy=是，买入任务跳过")
+                return
+            trade_plan = load_trade_plan(trade_plan_file)
+            if not trade_plan:
+                logging.error("❌ 交易计划加载失败，跳过本次执行。")
+                return
+            account = StockAccount(account_id)
+            execute_trade_plan(xt_trader, account, trade_plan, action='buy')
+            logging.info("✅ 买入任务执行成功")
+        except Exception as e:
+            logging.error(f"❌ 买入任务执行失败: {e}")
+
+    # ... (原有定时任务配置保持不变，但参数需补充 draft_file_path)
     scheduler.add_job(
         sell_execution_task,
         trigger=CronTrigger(hour=sell_hour, minute=sell_minute, second=sell_second),
-        args=[xt_trader, account_id, trade_plan_file],
+        args=[xt_trader, account_id, trade_plan_file, trade_plan_draft_file_path],
         id="sell_execution_task",
         replace_existing=True
     )
@@ -416,7 +419,7 @@ def main():
     scheduler.add_job(
         buy_execution_task,
         trigger=CronTrigger(hour=buy_hour, minute=buy_minute, second=buy_second),
-        args=[xt_trader, account_id, trade_plan_file],
+        args=[xt_trader, account_id, trade_plan_file, trade_plan_draft_file_path],
         id="buy_execution_task",
         replace_existing=True
     )
@@ -519,7 +522,7 @@ def main():
     logging.info("miniQMT-frontend 自动推送GitHub任务定时: 9:36:00")
     # ===============================================================
 
-    # 【新增】添加云飞跟投定时任务
+    # 添加云飞跟投定时任务
     add_yunfei_jobs(scheduler, xt_trader, config, account_asset_info, positions)
 
     scheduler.start()
