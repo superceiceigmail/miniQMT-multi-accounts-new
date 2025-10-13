@@ -44,10 +44,10 @@ from utils.git_push_tool import push_project_to_github
 from yunfei_ball.yunfei_connect_follow import fetch_and_check_batch_with_trade_plan, INPUT_JSON
 
 # ========== 配置 ==========
-SCHEDULE_TIMES = [
-    "23:53:00",
-    "23:53:05",
-    "14:31:20",
+YUNFEI_SCHEDULE_TIMES = [
+    "14:52:00",
+    "13:00:05",
+    "14:35:20",
     "14:51:25",
 ]
 
@@ -260,7 +260,7 @@ def add_yunfei_jobs(scheduler, xt_trader, config, account_asset_info, positions)
         logging.warning("云飞策略配置为空，跳过云飞跟投任务设置。")
         return
 
-    for idx, tstr in enumerate(SCHEDULE_TIMES, 1):
+    for idx, tstr in enumerate(YUNFEI_SCHEDULE_TIMES, 1):
         batch_cfgs = batch_cfgs_map.get(idx, [])
         if not batch_cfgs:
             logging.info(f"批次{idx}无策略配置，跳过。")

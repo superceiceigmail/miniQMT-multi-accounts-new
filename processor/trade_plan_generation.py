@@ -214,11 +214,11 @@ def print_trade_plan(
         if not norm_code:
             emit(
                 logger,
-                f"[错误] 买入计划中【{name}】没有找到有效股票代码，请检查配置！",
+                f"[错误] 买入计划中【{name}】没有找到有效股票代码，请检查配置！已跳过该买入任务，继续后续交易。",
                 level="error",
                 collector=collector
             )
-            raise ValueError(f"买入计划中【{name}】没有找到有效股票代码，程序终止。")
+            continue  # 跳过该股票，继续后续循环
 
         op_money = op_asset * ratio
         buy_total_money += op_money
