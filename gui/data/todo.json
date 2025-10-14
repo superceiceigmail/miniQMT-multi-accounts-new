@@ -22,6 +22,31 @@
     "major": false
   },
   {
+    "content": "云飞双账号规划；1、先完成云飞调仓和自动交易",
+    "priority": 5,
+    "start_date": "",
+    "start_time": "",
+    "category": "量化",
+    "project": "云飞自动交易",
+    "tags": "",
+    "created_date": "2025-10-01",
+    "remind_id": "539401300e2f47fd8827d4da65f4f018",
+    "status": "",
+    "major": false
+  },
+  {
+    "content": "10月要开始布局加仓，布置云飞加仓、自动交易和双账号管理事宜。生活上完成搬家，尝试上海找工作摸底。10月命名为探索月，需要决策下阶段方向",
+    "priority": 5,
+    "start_date": "",
+    "start_time": "",
+    "category": "交易",
+    "project": "",
+    "tags": "月计划",
+    "created_date": "2025-10-02",
+    "remind_id": "5b201659c06344fd80194200a9f16df3",
+    "status": ""
+  },
+  {
     "content": "BALL计划，云飞球，十二只球滚动，按日期定投分散风险",
     "priority": 4,
     "start_date": "",
@@ -33,8 +58,84 @@
     "major": true
   },
   {
-    "content": "tushare关注",
+    "content": "歌词学习，郑智化，beyond，汪峰，beatles研究,成龙，罗文，郑少秋，女歌手对唱，李云龙",
+    "priority": 4,
+    "start_date": "",
+    "start_time": "",
+    "created_date": "2025-09-30",
+    "category": "写歌",
+    "project": "",
+    "tags": "",
+    "major": true
+  },
+  {
+    "content": "总结唱歌技巧",
+    "priority": 4,
+    "start_date": "",
+    "start_time": "",
+    "category": "娱乐",
+    "project": "",
+    "tags": "",
+    "created_date": "2025-09-09",
+    "major": false
+  },
+  {
+    "content": "云飞的策略自动跟踪。",
     "priority": 3,
+    "start_date": "",
+    "start_time": "",
+    "created_date": "2025-09-08",
+    "category": "交易",
+    "project": "",
+    "tags": ""
+  },
+  {
+    "content": "记录云飞综合成交曲线",
+    "priority": 3,
+    "start_date": "",
+    "start_time": "",
+    "category": "交易",
+    "project": "",
+    "tags": "",
+    "created_date": "2025-09-14",
+    "remind_id": "91723bf9485145bf9583660d336de4e1",
+    "status": ""
+  },
+  {
+    "content": "试用suno studio",
+    "priority": 3,
+    "start_date": "",
+    "start_time": "",
+    "created_date": "2025-10-01",
+    "category": "生活",
+    "project": "",
+    "tags": "",
+    "major": false
+  },
+  {
+    "content": "垫乐制作尝试",
+    "priority": 3,
+    "start_date": "",
+    "start_time": "",
+    "category": "写歌",
+    "project": "",
+    "tags": "",
+    "created_date": "2025-09-09"
+  },
+  {
+    "content": "成就计划思考",
+    "priority": 2,
+    "start_date": "",
+    "start_time": "",
+    "category": "生活",
+    "project": "",
+    "tags": "",
+    "created_date": "2025-09-09",
+    "major": true
+  },
+  {
+    "content": "策略跟踪自动记录和激励",
+    "priority": 2,
     "start_date": "",
     "start_time": "",
     "category": "量化",
@@ -44,8 +145,19 @@
     "major": false
   },
   {
-    "content": "策略跟踪自动记录和激励",
+    "content": "测试音箱",
     "priority": 2,
+    "start_date": "",
+    "start_time": "",
+    "created_date": "2025-10-13",
+    "category": "生活",
+    "project": "",
+    "tags": "",
+    "major": false
+  },
+  {
+    "content": "tushare关注",
+    "priority": 1,
     "start_date": "",
     "start_time": "",
     "category": "量化",
@@ -77,63 +189,6 @@
     "major": false
   },
   {
-    "content": "云飞双账号规划；1、先完成云飞调仓和自动交易",
-    "priority": 5,
-    "start_date": "",
-    "start_time": "",
-    "category": "交易",
-    "project": "云飞自动交易",
-    "tags": "",
-    "created_date": "2025-10-01",
-    "remind_id": "539401300e2f47fd8827d4da65f4f018",
-    "status": ""
-  },
-  {
-    "content": "10月要开始布局加仓，布置云飞加仓、自动交易和双账号管理事宜。生活上完成搬家，尝试上海找工作摸底。10月命名为探索月，需要决策下阶段方向",
-    "priority": 5,
-    "start_date": "",
-    "start_time": "",
-    "category": "交易",
-    "project": "",
-    "tags": "月计划",
-    "created_date": "2025-10-02",
-    "remind_id": "5b201659c06344fd80194200a9f16df3",
-    "status": ""
-  },
-  {
-    "content": "云飞的策略自动跟踪。",
-    "priority": 3,
-    "start_date": "",
-    "start_time": "",
-    "created_date": "2025-09-08",
-    "category": "交易",
-    "project": "",
-    "tags": ""
-  },
-  {
-    "content": "记录云飞综合成交曲线",
-    "priority": 3,
-    "start_date": "",
-    "start_time": "",
-    "category": "交易",
-    "project": "",
-    "tags": "",
-    "created_date": "2025-09-14",
-    "remind_id": "91723bf9485145bf9583660d336de4e1",
-    "status": ""
-  },
-  {
-    "content": "智能分配仓位中，需要考虑拆单，把能下的仓位先买入",
-    "priority": 2,
-    "start_date": "",
-    "start_time": "",
-    "created_date": "2025-09-08",
-    "category": "交易",
-    "project": "",
-    "tags": "",
-    "major": false
-  },
-  {
     "content": "微盘股准备",
     "priority": 1,
     "start_date": "",
@@ -143,39 +198,6 @@
     "tags": "",
     "created_date": "2025-09-09",
     "major": false
-  },
-  {
-    "content": "云飞仓位重配",
-    "priority": 5,
-    "start_date": "",
-    "start_time": "",
-    "created_date": "2025-10-01",
-    "category": "生活",
-    "project": "",
-    "tags": "",
-    "major": false
-  },
-  {
-    "content": "试用suno studio",
-    "priority": 3,
-    "start_date": "",
-    "start_time": "",
-    "created_date": "2025-10-01",
-    "category": "生活",
-    "project": "",
-    "tags": "",
-    "major": false
-  },
-  {
-    "content": "成就计划思考",
-    "priority": 3,
-    "start_date": "",
-    "start_time": "",
-    "category": "生活",
-    "project": "",
-    "tags": "",
-    "created_date": "2025-09-09",
-    "major": true
   },
   {
     "content": "史晓系统学习",
@@ -197,49 +219,6 @@
     "category": "生活",
     "project": "",
     "tags": "",
-    "major": false
-  },
-  {
-    "content": "歌曲注册",
-    "priority": 5,
-    "start_date": "",
-    "start_time": "",
-    "created_date": "2025-10-08",
-    "category": "写歌",
-    "project": "",
-    "tags": "",
-    "major": false
-  },
-  {
-    "content": "歌词学习，郑智化，beyond，汪峰，beatles研究",
-    "priority": 4,
-    "start_date": "",
-    "start_time": "",
-    "created_date": "2025-09-30",
-    "category": "写歌",
-    "project": "",
-    "tags": "",
-    "major": true
-  },
-  {
-    "content": "垫乐制作尝试",
-    "priority": 3,
-    "start_date": "",
-    "start_time": "",
-    "category": "写歌",
-    "project": "",
-    "tags": "",
-    "created_date": "2025-09-09"
-  },
-  {
-    "content": "总结唱歌技巧",
-    "priority": 4,
-    "start_date": "",
-    "start_time": "",
-    "category": "娱乐",
-    "project": "",
-    "tags": "",
-    "created_date": "2025-09-09",
     "major": false
   }
 ]

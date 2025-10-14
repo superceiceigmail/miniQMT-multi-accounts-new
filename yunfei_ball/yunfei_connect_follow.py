@@ -10,7 +10,6 @@ from datetime import datetime, timedelta
 from bs4 import BeautifulSoup
 from collections import defaultdict
 from requests.exceptions import SSLError
-# 【修改】导入新的函数和模块 (假设您已将 generate_trade_plan_draft.py 重命名)
 from yunfei_ball.generate_trade_plan_draft import generate_trade_plan_draft_func
 
 USERNAME = 'ceicei'
@@ -30,7 +29,6 @@ SAMPLE_ACCOUNT_AMOUNT = 730000
 
 
 def load_name_to_code_map(json_path):
-    # 确保文件存在且可读
     if not os.path.exists(json_path):
         print(f"错误：代码索引文件未找到于 {json_path}")
         return {}
@@ -53,8 +51,6 @@ def add_code_to_operation(operation_text, name_to_code):
             return f"{action} {asset}({code})"
         else:
             return f"{action} {asset}"
-
-    # 修正：支持“换入/换出”
     return re.sub(r'(买入|卖出|调仓|换入|换出)\s*([^\s;\uff1b\uff0c,.]+)', repl, operation_text)
 
 
@@ -63,58 +59,46 @@ def handle_trade_operation(op_block_html, name_to_code, batch_no, ratio, sample_
     op_text_with_code = add_code_to_operation(op_text, name_to_code)
     print("买卖操作明细：")
     print(op_text_with_code)
-
-    # 【修改】调用新的函数来生成草稿文件
-    # setting 目录保持不变
     draft_plan_file_path = generate_trade_plan_draft_func(batch_no, op_text_with_code, ratio, sample_amount,
                                                           output_dir="yunfei_ball/setting")
     return draft_plan_file_path
 
 
-# 全局加载代码映射
 name_to_code = load_name_to_code_map(CODE_INDEX_PATH)
 
 
 def delayed_run(delay, *args, **kwargs):
     print(f"[delayed_run] Will run batch after {delay} seconds", flush=True)
     time.sleep(delay)
-    # 修复：传递所有参数给 fetch_and_check_batch_with_trade_plan
     fetch_and_check_batch_with_trade_plan(*args, **kwargs)
 
 
 def monitor_timers(timers, timer_info_list):
     while any(t.is_alive() for t in timers):
-        # 优化：打印活跃线程数量，而不是持续打印所有信息
         alive_count = sum(1 for t in timers if t.is_alive())
         print(f"\n[定时任务监控] 当前有 {alive_count} 个批次任务正在运行/等待。", flush=True)
         time.sleep(30)
     print("[定时任务监控] 所有定时任务已完成。", flush=True)
 
 
-# 【重要修正】函数签名、逻辑和日期判断
-# 【修改】修改传入的函数参数名，使其更清晰
 def fetch_and_check_batch_with_trade_plan(batch_no, batch_time, batch_cfgs, config, account_asset_info, positions,
                                           generate_trade_plan_final_func):
-    """
-    负责登录、抓取数据、生成 draft 文件和 final 文件的核心逻辑。
-    """
-    print(f"批次{batch_no}任务已启动, 目标时间: {batch_time}, 当前时间: {datetime.now()}, 策略数: {len(batch_cfgs)}",
-          flush=True)
+    print(f"批次{batch_no}任务已启动, 目标时间: {batch_time}, 当前时间: {datetime.now()}, 策略数: {len(batch_cfgs)}", flush=True)
 
     today_str = datetime.now().strftime('%Y-%m-%d')
-    # 【修正 1.1】获取今天的日期对象用于比较
     today_date = datetime.strptime(today_str, '%Y-%m-%d').date()
     session = None
     max_retries = 10
     retry_count = 0
 
-    # 检查状态，如果已执行则跳过 (针对当天任务)
     batch_status_at_start = load_batch_status()
     if batch_status_at_start.get(str(batch_no)):
         print(f"批次{batch_no}今日已执行，跳过。")
         return
 
-    # 登录/重连逻辑 (保持不变)
+    # --- 新增去重字典 ---
+    processed_strategy_keys = set()
+
     while session is None and retry_count < max_retries:
         session = login()
         if session is None:
@@ -126,13 +110,11 @@ def fetch_and_check_batch_with_trade_plan(batch_no, batch_time, batch_cfgs, conf
         print(f"达到最大重试次数，批次{batch_no}任务失败退出。")
         return
 
-    # 抓取/检查策略更新逻辑
     while True:
         try:
             resp = session.get(BASE_URL + '/F2/b_follow.aspx', headers=HEADERS, timeout=10, proxies={})
             resp.encoding = resp.apparent_encoding
 
-            # 检查登录状态 (保持不变)
             if not is_logged_in(resp.text):
                 print("登录失效，重新登录...")
                 session = None
@@ -144,14 +126,13 @@ def fetch_and_check_batch_with_trade_plan(batch_no, batch_time, batch_cfgs, conf
                 continue
 
             strategies = parse_b_follow_page(resp.text)
-            all_cfgs_checked = True  # 标记是否所有配置都已在网页上更新到今日或未来
+            all_cfgs_checked = True
 
             for cfg in batch_cfgs:
-                # 【修正 2.0】调用修正后的查找函数
                 s = find_strategy_by_id_and_bracket(cfg, strategies)
                 if not s:
                     print(f"策略【{cfg['策略名称']}】未找到！")
-                    all_cfgs_checked = False  # 找不到也视为未完全更新
+                    all_cfgs_checked = False
                     continue
 
                 strategy_date_str = s['date']
@@ -162,17 +143,17 @@ def fetch_and_check_batch_with_trade_plan(batch_no, batch_time, batch_cfgs, conf
                     print(f"策略【{s['name']}】日期格式错误: {strategy_date_str}，跳过检查。")
                     continue
 
-                # 【修正 1.2】：判断策略更新日期是否为当日或晚于当日 (>= today_date)
-                if strategy_date >= today_date:
+                # --- 构造唯一键避免重复处理 ---
+                strategy_key = f"{cfg.get('策略ID','')}_{strategy_date_str}"
+                # 只有第一次满足条件才处理
+                if strategy_date >= today_date and strategy_key not in processed_strategy_keys:
                     print(f"策略【{s['name']}】 操作日期: {s['date']} >= 今日日期: {today_str}")
-
                     action = extract_operation_action(s['operation_block'])
                     if action == '买卖':
                         config_amount = cfg.get('配置仓位', 0)
                         sample_amount = round(config_amount * SAMPLE_ACCOUNT_AMOUNT, 2)
 
                         print(f"\n>>> 策略【{s['name']}】 操作时间: {s['time']}")
-                        # 1. 生成draft文件
                         draft_plan_file_path = handle_trade_operation(s['operation_block'], name_to_code, batch_no,
                                                                       config_amount, sample_amount)
                         print(f"配置仓位: {config_amount}，样板操作金额: {sample_amount}")
@@ -181,26 +162,26 @@ def fetch_and_check_batch_with_trade_plan(batch_no, batch_time, batch_cfgs, conf
                             print("  " + h)
                         print("==============")
 
-                        # 2. 生成final文件 (使用传入的函数)
                         trade_date = datetime.now().strftime('%Y-%m-%d')
                         account_id = config.get('account_id', 'unknown')
-                        # 【修改】最终文件名改为 yunfei_trade_plan_final_...
                         final_trade_plan_file = f"{TRADE_PLAN_DIR}/yunfei_trade_plan_final_{account_id}_{trade_date}_batch{batch_no}.json"
 
-                        # 【修改】调用传入的 final plan 生成函数
                         generate_trade_plan_final_func(
                             config=config,
                             account_asset_info=account_asset_info,
                             positions=positions,
                             trade_date=trade_date,
-                            # 【修改】传入 draft 文件的路径
                             setting_file_path=draft_plan_file_path,
-                            # 【修改】传入 final 文件的路径
                             trade_plan_file=final_trade_plan_file
                         )
                         print("生成最终交易计划完毕:")
+                        processed_strategy_keys.add(strategy_key)
                     else:
                         print(f"策略【{s['name']}】操作为{action}，跳过")
+                        processed_strategy_keys.add(strategy_key)
+                elif strategy_date >= today_date:
+                    # 已处理过，直接跳过
+                    continue
                 else:
                     all_cfgs_checked = False
                     print(f"策略【{s['name']}】日期: {s['date']} < 今日日期: {today_str}，尚未更新...")
@@ -229,7 +210,6 @@ def fetch_and_check_batch_with_trade_plan(batch_no, batch_time, batch_cfgs, conf
             print("抓取异常", e)
             print("30秒后重试")
             time.sleep(30)
-
 
 # ... 此处省略其他未改变的辅助函数 (load_batch_status, save_batch_status, login, etc.)
 # ...

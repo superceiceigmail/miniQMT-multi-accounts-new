@@ -80,15 +80,24 @@ def print_trade_plan(
         # 抛出异常中断后续计划生成
         raise ValueError(f"无法加载股票代码：{e}") from e
 
-    # 3. 加载交易倾向数据
+    # 3. 加载交易倾向数据（已有逻辑）
     try:
         setting_data = load_json_file(setting_file_path)
         sell_stocks_info = setting_data["sell_stocks_info"]
         buy_stocks_info = setting_data["buy_stocks_info"]
         emit(logger, f"交易倾向数据已从文件 `{setting_file_path}` 加载", level="debug", collector=collector)
     except Exception as e:
-        emit(logger, f"[错误] 无法加载或解析交易倾向文件 `{setting_file_path}`: {e}", level="error", collector=collector)
+        emit(logger, f"[错误] 无法加载或解析交易倾向文件 `{setting_file_path}`: {e}", level="error",
+             collector=collector)
         raise ValueError(f"无法加载交易倾向文件：{e}") from e
+
+    # ==== 新增日期比对逻辑 ====
+    plan_date = setting_data.get("plan_date")
+    if plan_date:
+        if trade_date != plan_date:
+            emit(logger, f"[错误] 当前交易日期 {trade_date} 与计划日期 {plan_date} 不一致，已终止程序！", level="error",
+                 collector=collector)
+            raise ValueError(f"交易日期不一致：当前 {trade_date}，计划 {plan_date}")
 
     emit(logger, "")
     emit(logger, "===== 原始交易计划 =====", collector=collector)

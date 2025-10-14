@@ -1,5 +1,5 @@
 {
-  "continuous_days": 1,
+  "continuous_days": 3,
   "records": [
     {
       "date": "2025-09-01",
@@ -1213,8 +1213,62 @@
       ],
       "rules": "",
       "followed_plan": true,
-      "timestamp": "2025-10-12T16:24:42"
+      "timestamp": "2025-10-12T22:28:11"
+    },
+    {
+      "date": "2025-10-13",
+      "honor": [
+        {
+          "category": "生活",
+          "content": "歌技总结",
+          "major": false,
+          "score": 1.0,
+          "unit": "小时",
+          "project": "",
+          "tags": ""
+        },
+        {
+          "category": "写歌",
+          "content": "歌曲注册",
+          "major": false,
+          "score": 1.0,
+          "unit": "小时",
+          "project": "",
+          "tags": ""
+        },
+        {
+          "category": "量化",
+          "content": "增加了集合竞价阶段，根据资金实现买卖双下单功能。",
+          "major": true,
+          "score": 1.0,
+          "unit": "天",
+          "project": "",
+          "tags": "1"
+        }
+      ],
+      "plan": [],
+      "rules": "",
+      "followed_plan": true,
+      "timestamp": "2025-10-14T10:05:53"
+    },
+    {
+      "date": "2025-10-14",
+      "honor": [
+        {
+          "category": "写歌",
+          "content": "制作歌曲：遥远的天空",
+          "major": true,
+          "score": 10.0,
+          "unit": "天",
+          "project": "",
+          "tags": ""
+        }
+      ],
+      "plan": [],
+      "rules": "",
+      "followed_plan": true,
+      "timestamp": "2025-10-15T07:58:03"
     }
   ],
-  "continuous_days_last_date": "2025-10-12"
+  "continuous_days_last_date": "2025-10-14"
 }

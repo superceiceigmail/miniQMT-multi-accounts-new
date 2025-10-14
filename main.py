@@ -40,7 +40,7 @@ from yunfei_ball.yunfei_connect_follow import fetch_and_check_batch_with_trade_p
 YUNFEI_SCHEDULE_TIMES = [
     "14:52:00",
     "13:00:05",
-    "14:35:20",
+    "14:31:20",
     "14:51:25",
 ]
 
