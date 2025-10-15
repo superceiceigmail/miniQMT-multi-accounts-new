@@ -1,6 +1,7 @@
 import os
 import subprocess
 import threading
+import psutil  # <--- 新增
 import ttkbootstrap as tb
 from ttkbootstrap.constants import *
 from ttkbootstrap.scrolled import ScrolledText
@@ -39,12 +40,29 @@ class AccountProcess:
         self.update_status()
 
     def stop(self):
+        # 升级：递归 kill 进程树
         if self.proc and self.proc.poll() is None:
-            self.proc.terminate()
             try:
-                self.proc.wait(timeout=5)
-            except subprocess.TimeoutExpired:
-                self.proc.kill()
+                parent = psutil.Process(self.proc.pid)
+                children = parent.children(recursive=True)
+                for child in children:
+                    try:
+                        child.terminate()
+                    except Exception:
+                        pass
+                gone, alive = psutil.wait_procs(children, timeout=5)
+                for p in alive:
+                    try:
+                        p.kill()
+                    except Exception:
+                        pass
+                parent.terminate()
+                try:
+                    parent.wait(timeout=5)
+                except Exception:
+                    parent.kill()
+            except Exception as e:
+                print(f"进程树 kill 异常: {e}")
         self.running = False
         self.update_status()
 

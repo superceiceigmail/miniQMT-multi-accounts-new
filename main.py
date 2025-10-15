@@ -1,5 +1,6 @@
 import os
 import sys
+import psutil
 
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8")
@@ -82,6 +83,17 @@ class MyXtQuantTraderCallback(XtQuantTraderCallback):
     def on_account_status(self, status):
         logging.info(f"{datetime.now()} - 账户状态回调")
 
+def check_duplicate_instance(script_name):
+    current_pid = os.getpid()
+    count = 0
+    for proc in psutil.process_iter(['pid', 'name', 'cmdline']):
+        cmdline_list = proc.info.get('cmdline', [])
+        if not isinstance(cmdline_list, (list, tuple)):
+            cmdline_list = []
+        cmdline = ' '.join(cmdline_list).lower()
+        if proc.info['pid'] != current_pid and script_name in cmdline:
+            count += 1
+    return count == 0
 
 # ========== 工具函数 (保持不变) ==========
 def parse_args():
@@ -267,6 +279,10 @@ def get_can_directly_buy(draft_file_path):
 
 # ========== 主入口 ==========
 def main():
+    if not check_duplicate_instance('main.py'):
+        print("已有实例运行，退出")
+        sys.exit(0)
+
     global account_name
 
     ensure_utf8_stdio()
