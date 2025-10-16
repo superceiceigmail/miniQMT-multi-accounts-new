@@ -268,6 +268,10 @@ def execute_trade_plan(
                 emit(lg, f"【严重报错】 买单执行异常: {buy_item.get('name', stock)}，错误信息: {e}", level="error")
                 continue
 
+    # === 在这里加委托列表打印（卖买都处理完后） ===
+    orders = trader.query_stock_orders(account)
+    emit(lg, f"当前委托列表: {[o.order_remark for o in orders]}")
+    emit(lg, "所有交易计划已尝试提交，检查券商客户端委托流水确认。")
 
 if __name__ == '__main__':
     emit(logger, "开始交易执行模块")

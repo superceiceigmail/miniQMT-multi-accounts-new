@@ -36,9 +36,14 @@ def load_name_to_code_map(json_path):
         code_map = json.load(f)
     name_to_code = {}
     for code, namelist in code_map.items():
+        # 自动补全 .SH
+        if len(code) == 6:
+            code_with_sh = code + ".SH"
+        else:
+            code_with_sh = code
         for name in namelist:
             if name not in name_to_code:
-                name_to_code[name] = code
+                name_to_code[name] = code_with_sh
     return name_to_code
 
 
@@ -81,8 +86,10 @@ def monitor_timers(timers, timer_info_list):
     print("[定时任务监控] 所有定时任务已完成。", flush=True)
 
 
-def fetch_and_check_batch_with_trade_plan(batch_no, batch_time, batch_cfgs, config, account_asset_info, positions,
-                                          generate_trade_plan_final_func):
+def fetch_and_check_batch_with_trade_plan(
+    batch_no, batch_time, batch_cfgs, config, account_asset_info, positions,
+    generate_trade_plan_final_func, xt_trader, account
+):
     print(f"批次{batch_no}任务已启动, 目标时间: {batch_time}, 当前时间: {datetime.now()}, 策略数: {len(batch_cfgs)}", flush=True)
 
     today_str = datetime.now().strftime('%Y-%m-%d')
@@ -177,6 +184,18 @@ def fetch_and_check_batch_with_trade_plan(batch_no, batch_time, batch_cfgs, conf
                             trade_plan_file=final_trade_plan_file
                         )
                         print("生成最终交易计划完毕:")
+
+                        # 新增：等待3秒并自动执行交易计划
+                        time.sleep(3)
+                        try:
+                            with open(final_trade_plan_file, 'r', encoding='utf-8') as f:
+                                trade_plan = json.load(f)
+                            from processor.trade_plan_execution import execute_trade_plan
+                            execute_trade_plan(xt_trader, account, trade_plan, action='buy')
+                            print("已自动执行交易计划")
+                        except Exception as e:
+                            print(f"自动执行交易计划失败: {e}")
+
                         processed_strategy_keys.add(strategy_key)
                     else:
                         print(f"策略【{s['name']}】操作为{action}，跳过")

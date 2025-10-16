@@ -235,7 +235,7 @@ def load_yunfei_configs():
         return {}
 
 # 【新增】添加云飞定时任务到调度器
-def add_yunfei_jobs(scheduler, xt_trader, config, account_asset_info, positions):
+def add_yunfei_jobs(scheduler, xt_trader, config, account_asset_info, positions, account):
     batch_cfgs_map = load_yunfei_configs()
     if not batch_cfgs_map:
         logging.warning("云飞策略配置为空，跳过云飞跟投任务设置。")
@@ -265,7 +265,9 @@ def add_yunfei_jobs(scheduler, xt_trader, config, account_asset_info, positions)
                 config,  # config
                 account_asset_info,  # account_asset_info
                 positions,  # positions
-                generate_trade_plan_final_func
+                generate_trade_plan_final_func,
+                xt_trader,
+                account
             ],
             id=job_id,
             replace_existing=True
@@ -355,6 +357,7 @@ def main():
     callback = MyXtQuantTraderCallback()
     xt_trader.register_callback(callback)
     xt_trader.start()
+    account = StockAccount(account_id)
 
     # 检查当天是否启动过miniQMT
     check_and_restart(config_path)
@@ -544,7 +547,7 @@ def main():
     # ===============================================================
 
     # 添加云飞跟投定时任务
-    add_yunfei_jobs(scheduler, xt_trader, config, account_asset_info, positions)
+    add_yunfei_jobs(scheduler, xt_trader, config, account_asset_info, positions, account)
 
     scheduler.start()
 
