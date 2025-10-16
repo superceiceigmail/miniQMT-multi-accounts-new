@@ -10,7 +10,7 @@ from tkinter import messagebox
 # 配置区
 ACCOUNTS = {
     "shu": {"log_file": "logs/shu.log"},
-    "1234": {"log_file": "logs/1234.log"}
+    "mama": {"log_file": "logs/mama.log"}
 }
 PLAN_FILE = "tradeplan/trade_plan_draft.json"
 

@@ -50,7 +50,7 @@ AUTO_SELL_511880_TIME = (14, 56, 0)
 
 ACCOUNT_CONFIG_MAP = {
     "shu": "core_parameters/account/8886006288.json",
-    "1234": "core_parameters/account/1234567890.json",
+    "mama": "core_parameters/account/mama.json",
     # 更多账户...
 }
 
