@@ -15,6 +15,11 @@ def print_positions(trader, account_id, code_to_name_dict, account_asset_info):
     :param account_asset_info: 账户资产信息元组（含total_asset在第一个位置）
     :return: List of (stock_code, percent_position) 元组
     """
+
+    if not account_asset_info:
+        print("没有资产数据返回")
+        return None  # 或者 return [] 取决于你的需求
+
     # 解包total_asset
     total_asset = account_asset_info[0]
 

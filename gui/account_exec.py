@@ -20,6 +20,7 @@ class AccountProcess:
         self.widgets = widgets  # dict: {status, log_text}
 
     def start(self):
+        print(f"启动账户参数: {self.account}")
         if self.proc and self.proc.poll() is None:
             return
         log_path = self.config["log_file"]

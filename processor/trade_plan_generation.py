@@ -128,6 +128,10 @@ def print_trade_plan(
     emit(logger, f"首次检查    : {config.get('check_time_first', '-')}", collector=collector)
     emit(logger, f"二次检查    : {config.get('check_time_second', '-')}", collector=collector)
 
+    if not account_asset_info:
+        print("没有资产数据返回")
+        return None  # 或者 return [] 或直接 return，视你的需求而定
+
     proportion = parse_proportion(config.get('proportion', 1.0))
     total_asset = float(account_asset_info[0])
     cash = float(account_asset_info[1])

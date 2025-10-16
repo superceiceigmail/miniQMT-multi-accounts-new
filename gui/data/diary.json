@@ -1271,19 +1271,39 @@
     },
     {
       "date": "2025-10-15",
-      "honor": [],
+      "honor": [
+        {
+          "category": "生活",
+          "content": "完成面试",
+          "major": true,
+          "score": 8.0,
+          "unit": "小时",
+          "project": "德创接触",
+          "tags": ""
+        }
+      ],
       "plan": [],
       "rules": "",
       "followed_plan": true,
-      "timestamp": "2025-10-16T00:28:54"
+      "timestamp": "2025-10-15T10:22:05"
     },
     {
       "date": "2025-10-16",
-      "honor": [],
+      "honor": [
+        {
+          "category": "量化",
+          "content": "同比例双账户实际运行试验成功",
+          "major": true,
+          "score": 2.0,
+          "unit": "小时",
+          "project": "",
+          "tags": ""
+        }
+      ],
       "plan": [],
       "rules": "",
       "followed_plan": true,
-      "timestamp": "2025-10-16T08:42:18"
+      "timestamp": "2025-10-16T11:28:43"
     }
   ],
   "continuous_days_last_date": "2025-10-16"

@@ -1,6 +1,7 @@
 import os
 import sys
 import psutil
+import argparse
 
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8")
@@ -83,7 +84,7 @@ class MyXtQuantTraderCallback(XtQuantTraderCallback):
     def on_account_status(self, status):
         logging.info(f"{datetime.now()} - 账户状态回调")
 
-def check_duplicate_instance(script_name):
+def check_duplicate_instance(script_name, account_name):
     current_pid = os.getpid()
     count = 0
     for proc in psutil.process_iter(['pid', 'name', 'cmdline']):
@@ -91,11 +92,15 @@ def check_duplicate_instance(script_name):
         if not isinstance(cmdline_list, (list, tuple)):
             cmdline_list = []
         cmdline = ' '.join(cmdline_list).lower()
-        if proc.info['pid'] != current_pid and script_name in cmdline:
+        # 检测脚本名和账户参数，同时存在才算同账户实例
+        if (
+            proc.info['pid'] != current_pid
+            and script_name in cmdline
+            and f"-a {account_name.lower()}" in cmdline
+        ):
             count += 1
     return count == 0
 
-# ========== 工具函数 (保持不变) ==========
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('-a', '--account', required=True, help='账户别名或ID')
@@ -279,10 +284,6 @@ def get_can_directly_buy(draft_file_path):
 
 # ========== 主入口 ==========
 def main():
-    if not check_duplicate_instance('main.py'):
-        print("已有实例运行，退出")
-        sys.exit(0)
-
     global account_name
 
     ensure_utf8_stdio()
@@ -299,6 +300,10 @@ def main():
         import traceback
         print(traceback.format_exc())
         raise
+
+    if not check_duplicate_instance('main.py', account_name):
+        print(f"账户[{account_name}]已有实例运行，退出")
+        sys.exit(0)
 
     # 2. 日志初始化
     setup_logging(console=True, file=True, account_name=account_name)

@@ -127,8 +127,10 @@ def fetch_and_check_batch_with_trade_plan(batch_no, batch_time, batch_cfgs, conf
 
             strategies = parse_b_follow_page(resp.text)
             all_cfgs_checked = True
+            time.sleep(5)
 
             for cfg in batch_cfgs:
+
                 s = find_strategy_by_id_and_bracket(cfg, strategies)
                 if not s:
                     print(f"策略【{cfg['策略名称']}】未找到！")
@@ -193,8 +195,9 @@ def fetch_and_check_batch_with_trade_plan(batch_no, batch_time, batch_cfgs, conf
                 save_batch_status(batch_status)
                 break
 
-            print("本批次部分策略还未更新到今日或未来，30秒后重试")
-            time.sleep(30)
+            print("本批次部分策略还未更新到今日或未来，20秒后重试")
+            time.sleep(20)
+
 
         except SSLError as e:
             print("遇到SSL错误:", e)

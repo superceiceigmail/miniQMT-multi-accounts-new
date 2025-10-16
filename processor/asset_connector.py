@@ -44,21 +44,23 @@ def print_account_asset(trader, account_id):
         bar_frozen = bar(frozen_cash, total_asset)
         bar_market = bar(market_value, total_asset)
 
+        # 构建资产信息字典
+        asset_dict = {
+            "account_id": asset.account_id,
+            "cash": cash,
+            "frozen_cash": frozen_cash,
+            "market_value": market_value,
+            "total_asset": total_asset,
+            "percent_cash": percent_cash,
+            "percent_frozen": percent_frozen,
+            "percent_market": percent_market,
+        }
+
         # 保存核心账户信息到 template_account_info/template_account_asset_info.json
         if account_id == "8886006288":
             save_dir = "template_account_info"
             save_path = os.path.join(save_dir, "template_account_asset_info.json")
             os.makedirs(save_dir, exist_ok=True)
-            asset_dict = {
-                "account_id": asset.account_id,
-                "cash": cash,
-                "frozen_cash": frozen_cash,
-                "market_value": market_value,
-                "total_asset": total_asset,
-                "percent_cash": percent_cash,
-                "percent_frozen": percent_frozen,
-                "percent_market": percent_market,
-            }
             with open(save_path, "w", encoding="utf-8") as f:
                 json.dump(asset_dict, f, ensure_ascii=False, indent=2)
         # 额外保存到前端public目录
