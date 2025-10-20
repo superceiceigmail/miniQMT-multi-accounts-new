@@ -4,19 +4,20 @@ import os
 
 
 def parse_trade_operations(operation_str, ratio, sample_amount):
-    """
-    解析买卖操作字符串，返回买入和卖出计划列表
-    """
     sell_stocks_info = []
     buy_stocks_info = []
 
-    # 按分号分割每个操作
-    operations = [op.strip() for op in operation_str.split(';') if op.strip()]
+    # 支持中英文分号
+    operations = re.split(r'[;；]', operation_str)
     for op in operations:
-        # 匹配“买入 xxx(代码)”或“卖出 xxx(代码)”
-        match = re.match(r'(买入|卖出)\s*([^(]+)\((\d+)\)', op)
+        op = op.strip()
+        if not op:
+            continue
+        # 支持带 SH/SZ 后缀的代码
+        match = re.match(r'(买入|卖出)\s*([^(]+)\(([\w\.]+)\)', op)
         if not match:
-            continue  # 跳过无效行
+            print("[未匹配行]", op)  # 可以加日志便于排查
+            continue
         action, name, code = match.groups()
         stock_info = {
             "name": name.strip(),

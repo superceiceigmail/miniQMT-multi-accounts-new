@@ -85,7 +85,6 @@ def monitor_timers(timers, timer_info_list):
         time.sleep(30)
     print("[定时任务监控] 所有定时任务已完成。", flush=True)
 
-
 def fetch_and_check_batch_with_trade_plan(
     batch_no, batch_time, batch_cfgs, config, account_asset_info, positions,
     generate_trade_plan_final_func, xt_trader, account
@@ -100,7 +99,7 @@ def fetch_and_check_batch_with_trade_plan(
 
     batch_status_at_start = load_batch_status()
     if batch_status_at_start.get(str(batch_no)):
-        print(f"批次{batch_no}今日已执行，跳过。")
+        print(f"批次{batch_no}今日已执行，跳过。", flush=True)
         return
 
     # --- 新增去重字典 ---
@@ -109,12 +108,12 @@ def fetch_and_check_batch_with_trade_plan(
     while session is None and retry_count < max_retries:
         session = login()
         if session is None:
-            print(f"无法登录，{15}秒后重试 ({retry_count + 1}/{max_retries})")
+            print(f"无法登录，{15}秒后重试 ({retry_count + 1}/{max_retries})", flush=True)
             time.sleep(15)
             retry_count += 1
 
     if session is None:
-        print(f"达到最大重试次数，批次{batch_no}任务失败退出。")
+        print(f"达到最大重试次数，批次{batch_no}任务失败退出。", flush=True)
         return
 
     while True:
@@ -123,12 +122,12 @@ def fetch_and_check_batch_with_trade_plan(
             resp.encoding = resp.apparent_encoding
 
             if not is_logged_in(resp.text):
-                print("登录失效，重新登录...")
+                print("登录失效，重新登录...", flush=True)
                 session = None
                 while session is None:
                     session = login()
                     if session is None:
-                        print("无法登录，15秒后重试")
+                        print("无法登录，15秒后重试", flush=True)
                         time.sleep(15)
                 continue
 
@@ -137,10 +136,9 @@ def fetch_and_check_batch_with_trade_plan(
             time.sleep(5)
 
             for cfg in batch_cfgs:
-
                 s = find_strategy_by_id_and_bracket(cfg, strategies)
                 if not s:
-                    print(f"策略【{cfg['策略名称']}】未找到！")
+                    print(f"策略【{cfg['策略名称']}】未找到！", flush=True)
                     all_cfgs_checked = False
                     continue
 
@@ -149,88 +147,154 @@ def fetch_and_check_batch_with_trade_plan(
                     strategy_date = datetime.strptime(strategy_date_str, '%Y-%m-%d').date()
                 except ValueError:
                     all_cfgs_checked = False
-                    print(f"策略【{s['name']}】日期格式错误: {strategy_date_str}，跳过检查。")
+                    print(f"策略【{s['name']}】日期格式错误: {strategy_date_str}，跳过检查。", flush=True)
                     continue
 
                 # --- 构造唯一键避免重复处理 ---
                 strategy_key = f"{cfg.get('策略ID','')}_{strategy_date_str}"
                 # 只有第一次满足条件才处理
                 if strategy_date >= today_date and strategy_key not in processed_strategy_keys:
-                    print(f"策略【{s['name']}】 操作日期: {s['date']} >= 今日日期: {today_str}")
+                    print(f"策略【{s['name']}】 操作日期: {s['date']} >= 今日日期: {today_str}", flush=True)
                     action = extract_operation_action(s['operation_block'])
                     if action == '买卖':
                         config_amount = cfg.get('配置仓位', 0)
                         sample_amount = round(config_amount * SAMPLE_ACCOUNT_AMOUNT, 2)
 
-                        print(f"\n>>> 策略【{s['name']}】 操作时间: {s['time']}")
+                        print(f"\n>>> 策略【{s['name']}】 操作时间: {s['time']}", flush=True)
                         draft_plan_file_path = handle_trade_operation(s['operation_block'], name_to_code, batch_no,
                                                                       config_amount, sample_amount)
-                        print(f"配置仓位: {config_amount}，样板操作金额: {sample_amount}")
+                        print(f"配置仓位: {config_amount}，样板操作金额: {sample_amount}", flush=True)
                         print("当前持仓:")
                         for h in s['holding_block']:
-                            print("  " + h)
-                        print("==============")
+                            print("  " + h, flush=True)
+                        print("==============", flush=True)
 
                         trade_date = datetime.now().strftime('%Y-%m-%d')
-                        account_id = config.get('account_id', 'unknown')
-                        final_trade_plan_file = f"{TRADE_PLAN_DIR}/yunfei_trade_plan_final_{account_id}_{trade_date}_batch{batch_no}.json"
+                        # 优先使用 account 对象的 id（如果接收到的是 StockAccount）
+                        if hasattr(account, "account_id"):
+                            account_id_str = getattr(account, "account_id")
+                        else:
+                            account_id_str = config.get('account_id', 'unknown')
 
-                        generate_trade_plan_final_func(
-                            config=config,
-                            account_asset_info=account_asset_info,
-                            positions=positions,
-                            trade_date=trade_date,
-                            setting_file_path=draft_plan_file_path,
-                            trade_plan_file=final_trade_plan_file
+                        # 使用统一且明确的路径（包含 batch 编号）
+                        final_trade_plan_file = os.path.join(
+                            TRADE_PLAN_DIR,
+                            f"yunfei_trade_plan_final_{account_id_str}_{trade_date}_batch{batch_no}.json"
                         )
-                        print("生成最终交易计划完毕:")
 
-                        # 新增：等待3秒并自动执行交易计划
-                        time.sleep(3)
+                        # 尝试使用最新持仓/资金生成 final plan（优先）
+                        try:
+                            fresh_account_info = None
+                            fresh_positions = None
+                            try:
+                                fresh_account_info = xt_trader.query_stock_asset(account)
+                                fresh_positions = xt_trader.query_stock_positions(account)
+                                print("已获取实时账户与持仓，用于生成最终交易计划。", flush=True)
+                            except Exception as e_query:
+                                print(f"警告：查询实时账户/持仓失败，继续使用传入快照: {e_query}", flush=True)
+
+                            if fresh_account_info is not None and fresh_positions is not None:
+                                generate_trade_plan_final_func(
+                                    config=config,
+                                    account_asset_info=fresh_account_info,
+                                    positions=fresh_positions,
+                                    trade_date=trade_date,
+                                    setting_file_path=draft_plan_file_path,
+                                    trade_plan_file=final_trade_plan_file
+                                )
+                            else:
+                                # 回退到传入的 snapshot
+                                generate_trade_plan_final_func(
+                                    config=config,
+                                    account_asset_info=account_asset_info,
+                                    positions=positions,
+                                    trade_date=trade_date,
+                                    setting_file_path=draft_plan_file_path,
+                                    trade_plan_file=final_trade_plan_file
+                                )
+                        except Exception as e_gen:
+                            print(f"生成最终交易计划失败: {e_gen}", flush=True)
+                            processed_strategy_keys.add(strategy_key)
+                            continue
+
+                        print("生成最终交易计划完毕:", flush=True)
+
+                        # ====== 自动执行：改为先卖出再买入（确保卖单被提交并释放资金） ======
                         try:
                             with open(final_trade_plan_file, 'r', encoding='utf-8') as f:
                                 trade_plan = json.load(f)
+                        except Exception as e_read:
+                            print(f"读取最终交易计划失败: {e_read}", flush=True)
+                            processed_strategy_keys.add(strategy_key)
+                            continue
+
+                        # 打印计划，方便核验
+                        print(f"将要执行的最终交易计划: {json.dumps(trade_plan, ensure_ascii=False)}", flush=True)
+
+                        try:
                             from processor.trade_plan_execution import execute_trade_plan
+
+                            # ===== 卖出阶段 =====
+                            print("开始执行 SELL 阶段（会提交卖单）...", flush=True)
+                            execute_trade_plan(xt_trader, account, trade_plan, action='sell')
+                            print("SELL 阶段已发出委托（异步），等待回调并刷新账户...", flush=True)
+
+                            # 等待一段时间让异步委托回调到来并稍作缓冲
+                            time.sleep(10.0)
+
+                            # 刷新实时账户/持仓，获取卖出回笼后的可用资金与可售数量
+                            try:
+                                refreshed_account_info = xt_trader.query_stock_asset(account)
+                                refreshed_positions = xt_trader.query_stock_positions(account)
+                                print("已刷新执行后实时账户与持仓。", flush=True)
+                                print(f"刷新后可用资金: {getattr(refreshed_account_info,'m_dCash', 'N/A')}", flush=True)
+                            except Exception as e_refresh:
+                                print(f"刷新执行后账户持仓失败: {e_refresh}", flush=True)
+                                refreshed_account_info = None
+                                refreshed_positions = None
+
+                            # ===== 买入阶段 =====
+                            print("开始执行 BUY 阶段（会提交买单）...", flush=True)
                             execute_trade_plan(xt_trader, account, trade_plan, action='buy')
-                            print("已自动执行交易计划")
-                        except Exception as e:
-                            print(f"自动执行交易计划失败: {e}")
+                            print("BUY 阶段已发出委托（异步）。", flush=True)
+
+                        except Exception as e_exec:
+                            print(f"自动执行交易计划失败: {e_exec}", flush=True)
 
                         processed_strategy_keys.add(strategy_key)
                     else:
-                        print(f"策略【{s['name']}】操作为{action}，跳过")
+                        print(f"策略【{s['name']}】操作为{action}，跳过", flush=True)
                         processed_strategy_keys.add(strategy_key)
                 elif strategy_date >= today_date:
                     # 已处理过，直接跳过
                     continue
                 else:
                     all_cfgs_checked = False
-                    print(f"策略【{s['name']}】日期: {s['date']} < 今日日期: {today_str}，尚未更新...")
+                    print(f"策略【{s['name']}】日期: {s['date']} < 今日日期: {today_str}，尚未更新...", flush=True)
 
             if all_cfgs_checked:
-                print(f"批次{batch_no}所有策略信息已更新到今日或未来，任务完成。")
+                print(f"批次{batch_no}所有策略信息已更新到今日或未来，任务完成。", flush=True)
                 batch_status = load_batch_status()
                 batch_status[str(batch_no)] = True
                 save_batch_status(batch_status)
                 break
 
-            print("本批次部分策略还未更新到今日或未来，20秒后重试")
+            print("本批次部分策略还未更新到今日或未来，20秒后重试", flush=True)
             time.sleep(20)
 
-
         except SSLError as e:
-            print("遇到SSL错误:", e)
+            print("遇到SSL错误:", e, flush=True)
             kill_and_reset_geph()
             time.sleep(15)
             session = None
             while session is None:
                 session = login()
                 if session is None:
-                    print("无法登录，15秒后重试")
+                    print("无法登录，15秒后重试", flush=True)
                     time.sleep(15)
         except Exception as e:
-            print("抓取异常", e)
-            print("30秒后重试")
+            print("抓取异常", e, flush=True)
+            print("30秒后重试", flush=True)
             time.sleep(30)
 
 # ... 此处省略其他未改变的辅助函数 (load_batch_status, save_batch_status, login, etc.)
