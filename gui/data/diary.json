@@ -1,5 +1,5 @@
 {
-  "continuous_days": 1,
+  "continuous_days": 2,
   "records": [
     {
       "date": "2025-09-01",
@@ -1307,12 +1307,49 @@
     },
     {
       "date": "2025-10-20",
-      "honor": [],
+      "honor": [
+        {
+          "category": "生活",
+          "content": "德创测控学习研究",
+          "major": true,
+          "score": 1.0,
+          "unit": "天",
+          "project": "",
+          "tags": ""
+        },
+        {
+          "category": "量化",
+          "content": "云飞改进，今日卖出失败买入成功，修复后继续观察交易状况，",
+          "major": false,
+          "score": 4.0,
+          "unit": "小时",
+          "project": "云飞自动交易",
+          "tags": ""
+        }
+      ],
       "plan": [],
       "rules": "",
       "followed_plan": true,
-      "timestamp": "2025-10-20T15:25:37"
+      "timestamp": "2025-10-21T13:32:37"
+    },
+    {
+      "date": "2025-10-21",
+      "honor": [
+        {
+          "category": "生活",
+          "content": "买药",
+          "major": false,
+          "score": 4.0,
+          "unit": "小时",
+          "project": "",
+          "tags": ""
+        }
+      ],
+      "plan": [],
+      "rules": "",
+      "followed_plan": true,
+      "timestamp": "2025-10-21T15:42:39"
     }
   ],
-  "continuous_days_last_date": "2025-10-20"
+  "continuous_days_last_date": "2025-10-21"
 }

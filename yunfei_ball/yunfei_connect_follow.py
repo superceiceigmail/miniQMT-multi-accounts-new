@@ -11,6 +11,7 @@ from bs4 import BeautifulSoup
 from collections import defaultdict
 from requests.exceptions import SSLError
 from yunfei_ball.generate_trade_plan_draft import generate_trade_plan_draft_func
+from utils.asset_helpers import positions_to_dict, account_asset_to_tuple
 
 USERNAME = 'ceicei'
 PASSWORD = 'ceicei628'
@@ -193,21 +194,27 @@ def fetch_and_check_batch_with_trade_plan(
                             except Exception as e_query:
                                 print(f"警告：查询实时账户/持仓失败，继续使用传入快照: {e_query}", flush=True)
 
+
                             if fresh_account_info is not None and fresh_positions is not None:
+                                # 转换 fresh_account_info -> tuple（print_trade_plan 期望的格式）
+                                fresh_account_tuple = account_asset_to_tuple(fresh_account_info)
+                                # 转换 fresh_positions -> list[dict]
+                                fresh_positions_list = positions_to_dict(fresh_positions)
                                 generate_trade_plan_final_func(
                                     config=config,
-                                    account_asset_info=fresh_account_info,
-                                    positions=fresh_positions,
+                                    account_asset_info=fresh_account_tuple,
+                                    positions=fresh_positions_list,
                                     trade_date=trade_date,
                                     setting_file_path=draft_plan_file_path,
                                     trade_plan_file=final_trade_plan_file
                                 )
                             else:
-                                # 回退到传入的 snapshot
+                                # 退回使用传入的 snapshot（注意：main 已把 snapshot转换过，但这里以防）
+                                positions_list = positions_to_dict(positions)
                                 generate_trade_plan_final_func(
                                     config=config,
                                     account_asset_info=account_asset_info,
-                                    positions=positions,
+                                    positions=positions_list,
                                     trade_date=trade_date,
                                     setting_file_path=draft_plan_file_path,
                                     trade_plan_file=final_trade_plan_file
