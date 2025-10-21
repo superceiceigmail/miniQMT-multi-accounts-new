@@ -309,6 +309,56 @@ def main():
 
     # 2. 日志初始化
     setup_logging(console=True, file=True, account_name=account_name)
+
+    # ========== 新增：全局日志过滤器（用于屏蔽重复的 BSON 转换报错）==========
+    # 说明：
+    #  - 这些 "get bson value error, bad lexical cast: ..." 日志来自底层库的频繁噪声（不影响主流程），
+    #    如果你只是想屏蔽它们以减少控制台干扰，可以通过环境变量 SUPPRESS_BSON_ERRORS 来控制：
+    #      - 默认开启（未设置或设置为 1 / true / yes）
+    #      - 设置为 0 / false / no 可关闭此过滤器
+    #
+    #  - 该过滤器只基于日志消息字符串匹配来过滤，不会修复根本原因。建议后续排查产生这些错误的库和数据格式。
+    try:
+        suppress_env = os.environ.get("SUPPRESS_BSON_ERRORS", "1").lower()
+        suppress_enabled = suppress_env not in ("0", "false", "no")
+        if suppress_enabled:
+            class SubstringFilter(logging.Filter):
+                def __init__(self, banned_substrings):
+                    super().__init__()
+                    self.banned = banned_substrings
+
+                def filter(self, record):
+                    try:
+                        msg = record.getMessage()
+                    except Exception:
+                        # 如果取消息失败，就不过滤该条日志
+                        return True
+                    if not msg:
+                        return True
+                    # 屏蔽包含这些子串的日志（不区分大小写）
+                    lower_msg = msg.lower()
+                    for b in self.banned:
+                        if b in lower_msg:
+                            return False
+                    return True
+
+            banned_list = [
+                "get bson value error",
+                "bad lexical cast"
+            ]
+            f = SubstringFilter([s.lower() for s in banned_list])
+            root_logger = logging.getLogger()
+            root_logger.addFilter(f)
+            # 也确保所有已存在 handler 上加一遍（有些情况下 handler 上单独存在）
+            for h in root_logger.handlers:
+                h.addFilter(f)
+            logging.info("已启用 BSON 错误消息过滤器 (SUPPRESS_BSON_ERRORS=1)。")
+        else:
+            logging.info("未启用 BSON 错误消息过滤器 (SUPPRESS_BSON_ERRORS=0)。")
+    except Exception as e:
+        logging.error(f"设置日志过滤器时出错: {e}")
+    # =====================================================================
+
     logging.info(f"===============程序开始执行================")
     logging.info(f"sys.argv = {sys.argv}")
     logging.info(f"账户参数解析成功: {account_name}")
