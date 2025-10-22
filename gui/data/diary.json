@@ -1,5 +1,5 @@
 {
-  "continuous_days": 2,
+  "continuous_days": 3,
   "records": [
     {
       "date": "2025-09-01",
@@ -1343,13 +1343,49 @@
           "unit": "小时",
           "project": "",
           "tags": ""
+        },
+        {
+          "category": "量化",
+          "content": "云飞初步测通，明天还要继续观察",
+          "major": false,
+          "score": 4.0,
+          "unit": "小时",
+          "project": "云飞自动交易",
+          "tags": ""
         }
       ],
       "plan": [],
       "rules": "",
       "followed_plan": true,
-      "timestamp": "2025-10-21T15:42:39"
+      "timestamp": "2025-10-22T08:29:35"
+    },
+    {
+      "date": "2025-10-22",
+      "honor": [
+        {
+          "category": "交易",
+          "content": "云飞验证成功，彻底跑通",
+          "major": true,
+          "score": 2.0,
+          "unit": "小时",
+          "project": "云飞自动交易",
+          "tags": ""
+        },
+        {
+          "category": "生活",
+          "content": "接送王一伊",
+          "major": false,
+          "score": 4.0,
+          "unit": "小时",
+          "project": "",
+          "tags": ""
+        }
+      ],
+      "plan": [],
+      "rules": "",
+      "followed_plan": true,
+      "timestamp": "2025-10-22T18:09:20"
     }
   ],
-  "continuous_days_last_date": "2025-10-21"
+  "continuous_days_last_date": "2025-10-22"
 }

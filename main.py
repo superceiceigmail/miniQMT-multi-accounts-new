@@ -2,6 +2,8 @@ import os
 import sys
 import psutil
 import argparse
+# 在文件顶部 imports 区增加
+from utils.asset_helpers import positions_to_dict
 
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8")
@@ -284,11 +286,89 @@ def get_can_directly_buy(draft_file_path):
         logging.error(f"读取 can_directly_buy 失败: {e}")
         return "否"
 
+# ========== 新增：控制台流过滤器，用于屏蔽直接写到 stdout/stderr 的噪声（例如 native lib 打印） ==========
+class _FilteredStream:
+    """
+    包装一个文本流（sys.stdout/sys.stderr），在 write() 时对字符串内容做子串匹配过滤。
+    这是为了拦截那些没有走 Python logging，而是直接写到 stdout/stderr 的噪声信息。
+    """
+    def __init__(self, underlying_stream, banned_substrings):
+        self._stream = underlying_stream
+        self._banned = [s.lower() for s in banned_substrings]
+        # 保留常用属性以兼容性（encoding, flush, fileno 等）
+        for attr in ("encoding", "errors", "fileno", "buffer"):
+            if hasattr(underlying_stream, attr):
+                setattr(self, attr, getattr(underlying_stream, attr))
+
+    def write(self, s):
+        try:
+            if not s:
+                return
+            # 只处理 str，避免 bytes 的情况
+            if not isinstance(s, str):
+                try:
+                    s = s.decode(getattr(self._stream, "encoding", "utf-8") or "utf-8")
+                except Exception:
+                    # 如果无法 decode，则直接写出以免丢失重要信息
+                    return self._stream.write(s)
+            lower = s.lower()
+            for b in self._banned:
+                if b in lower:
+                    # 发现被屏蔽的子串 -> 忽略这次写入
+                    return
+            return self._stream.write(s)
+        except Exception:
+            # 出任何异常时为了不阻断程序，退回到原始写法
+            try:
+                return self._stream.write(s)
+            except Exception:
+                return
+
+    def writelines(self, lines):
+        for ln in lines:
+            self.write(ln)
+
+    def flush(self):
+        try:
+            return self._stream.flush()
+        except Exception:
+            pass
+
+    def __getattr__(self, item):
+        return getattr(self._stream, item)
+
+def install_console_stream_filters():
+    """
+    根据环境变量 SUPPRESS_BSON_ERRORS 决定是否替换 sys.stdout 和 sys.stderr。
+    默认开启（未设置或为 1/true/yes）。
+    """
+    try:
+        suppress_env = os.environ.get("SUPPRESS_BSON_ERRORS", "1").lower()
+        suppress_enabled = suppress_env not in ("0", "false", "no")
+        if not suppress_enabled:
+            return False
+        banned_list = [
+            "get bson value error",
+            "bad lexical cast"
+        ]
+        # 只替换一次（避免重复包装）
+        if not isinstance(sys.stdout, _FilteredStream):
+            sys.stdout = _FilteredStream(sys.stdout, banned_list)
+        if not isinstance(sys.stderr, _FilteredStream):
+            sys.stderr = _FilteredStream(sys.stderr, banned_list)
+        return True
+    except Exception:
+        return False
+# =====================================================================
+
 # ========== 主入口 ==========
 def main():
     global account_name
 
     ensure_utf8_stdio()
+
+    # 先安装控制台流过滤器（尽量早装，这样 native lib 直接写到 stdout/stderr 的噪声可以被拦截）
+    stream_filter_installed = install_console_stream_filters()
 
     # 1. 先解析参数
     try:
@@ -425,12 +505,13 @@ def main():
 
     account_asset_info = print_account_asset(xt_trader, account_id)
     positions = print_positions(xt_trader, account_id, reverse_mapping, account_asset_info)
+    positions_dict = positions_to_dict(positions)
 
     # 调用新的 final plan 生成函数
     generate_trade_plan_final_func(
         config=config,
         account_asset_info=account_asset_info,
-        positions=positions,
+        positions=positions_dict,
         trade_date=trade_date,
         setting_file_path=trade_plan_draft_file_path,
         trade_plan_file=trade_plan_file
@@ -597,7 +678,7 @@ def main():
     # ===============================================================
 
     # 添加云飞跟投定时任务
-    add_yunfei_jobs(scheduler, xt_trader, config, account_asset_info, positions, account)
+    add_yunfei_jobs(scheduler, xt_trader, config, account_asset_info, positions_dict, account)
 
     scheduler.start()
 
