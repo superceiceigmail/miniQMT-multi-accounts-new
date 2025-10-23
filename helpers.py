@@ -20,7 +20,7 @@ from yunfei_ball.yunfei_connect_follow import fetch_and_check_batch_with_trade_p
 # 云飞与自动交易时间常量（可放到 config 文件）
 YUNFEI_SCHEDULE_TIMES = [
     "14:52:00",
-    "13:00:05",
+    "13:15:05",
     "14:31:20",
     "14:51:25",
 ]
@@ -209,7 +209,10 @@ def load_yunfei_configs():
         logging.error(f"无法加载云飞配置 allocation.json: {e}")
         return {}
 
-def add_yunfei_jobs(scheduler: BackgroundScheduler, xt_trader, config, account_asset_info_snapshot, positions_snapshot, account):
+def add_yunfei_jobs(scheduler: BackgroundScheduler, xt_trader, config, account_asset_info_snapshot, positions_snapshot, account, generate_trade_plan_func=None):
+    """
+    增加一个可选参数 generate_trade_plan_func（生成最终交易计划的函数），并将其传递给 fetch_and_check_batch_with_trade_plan。
+    """
     batch_cfgs_map = load_yunfei_configs()
     if not batch_cfgs_map:
         logging.warning("云飞策略配置为空，跳过云飞跟投任务设置。")
@@ -237,8 +240,8 @@ def add_yunfei_jobs(scheduler: BackgroundScheduler, xt_trader, config, account_a
                 config,
                 account_asset_info_snapshot,
                 positions_snapshot,
-                # 需要调用者提供的生成交易计划函数（可直接在调用处传）
-                None,
+                # 现在把 generate_trade_plan_func 传进去（可能为 None，但更安全由调用者提供）
+                generate_trade_plan_func,
                 xt_trader,
                 account
             ],

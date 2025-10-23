@@ -1,5 +1,5 @@
 {
-  "continuous_days": 3,
+  "continuous_days": 4,
   "records": [
     {
       "date": "2025-09-01",
@@ -1384,8 +1384,16 @@
       "plan": [],
       "rules": "",
       "followed_plan": true,
-      "timestamp": "2025-10-22T22:42:44"
+      "timestamp": "2025-10-22T22:57:10"
+    },
+    {
+      "date": "2025-10-23",
+      "honor": [],
+      "plan": [],
+      "rules": "",
+      "followed_plan": true,
+      "timestamp": "2025-10-23T13:15:46"
     }
   ],
-  "continuous_days_last_date": "2025-10-22"
+  "continuous_days_last_date": "2025-10-23"
 }

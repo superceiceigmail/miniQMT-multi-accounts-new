@@ -165,7 +165,8 @@ def main():
     )
 
     # 云飞跟投任务（使用当前快照）
-    helpers.add_yunfei_jobs(scheduler, xt_trader, config, account_asset_info, positions_dict, StockAccount(account_id))
+    # 关键修正：把生成最终交易计划的函数传入 helpers.add_yunfei_jobs
+    helpers.add_yunfei_jobs(scheduler, xt_trader, config, account_asset_info, positions_dict, StockAccount(account_id), generate_trade_plan_final_func)
 
     scheduler.start()
 
