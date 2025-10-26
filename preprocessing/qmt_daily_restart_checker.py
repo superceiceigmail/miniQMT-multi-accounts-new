@@ -11,6 +11,7 @@ from preprocessing.self_restart_tool import qmt_restart_program
 def check_and_restart(config_path):
     """
     检查账户配置文件中的 last_run_date 是否为当天，如果不是则执行 restart_program 并更新 last_run_date 字段。
+    现在会读取 config 中的 "password" 字段（如果存在），并把它传给 qmt_restart_program 以便自动登录使用。
     """
     today_date = datetime.now().strftime('%Y%m%d')
     # 加载账户配置
@@ -33,7 +34,30 @@ def check_and_restart(config_path):
         with open(config_path, 'w', encoding='utf-8') as f:
             json.dump(config, f, ensure_ascii=False, indent=2)  # type: ignore
 
-        qmt_restart_program(config["program_name"], config["program_path"])
+        # 读取密码字段（如果存在）
+        account_password = config.get("password")
+        # 为了安全，不在日志打印明文密码。下面构造掩码便于你确认是否读取到了密码以及长度信息。
+        def _mask(pwd):
+            try:
+                if pwd is None:
+                    return "<none>"
+                s = str(pwd)
+                if s == "":
+                    return "<empty>"
+                n = len(s)
+                if n <= 2:
+                    return "*" * n
+                return s[0] + ("*" * (n - 2)) + s[-1]
+            except Exception:
+                return "<mask_err>"
+
+        masked = _mask(account_password)
+        if account_password:
+            logging.info(f"从账户配置中读取到 password 字段（掩码）：{masked}，将用于自动登录调用。")
+        else:
+            logging.info("账户配置中未找到 password 字段（或为空），qmt_auto_login 将使用默认回退密码（若有）。")
+
+        qmt_restart_program(config["program_name"], config["program_path"], account_password=account_password)
 
     else:
         logging.info(f"跳过重启操作：最后启动日为 {file_date}，与当天日期 {today_date} 完全相同。")

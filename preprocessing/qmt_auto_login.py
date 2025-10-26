@@ -1,44 +1,133 @@
 #!/usr/bin/env python3
 # preprocessing/qmt_auto_login.py
-# 精简版：仅保留“粘贴密码（坐标点击 + 剪贴板）”和“自动识别并粘贴验证码（OCR -> 计算 -> 粘贴）”两个功能。
+# Single-file: paste password, use Tencent Cloud OCR to recognize captcha and auto-login (headless mode supported).
+# Username is NOT filled by this script (assumed prefilled by QMT as 'qmt').
 #
-# 说明：
-# - 验证码形式为简单的算术表达式（例如 "5 + 14" 或 "7-2"），脚本会截屏 captcha 区域做 OCR，解析表达式并计算结果，然后粘贴到验证码输入框。
-# - OCR 使用 pytesseract（依赖系统安装的 Tesseract OCR），并对图像做基本预处理以提高识别率。
-# - 粘贴采用坐标点击 + Ctrl+V（pyautogui / pyperclip）或逐字符输入回退。
-#
-# 依赖（请先安装）：
-# pip install pywinauto pyperclip pyautogui pillow opencv-python pytesseract
-# 另外还需在系统上安装 Tesseract OCR 可执行文件：
-# - Windows 推荐安装：https://github.com/tesseract-ocr/tesseract/wiki/Downloads
-# - 若非默认安装路径，请在脚本顶部设置 pytesseract.pytesseract.tesseract_cmd
-#
-# 使用：
-# 1. 以与 QMT 相同的权限运行（若 QMT 以管理员权限运行，脚本也需管理员权限）
-# 2. 打开 QMT 登录窗口并置于前台
-# 3. 运行脚本：python preprocessing/qmt_auto_login.py
-# 4. 点击 “粘贴密码” 或 “识别并粘贴验证码” 按钮
-#
-# 注意：OCR 对截图质量和字体敏感。若识别错误，可使用“导出控件”观察控件坐标，或手动输入验证码（我也保留了在识别后确认的交互）。
+# Notes:
+# - This script prefers local secrets_local.py (TENCENTCLOUD_SECRET_ID / TENCENTCLOUD_SECRET_KEY).
+#   If not present, it falls back to environment variables.
+# - Local pytesseract / local OCR has been removed by design.
+# - It uses tc3_sign if available in preprocessing/tencent_tc3_sign.py; otherwise an inline signer is used.
+# - Run headless: python preprocessing/qmt_auto_login.py auto
+# - Interactive GUI: python preprocessing/qmt_auto_login.py
 
+from __future__ import annotations
 import time
 import logging
 import tkinter as tk
 from tkinter import messagebox, simpledialog
+import sys
 import json
 import os
 import re
+import tempfile
+import base64
+import requests
+from typing import Optional, Tuple
 
-# OCR / image
+# ------------------------------------------------------------------
+# Pillow imports (used for preprocessing). If Pillow not available we skip local preprocessing.
+# ------------------------------------------------------------------
 try:
-    import pytesseract
-    from PIL import Image
-    import cv2
-    OCR_AVAILABLE = True
+    from PIL import Image, ImageOps, ImageFilter, ImageEnhance
+    PIL_AVAILABLE = True
 except Exception:
-    OCR_AVAILABLE = False
+    PIL_AVAILABLE = False
 
-# automation libs
+# ------------------------------------------------------------------
+# Try to read secrets from a local file (secrets_local.py) first.
+# secrets_local.py should define TENCENTCLOUD_SECRET_ID and TENCENTCLOUD_SECRET_KEY.
+# ------------------------------------------------------------------
+DEFAULT_TC_SID = None
+DEFAULT_TC_SK = None
+try:
+    from preprocessing import secrets_local as _secrets
+
+    DEFAULT_TC_SID = getattr(_secrets, "TENCENTCLOUD_SECRET_ID", None) or getattr(_secrets, "SECRET_ID", None)
+    DEFAULT_TC_SK  = getattr(_secrets, "TENCENTCLOUD_SECRET_KEY", None) or getattr(_secrets, "SECRET_KEY", None)
+except Exception:
+    DEFAULT_TC_SID = None
+    DEFAULT_TC_SK = None
+
+# ------------------------------------------------------------------
+# Try project tc3_sign helper; if not found, provide an inline fallback signer.
+# ------------------------------------------------------------------
+tc3_sign = None
+try:
+    from preprocessing.tencent_tc3_sign import tc3_sign as _tc3  # type: ignore
+    tc3_sign = _tc3
+except Exception:
+    tc3_sign = None
+# after the attempt to import:
+if tc3_sign is not None:
+    logging.info("Using tc3_sign from module: %s", getattr(tc3_sign, "__module__", "<unknown>"))
+else:
+    logging.info("Using inline tc3_sign fallback defined in qmt_auto_login.py")
+
+if tc3_sign is None:
+    # Inline minimal TC3 signer
+    import hashlib, hmac
+
+
+    def _sha256_hex(msg: bytes) -> str:
+        return hashlib.sha256(msg).hexdigest()
+
+
+    def _hmac_sha256(key: bytes, msg: bytes) -> bytes:
+        # 正确地传入 msg 和 digestmod
+        return hmac.new(key, msg, hashlib.sha256).digest()
+
+    def tc3_sign(secret_id: str, secret_key: str, service: str, host: str, region: str,
+                 action: str, version: str, payload: dict, timestamp: int = None,
+                 content_type: str = "application/json; charset=utf-8") -> Tuple[dict, str]:
+        if timestamp is None:
+            timestamp = int(time.time())
+        t = timestamp
+        date = time.strftime("%Y-%m-%d", time.gmtime(t))
+        http_request_method = "POST"
+        canonical_uri = "/"
+        canonical_querystring = ""
+        body_str = json.dumps(payload, separators=(",", ":"), ensure_ascii=False)
+        body_bytes = body_str.encode("utf-8")
+        hashed_request_payload = _sha256_hex(body_bytes)
+        canonical_headers = f"content-type:{content_type}\nhost:{host}\n"
+        signed_headers = "content-type;host"
+        canonical_request = (
+            f"{http_request_method}\n"
+            f"{canonical_uri}\n"
+            f"{canonical_querystring}\n"
+            f"{canonical_headers}\n"
+            f"{signed_headers}\n"
+            f"{hashed_request_payload}"
+        )
+        algorithm = "TC3-HMAC-SHA256"
+        credential_scope = f"{date}/{service}/tc3_request"
+        hashed_canonical_request = _sha256_hex(canonical_request.encode("utf-8"))
+        string_to_sign = f"{algorithm}\n{t}\n{credential_scope}\n{hashed_canonical_request}"
+        secret_date = _hmac_sha256(("TC3" + secret_key).encode("utf-8"), date.encode("utf-8"))
+        secret_service = _hmac_sha256(secret_date, service.encode("utf-8"))
+        secret_signing = _hmac_sha256(secret_service, b"tc3_request")
+        signature = hmac.new(secret_signing, string_to_sign.encode("utf-8"), hashlib.sha256).hexdigest()
+        authorization = (
+            f"{algorithm} "
+            f"Credential={secret_id}/{credential_scope}, "
+            f"SignedHeaders={signed_headers}, "
+            f"Signature={signature}"
+        )
+        headers = {
+            "Authorization": authorization,
+            "Content-Type": content_type,
+            "Host": host,
+            "X-TC-Action": action,
+            "X-TC-Version": version,
+            "X-TC-Region": region,
+            "X-TC-Timestamp": str(t),
+        }
+        return headers, body_str
+
+# ------------------------------------------------------------------
+# Automation libraries
+# ------------------------------------------------------------------
 try:
     from pywinauto import Application, findwindows
     from pywinauto.keyboard import send_keys
@@ -59,16 +148,45 @@ try:
 except Exception:
     PYAUTO_AVAILABLE = False
 
-# config
-USERNAME = "6006288"
-PASSWORD = "628428"
+# ------------------------------------------------------------------
+# Config
+# ------------------------------------------------------------------
+USERNAME = "qmt"  # informational only
+# 原来的硬编码密码作为回退（保留以兼容历史），优先使用传入的 password 参数
+PASSWORD_DEFAULT = "628428"
 WINDOW_HINTS = ["XtMiniQmt"]
 LOG_LEVEL = logging.INFO
 
+# OCR retry/threshold config
+OCR_CONF_THRESHOLD = 70    # minimal confidence to accept immediately
+OCR_MAX_RETRIES = 3        # attempts (including first)
+
 logging.basicConfig(level=LOG_LEVEL, format="%(asctime)s %(levelname)s %(message)s")
 
-# If tesseract is installed in non-standard path, uncomment and set:
-# pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
+# ---------------- utility: save debug image ----------------
+def _save_debug_image(pil_img, prefix="captcha"):
+    try:
+        desktop = os.path.join(os.path.expanduser("~"), "Desktop")
+        debug_dir = os.path.join(desktop, "qmt_ocr_debug")
+        os.makedirs(debug_dir, exist_ok=True)
+        ts = int(time.time())
+        fname = f"{prefix}_{ts}.png"
+        path = os.path.join(debug_dir, fname)
+        try:
+            pil_img.save(path)
+        except Exception:
+            try:
+                from PIL import Image as _Image
+                pil = _Image.fromarray(pil_img)
+                pil.save(path)
+            except Exception:
+                logging.exception("保存调试图片到 %s 失败", path)
+                return None
+        logging.info("Saved debug captcha image to %s", path)
+        return path
+    except Exception:
+        logging.exception("创建调试目录或保存图片失败")
+        return None
 
 # ---------------- window helpers ----------------
 def find_window_handle(timeout=8):
@@ -98,9 +216,8 @@ def focus_window_by_handle(h):
         logging.exception("focus_window_by_handle 失败")
         return None
 
-# ---------------- fill / paste helpers ----------------
+# ---------------- basic paste helpers ----------------
 def try_click_input_and_send_clip(ctrl, text):
-    """ctrl.click_input + send_keys('^v')"""
     if not PYPERCLIP_AVAILABLE:
         logging.warning("pyperclip 未安装")
         return False
@@ -112,16 +229,22 @@ def try_click_input_and_send_clip(ctrl, text):
     try:
         ctrl.click_input()
         time.sleep(0.12)
+        try:
+            send_keys("^a")
+            time.sleep(0.06)
+            send_keys("{BACKSPACE}")
+            time.sleep(0.06)
+        except Exception:
+            pass
         send_keys("^v")
         time.sleep(0.12)
-        logging.info("ctrl.click_input + send_keys('^v') 成功")
+        logging.info("ctrl.click_input + send_keys Ctrl+A/Backspace + Ctrl+V 成功")
         return True
     except Exception:
         logging.exception("ctrl.click_input + send_keys 失败")
     return False
 
 def try_coords_click_and_clip_rect(rect, text):
-    """直接按 rectangle（左上/宽高）坐标点击并粘贴"""
     if not PYAUTO_AVAILABLE or not PYPERCLIP_AVAILABLE:
         logging.warning("pyautogui/pyperclip 不可用")
         return False
@@ -132,16 +255,19 @@ def try_coords_click_and_clip_rect(rect, text):
         pyperclip.copy(text)
         pyautogui.click(x, y)
         time.sleep(0.12)
+        pyautogui.hotkey('ctrl', 'a')
+        time.sleep(0.04)
+        pyautogui.press('backspace')
+        time.sleep(0.04)
         pyautogui.hotkey('ctrl', 'v')
         time.sleep(0.12)
-        logging.info("坐标点击并 Ctrl+V 粘贴 已尝试")
+        logging.info("坐标点击并 Ctrl+A/Backspace + Ctrl+V 粘贴 已尝试")
         return True
     except Exception:
         logging.exception("坐标点击并粘贴 失败")
     return False
 
 def try_coords_click_and_type_rect(rect, text):
-    """按矩形坐标点击并逐字符输入"""
     if not PYAUTO_AVAILABLE:
         logging.warning("pyautogui 不可用")
         return False
@@ -157,10 +283,10 @@ def try_coords_click_and_type_rect(rect, text):
         time.sleep(0.04)
         pyautogui.write(text, interval=0.06)
         time.sleep(0.06)
-        logging.info("坐标点击并逐字符输入 已尝试")
+        logging.info("pyautogui 逐字符输入 已尝试")
         return True
     except Exception:
-        logging.exception("坐标点击并逐字符输入 失败")
+        logging.exception("pyautogui 逐字符输入 失败")
     return False
 
 # ---------------- locate edits / controls ----------------
@@ -172,7 +298,6 @@ def find_edits(dlg):
     return edits
 
 def locate_captcha_edit(edits):
-    """优先按 name 中包含 '验'/'验证码' 定位；否则按典型顺序第3个 edit；若都失败则返回相对位于密码下方的 edit"""
     if not edits:
         return None
     for e in edits:
@@ -184,7 +309,6 @@ def locate_captcha_edit(edits):
             return e
     if len(edits) >= 3:
         return edits[2]
-    # fallback: pick the bottom-most edit (largest top)
     try:
         rects = []
         for e in edits:
@@ -205,14 +329,8 @@ def get_rect_of_ctrl(ctrl):
     except Exception:
         return None
 
-# ---------------- captcha capture + ocr + parse ----------------
-def capture_captcha_image_by_edit(dlg, edit_ctrl):
-    """
-    尝试通过 edit_ctrl 的 rectangle 推断 captcha 图片区域并截图返回 PIL.Image。
-    策略：
-    - 首先尝试在 edit 右侧一定偏移区域截图（常见布局：验证码图片在输入框右侧）
-    - 若该区域太小或出错，则尝试在 edit 上方/下方做小范围截图
-    """
+# ---------------- capture captcha image ----------------
+def capture_captcha_image_by_edit(dlg, edit_ctrl, save_debug=True):
     if not PYAUTO_AVAILABLE:
         logging.warning("pyautogui 不可用，无法截图")
         return None
@@ -222,133 +340,467 @@ def capture_captcha_image_by_edit(dlg, edit_ctrl):
     left, top, right, bottom = rect
     width = right - left
     height = bottom - top
-    # 右侧区域：从 edit.right + 6, top-4, 大小取 height x (width*0.8) 或限定最小/最大
     cap_left = right + 6
     cap_top = max(top - 6, 0)
-    cap_w = int(min(max(width * 0.8, 40), 200))
+    cap_w = int(min(max(int(width * 0.8), 40), 300))
     cap_h = int(max(height + 8, 20))
     try:
         img = pyautogui.screenshot(region=(cap_left, cap_top, cap_w, cap_h))
         logging.info("已截取候选验证码区域（右侧）：%s", (cap_left, cap_top, cap_w, cap_h))
+        if save_debug:
+            saved = _save_debug_image(img, prefix="captcha_right")
+            if saved:
+                logging.info("captcha saved: %s", saved)
         return img
     except Exception:
         logging.exception("右侧截图失败，尝试上方截图")
-    # fallback: 上方小图
     try:
         cap_left2 = left
         cap_top2 = max(top - cap_h - 6, 0)
         img2 = pyautogui.screenshot(region=(cap_left2, cap_top2, cap_w, cap_h))
         logging.info("已截取候选验证码区域（上方）")
+        if save_debug:
+            saved2 = _save_debug_image(img2, prefix="captcha_top")
+            if saved2:
+                logging.info("captcha saved: %s", saved2)
         return img2
     except Exception:
-        logging.exception("备用截图失败")
+        logging.exception("上方截图失败，尝试扩展区域截图")
+    try:
+        variants = [
+            ("left", max(left - int(width * 1.2), 0), max(top - 10, 0), int(width * 1.5), cap_h),
+            ("right_wide", right - int(width*0.2), max(top - 10, 0), int(width * 1.8), cap_h),
+            ("above_wide", left - 20, max(top - cap_h - 20, 0), int(width*1.6), cap_h*2),
+        ]
+        for name, lx, ty, w, h in variants:
+            try:
+                imgv = pyautogui.screenshot(region=(int(lx), int(ty), int(w), int(h)))
+                logging.info("已截取候选验证码区域（%s）：%s", name, (int(lx), int(ty), int(w), int(h)))
+                if save_debug:
+                    sv = _save_debug_image(imgv, prefix=f"captcha_{name}")
+                    if sv:
+                        logging.info("captcha saved: %s", sv)
+                return imgv
+            except Exception:
+                logging.exception("尝试区域 %s 截图失败", name)
+    except Exception:
+        logging.exception("所有备用截图策略均失败")
     return None
 
-def preprocess_for_ocr(pil_img):
-    """
-    转为灰度、二值化并放大，返回 OpenCV image (numpy) 或 PIL if pytesseract can accept.
-    """
-    try:
-        img = cv2.cvtColor(cv2.imread, cv2.COLOR_BGR2GRAY)  # dummy to ensure cv2 imported
-    except Exception:
-        pass
-    try:
-        # convert PIL->np array
-        img = cv2.cvtColor(np.array(pil_img), cv2.COLOR_RGB2BGR)
-        gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-        # resize larger for better OCR
-        h, w = gray.shape[:2]
-        scale = 2.0 if max(w, h) < 200 else 1.5
-        new_w = int(w * scale)
-        new_h = int(h * scale)
-        gray = cv2.resize(gray, (new_w, new_h), interpolation=cv2.INTER_CUBIC)
-        # adaptive threshold
-        th = cv2.adaptiveThreshold(gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
-                                   cv2.THRESH_BINARY_INV, 11, 2)
-        # apply some morph to remove noise
-        kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (2,2))
-        th = cv2.morphologyEx(th, cv2.MORPH_CLOSE, kernel)
-        # invert back if needed (tesseract expects dark text on light background)
-        th_inv = cv2.bitwise_not(th)
-        return th_inv
-    except Exception:
-        logging.exception("preprocess_for_ocr 失败")
-        try:
-            return pil_img.convert("L")
-        except Exception:
-            return pil_img
-
-# safe eval for simple arithmetic
+# ---------------- parse expression ----------------
 def parse_and_eval_expression(s):
-    """
-    从字符串中抽取简单的二元整数算术表达式并返回整数结果。
-    支持 +, -, x, X, *, /
-    返回 (expr_str, result) 或 (None, None) 如果无法解析。
-    """
     if not s:
         return None, None
-    # keep only digits and operators and spaces
     s2 = re.sub(r"[^0-9+\-xX*/ ]", " ", s)
-    # find pattern like 12 + 3 or 4-5
     m = re.search(r"(\d+)\s*([+\-xX*/])\s*(\d+)", s2)
     if not m:
         return None, None
     a = int(m.group(1))
     op = m.group(2)
     b = int(m.group(3))
-    if op in ("+",):
+    if op == "+":
         return f"{a}+{b}", a + b
-    if op in ("-",):
+    if op == "-":
         return f"{a}-{b}", a - b
-    if op in ("x","X","*"):
+    if op in ("x", "X", "*"):
         return f"{a}*{b}", a * b
-    if op in ("/",):
+    if op == "/":
         if b == 0:
             return f"{a}/{b}", None
-        return f"{a}/{b}", a // b  # integer division for captcha
+        return f"{a}/{b}", a // b
     return None, None
 
-def ocr_recognize_expression(pil_img):
-    """对截图进行 OCR 识别并解析表达式 -> 返回 (recognized_text, expr, result)"""
-    if not OCR_AVAILABLE:
-        logging.warning("OCR 库不可用（请安装 pytesseract/opencv/pillow）")
-        return None, None, None
-    try:
-        import numpy as np  # local import to avoid global import if not installed
-        # preprocess
-        img_cv = preprocess_for_ocr(pil_img)
-        # pytesseract accepts PIL or numpy array; convert back to PIL for tesseract
-        if isinstance(img_cv, (bytes, bytearray)):
-            pil_for_tess = pil_img
-        else:
-            try:
-                pil_for_tess = Image.fromarray(cv2.cvtColor(img_cv, cv2.COLOR_BGR2RGB))
-            except Exception:
-                try:
-                    pil_for_tess = Image.fromarray(img_cv)
-                except Exception:
-                    pil_for_tess = pil_img
-        # use whitelist digits and operators
-        config = r"-c tessedit_char_whitelist=0123456789+-xX*/ --psm 7"
-        text = pytesseract.image_to_string(pil_for_tess, config=config)
-        text = text.strip()
-        logging.info("OCR 原始识别: %r", text)
-        expr, result = parse_and_eval_expression(text)
-        if expr is None:
-            # try looser: remove spaces and rerun regex
-            expr, result = parse_and_eval_expression(text.replace(" ", ""))
-        return text, expr, result
-    except Exception:
-        logging.exception("ocr_recognize_expression 失败")
-        return None, None, None
+# ---------------- PIL-only preprocessing helper ----------------
+def _otsu_threshold_from_histogram(gray_img):
+    hist = gray_img.histogram()
+    total = sum(hist)
+    if total == 0:
+        return 128
+    sum_total = sum(i * h for i, h in enumerate(hist))
+    sumB = 0
+    wB = 0
+    max_var = 0.0
+    threshold = 0
+    for i in range(256):
+        wB += hist[i]
+        if wB == 0:
+            continue
+        wF = total - wB
+        if wF == 0:
+            break
+        sumB += i * hist[i]
+        mB = sumB / wB
+        mF = (sum_total - sumB) / wF
+        var_between = wB * wF * (mB - mF) * (mB - mF)
+        if var_between > max_var:
+            max_var = var_between
+            threshold = i
+    return threshold
 
-# ---------------- UI actions: paste password & captcha using coords ----------------
+def preprocess_captcha_pil(img_pil, save_debug=True, prefix="preproc"):
+    if not PIL_AVAILABLE:
+        logging.warning("Pillow 未安装或不可用，跳过本地预处理")
+        return img_pil
+    try:
+        img = img_pil.convert("RGB")
+        r, g, b = img.split()
+        base = b
+        base = ImageOps.autocontrast(base, cutoff=0)
+        enhancer = ImageEnhance.Contrast(base)
+        base = enhancer.enhance(1.8)
+        scale = 4
+        new_w = max(int(base.width * scale), base.width + 1)
+        new_h = max(int(base.height * scale), base.height + 1)
+        base = base.resize((new_w, new_h), Image.LANCZOS)
+        base = base.filter(ImageFilter.UnsharpMask(radius=1, percent=150, threshold=3))
+        gray = base.convert("L")
+        thr = _otsu_threshold_from_histogram(gray)
+        bw = gray.point(lambda p: 255 if p > thr else 0, mode="1").convert("L")
+        bw = bw.filter(ImageFilter.MedianFilter(size=3))
+        bw = bw.filter(ImageFilter.MinFilter(size=3))
+        bw = bw.filter(ImageFilter.MaxFilter(size=3))
+        hist = bw.histogram()
+        white_count = hist[255] if len(hist) > 255 else 0
+        black_count = hist[0] if len(hist) > 0 else 0
+        if black_count > white_count:
+            try:
+                bw = ImageOps.invert(bw.convert("L"))
+            except Exception:
+                pass
+        bw = ImageOps.autocontrast(bw)
+        if save_debug:
+            try:
+                desktop = os.path.join(os.path.expanduser("~"), "Desktop")
+                debug_dir = os.path.join(desktop, "qmt_ocr_debug")
+                os.makedirs(debug_dir, exist_ok=True)
+                fname = f"{prefix}_{int(time.time())}.png"
+                path = os.path.join(debug_dir, fname)
+                bw.save(path)
+                logging.info("Saved preprocessed captcha to %s", path)
+            except Exception:
+                logging.exception("Saving preprocessed debug image failed")
+        return bw
+    except Exception:
+        logging.exception("preprocess_captcha_pil failed")
+        return img_pil.convert("L")
+
+# ---------------- cloud OCR (tc3_sign) - returns (text, confidence) ----------------
+def ocr_via_cloud_save_and_recognize_with_conf(pil_img, region="ap-shanghai", retries=1) -> Tuple[Optional[str], float]:
+    try:
+        pil_to_use = preprocess_captcha_pil(pil_img, save_debug=True, prefix="for_ocr")
+    except Exception:
+        pil_to_use = pil_img
+
+    try:
+        tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".png")
+        tmp_name = tmp.name
+        pil_to_use.save(tmp_name)
+        tmp.close()
+    except Exception:
+        logging.exception("保存临时图片失败")
+        return None, 0.0
+
+    try:
+        _save_debug_image(pil_to_use, prefix="captcha_for_ocr")
+    except Exception:
+        pass
+
+    secret_id = DEFAULT_TC_SID or os.getenv("TENCENTCLOUD_SECRET_ID")
+    secret_key = DEFAULT_TC_SK or os.getenv("TENCENTCLOUD_SECRET_KEY")
+    logging.debug("TENCENTCLOUD_SECRET_ID present? %s", bool(secret_id))
+
+    if not secret_id or not secret_key:
+        logging.warning("未设置腾讯云凭证（secrets_local.py 或 环境变量），无法使用云 OCR")
+        try:
+            os.unlink(tmp_name)
+        except Exception:
+            pass
+        return None, 0.0
+
+    try:
+        with open(tmp_name, "rb") as f:
+            b = f.read()
+        img_b64 = base64.b64encode(b).decode("utf-8")
+        payload = {"ImageBase64": img_b64}
+        service = "ocr"
+        host = "ocr.tencentcloudapi.com"
+        action = "GeneralAccurateOCR"
+        version = "2018-11-19"
+        headers, body = tc3_sign(
+            secret_id=secret_id,
+            secret_key=secret_key,
+            service=service,
+            host=host,
+            region=region,
+            action=action,
+            version=version,
+            payload=payload,
+        )
+        url = f"https://{host}/"
+        resp = requests.post(url, headers=headers, data=body.encode("utf-8"), timeout=30)
+        try:
+            resp_json = resp.json()
+        except Exception:
+            resp_json = None
+        logging.info("Cloud HTTP status: %s", resp.status_code if resp is not None else "N/A")
+        try:
+            desktop = os.path.join(os.path.expanduser("~"), "Desktop")
+            debug_dir = os.path.join(desktop, "qmt_ocr_debug")
+            os.makedirs(debug_dir, exist_ok=True)
+            resp_path = os.path.join(debug_dir, f"resp_{int(time.time())}.json")
+            with open(resp_path, "w", encoding="utf-8") as f:
+                json.dump(resp_json if resp_json is not None else {"raw": resp.text}, f, ensure_ascii=False, indent=2)
+            logging.info("Saved cloud OCR raw response to %s", resp_path)
+        except Exception:
+            logging.exception("保存云 OCR 响应失败")
+        if resp_json:
+            items = resp_json.get("TextDetections") or resp_json.get("Response", {}).get("TextDetections") or []
+            best_text = None
+            best_conf = -1.0
+            for it in items:
+                det = it.get("DetectedText") or it.get("Text") or ""
+                conf = it.get("Confidence")
+                if conf is None:
+                    try:
+                        conf = float(it.get("Score", -1))
+                    except Exception:
+                        conf = -1
+                if det and (conf is None or conf > best_conf):
+                    best_conf = conf if conf is not None else best_conf
+                    best_text = det
+            if best_text:
+                try:
+                    os.unlink(tmp_name)
+                except Exception:
+                    pass
+                return best_text.strip(), float(best_conf)
+    except Exception:
+        logging.exception("云 OCR via direct HTTP 调用失败")
+
+    try:
+        os.unlink(tmp_name)
+    except Exception:
+        pass
+
+    return None, 0.0
+
+# ---------------- login button and orchestrator ----------------
+def click_login_button(dlg):
+    try:
+        btns = dlg.descendants(control_type="Button")
+    except Exception:
+        btns = []
+    for b in btns:
+        try:
+            name = (b.element_info.name or "").lower()
+        except Exception:
+            name = ""
+        if any(k in name for k in ("登录", "登 录", "确定", "ok", "sign in", "signin", "login")):
+            try:
+                b.click_input()
+                time.sleep(0.2)
+                logging.info("点击按钮 name=%r 成功", name)
+                return True
+            except Exception:
+                logging.exception("通过 click_input 点击登录按钮失败，尝试坐标点击")
+                try:
+                    r = b.rectangle()
+                    x = int((r.left + r.right) / 2)
+                    y = int((r.top + r.bottom) / 2)
+                    if PYAUTO_AVAILABLE:
+                        pyautogui.click(x, y)
+                        time.sleep(0.2)
+                        return True
+                except Exception:
+                    logging.exception("坐标点击登录按钮失败")
+    try:
+        send_keys('{ENTER}')
+        time.sleep(0.2)
+        return True
+    except Exception:
+        logging.exception("按回车作为登录点击的回退失败")
+    return False
+
+def _get_edit_value(ctrl) -> str:
+    """
+    Try several methods to read current text/value of an Edit control.
+    Returns stripped string (may be empty).
+    """
+    if ctrl is None:
+        return ""
+    try:
+        # UIA wrapper: get_value()
+        v = ctrl.get_value()
+        if v is not None:
+            return str(v).strip()
+    except Exception:
+        pass
+    try:
+        v = ctrl.window_text()
+        if v is not None:
+            return str(v).strip()
+    except Exception:
+        pass
+    try:
+        v = ctrl.texts()
+        if isinstance(v, (list, tuple)):
+            joined = " ".join([str(x) for x in v if x])
+            if joined:
+                return joined.strip()
+    except Exception:
+        pass
+    try:
+        ai = getattr(ctrl, "element_info", None)
+        if ai is not None:
+            name = getattr(ai, "name", None)
+            if name:
+                return str(name).strip()
+    except Exception:
+        pass
+    return ""
+
+def _looks_like_placeholder(s: str) -> bool:
+    """
+    Heuristics to detect placeholder or label-like texts in the edit control
+    (e.g. "请输入验证码", "验证码", "verify code").
+    """
+    if not s:
+        return True
+    ss = s.strip()
+    # common placeholders or labels
+    if len(ss) == 0:
+        return True
+    if re.search(r"请输入|请输|验证码|verify|code|vertify|请输入验证码", ss, re.I):
+        # if it looks like a prompt rather than an entered value, treat as empty
+        return True
+    # sometimes masked with bullets; treat a single bullet as empty
+    if all(ch in "●*•·" for ch in ss):
+        return True
+    return False
+
+def run_auto_fill_and_login(silent=True, password: Optional[str] = None):
+    """
+    High-level flow: focus window -> fill password -> OCR captcha -> paste -> click login.
+    silent=True: do not show interactive dialogs; only log and return boolean.
+
+    password: optional plaintext password. If None, PASSWORD_DEFAULT is used.
+
+    New behaviour: if on startup the captcha Edit already contains a non-placeholder value,
+    do NOT call Tencent OCR. In that case we will leave the existing captcha value as-is
+    and proceed to click login (still fill password).
+    """
+    if not PYWIN_AVAILABLE:
+        logging.error("pywinauto 未安装: %s", _PYWIN_ERR)
+        return False
+    h = find_window_handle(timeout=8)
+    if not h:
+        logging.error("未找到 QMT 窗口，请先打开并置前台")
+        return False
+    dlg = focus_window_by_handle(h)
+    if not dlg:
+        logging.error("连接并聚焦窗口失败")
+        return False
+
+    edits = find_edits(dlg)
+    # fill password only (do NOT fill username)
+    try:
+        password_done = False
+        pwd_to_use = password if password is not None else PASSWORD_DEFAULT
+        for e in edits:
+            name = (e.element_info.name or "").lower()
+            if any(k in name for k in ("密", "password")):
+                try_click_input_and_send_clip(e, pwd_to_use)
+                password_done = True
+                time.sleep(0.12)
+                break
+        if not password_done and len(edits) >= 2:
+            try_click_input_and_send_clip(edits[1], pwd_to_use)
+            password_done = True
+    except Exception:
+        logging.exception("填写密码失败")
+        return False
+
+    captcha_edit = locate_captcha_edit(edits)
+    if not captcha_edit:
+        logging.error("未能定位验证码输入框；已填写密码，但无法自动填写验证码")
+        return False
+
+    # New logic: if captcha edit already contains a non-placeholder value, skip OCR and keep it.
+    current_val = ""
+    try:
+        current_val = _get_edit_value(captcha_edit)
+    except Exception:
+        current_val = ""
+    logging.debug("captcha edit current value: %r", current_val)
+    if current_val and (not _looks_like_placeholder(current_val)):
+        logging.info("检测到验证码输入框已有值（%r），将保持原值并跳过云 OCR。", current_val)
+        clicked = click_login_button(dlg)
+        logging.info("自动流程完成（已保留页面中已有验证码）：点击登录=%s", clicked)
+        return clicked
+
+    # Try OCR with retries and confidence threshold (only when captcha is empty/placeholder)
+    img = capture_captcha_image_by_edit(dlg, captcha_edit)
+    if img is None:
+        logging.error("无法截取验证码区域，操作终止")
+        return False
+
+    attempt = 0
+    best_text = None
+    best_conf = 0.0
+    while attempt < OCR_MAX_RETRIES:
+        attempt += 1
+        txt, conf = ocr_via_cloud_save_and_recognize_with_conf(img)
+        logging.info("OCR attempt %d -> text=%r conf=%s", attempt, txt, conf)
+        if txt:
+            best_text = txt
+            best_conf = conf or 0.0
+        if best_conf >= OCR_CONF_THRESHOLD:
+            break
+        logging.warning("OCR confidence %s < %s, retrying (attempt %d/%d)", best_conf, OCR_CONF_THRESHOLD, attempt, OCR_MAX_RETRIES)
+        time.sleep(0.6)
+        img = capture_captcha_image_by_edit(dlg, captcha_edit)
+        if img is None:
+            break
+
+    if not best_text:
+        logging.error("OCR 未识别到有效文本，放弃自动填写")
+        return False
+
+    expr, result = parse_and_eval_expression(best_text)
+    if expr is None:
+        expr, result = parse_and_eval_expression(best_text.replace(" ", ""))
+    if expr is None:
+        value_to_paste = best_text.strip()
+        logging.info("使用 OCR 原始文本填入验证码：%r (conf=%s)", value_to_paste, best_conf)
+    else:
+        value_to_paste = str(result)
+        logging.info("解析算式 %s -> %s (conf=%s)", expr, value_to_paste, best_conf)
+
+    rect = get_rect_of_ctrl(captcha_edit)
+    ok = False
+    try:
+        ok = try_click_input_and_send_clip(captcha_edit, value_to_paste)
+    except Exception:
+        ok = False
+    if not ok and rect:
+        ok = try_coords_click_and_clip_rect(rect, value_to_paste)
+    if not ok and rect:
+        ok = try_coords_click_and_type_rect(rect, value_to_paste)
+
+    if not ok:
+        logging.error("验证码已识别为 %s，但粘贴到输入框失败。", value_to_paste)
+        return False
+
+    clicked = click_login_button(dlg)
+    logging.info("自动流程完成：验证码=%s 填写成功=%s 点击登录=%s", value_to_paste, ok, clicked)
+    return clicked
+
+# ---------------- remaining helpers and GUI ----------------
 def run_coords_paste_password():
-    """定位密码输入框（按 Edit 列表，常见为第2个），并用坐标点击+粘贴密码"""
     if not PYWIN_AVAILABLE:
         messagebox.showerror("错误", f"pywinauto 未安装: {_PYWIN_ERR}")
         return
-    if not (PYAUTO_AVAILABLE and PYPERCLIP_AVAILABLE):
+    if not PYPERCLIP_AVAILABLE and not PYAUTO_AVAILABLE:
         messagebox.showwarning("缺少依赖", "需要 pyautogui 与 pyperclip 来执行坐标粘贴。pip install pyautogui pyperclip")
     h = find_window_handle(timeout=8)
     if not h:
@@ -362,13 +814,9 @@ def run_coords_paste_password():
     if not edits:
         messagebox.showwarning("未找到", "未能定位 Edit 控件")
         return
-    # 常见结构： edits[0]=username, edits[1]=password, edits[2]=captcha
     target = None
     for e in edits:
-        try:
-            name = (e.element_info.name or "").lower()
-        except Exception:
-            name = ""
+        name = (e.element_info.name or "").lower()
         if any(k in name for k in ("密", "password")):
             target = e
             break
@@ -379,25 +827,56 @@ def run_coords_paste_password():
         return
     rect = get_rect_of_ctrl(target)
     ok = False
-    # try ctrl.click_input first
     try:
-        ok = try_click_input_and_send_clip(target, PASSWORD)
+        ok = try_click_input_and_send_clip(target, PASSWORD_DEFAULT)
     except Exception:
         ok = False
     if not ok:
         if rect:
-            ok = try_coords_click_and_clip_rect(rect, PASSWORD)
+            ok = try_coords_click_and_clip_rect(rect, PASSWORD_DEFAULT)
     if not ok and rect:
-        ok = try_coords_click_and_type_rect(rect, PASSWORD)
+        ok = try_coords_click_and_type_rect(rect, PASSWORD_DEFAULT)
     messagebox.showinfo("完成", f"密码粘贴尝试结果: {ok}")
 
-def run_ocr_and_paste_captcha():
-    """自动截图识别验证码（算式），计算结果并粘贴到验证码输入框"""
+def run_coords_paste_captcha_manual():
     if not PYWIN_AVAILABLE:
         messagebox.showerror("错误", f"pywinauto 未安装: {_PYWIN_ERR}")
         return
-    if not OCR_AVAILABLE:
-        messagebox.showerror("错误", "缺少 OCR 支持库。请安装 pytesseract, pillow, opencv-python，并确保系统安装了 Tesseract OCR。")
+    val = simpledialog.askstring("输入验证码", "请在此粘贴或输入你识别到的验证码，然后点击确定：")
+    if val is None:
+        return
+    val = val.strip()
+    if not val:
+        messagebox.showwarning("空验证码", "你没有输入任何验证码文本，操作已取消。")
+        return
+    h = find_window_handle(timeout=8)
+    if not h:
+        messagebox.showerror("未找到窗口", "未能找到 QMT 窗口，请先打开并置前台")
+        return
+    dlg = focus_window_by_handle(h)
+    if not dlg:
+        messagebox.showerror("失败", "连接并聚焦窗口失败")
+        return
+    edits = find_edits(dlg)
+    target = locate_captcha_edit(edits)
+    if not target:
+        messagebox.showwarning("未找到", "未能定位验证码输入框")
+        return
+    rect = get_rect_of_ctrl(target)
+    ok = False
+    try:
+        ok = try_click_input_and_send_clip(target, val)
+    except Exception:
+        ok = False
+    if not ok and rect:
+        ok = try_coords_click_and_clip_rect(rect, val)
+    if not ok and rect:
+        ok = try_coords_click_and_type_rect(rect, val)
+    messagebox.showinfo("完成", f"验证码粘贴尝试结果: {ok}")
+
+def run_highlight_password():
+    if not PYWIN_AVAILABLE:
+        messagebox.showerror("错误", f"pywinauto 未安装: {_PYWIN_ERR}")
         return
     h = find_window_handle(timeout=8)
     if not h:
@@ -408,56 +887,58 @@ def run_ocr_and_paste_captcha():
         messagebox.showerror("失败", "连接并聚焦窗口失败")
         return
     edits = find_edits(dlg)
-    if not edits:
-        messagebox.showwarning("未找到", "未能定位 Edit 控件")
+    target = None
+    for e in edits:
+        name = (e.element_info.name or "").lower()
+        if any(k in name for k in ("密", "password")):
+            target = e
+            break
+    if target is None and len(edits) >= 2:
+        target = edits[1]
+    if not target:
+        messagebox.showwarning("未找到", "未能定位密码控件")
         return
-    captcha_edit = locate_captcha_edit(edits)
-    if not captcha_edit:
-        messagebox.showwarning("未找到", "未能定位验证码输入框")
-        return
-    # capture candidate captcha image area
-    img = capture_captcha_image_by_edit(dlg, captcha_edit)
-    if img is None:
-        messagebox.showwarning("截图失败", "无法截取验证码区域，操作终止")
-        return
-    # OCR recognize and parse
-    raw_text, expr, result = ocr_recognize_expression(img)
-    # show recognized and allow user to confirm / edit
-    prompt = f"OCR 识别: {raw_text!s}\n解析表达式: {expr!s}\n结果: {result!s}\n\n是否接受并粘贴结果？\n（你也可以手动编辑结果）"
-    # default_text prefill
-    default_text = "" if result is None else str(result)
-    user_value = simpledialog.askstring("确认验证码结果", prompt, initialvalue=default_text)
-    if user_value is None:
-        return
-    user_value = user_value.strip()
-    if not user_value:
-        messagebox.showwarning("取消", "你未输入验证码结果，操作已取消")
-        return
-    # perform paste into captcha edit
-    rect = get_rect_of_ctrl(captcha_edit)
-    ok = False
     try:
-        ok = try_click_input_and_send_clip(captcha_edit, user_value)
+        target.draw_outline(colour='red', thickness=3)
     except Exception:
-        ok = False
-    if not ok and rect:
-        ok = try_coords_click_and_clip_rect(rect, user_value)
-    if not ok and rect:
-        ok = try_coords_click_and_type_rect(rect, user_value)
-    messagebox.showinfo("完成", f"验证码粘贴尝试结果: {ok}")
+        try:
+            rect = target.rectangle()
+            x = int((rect.left + rect.right) / 2)
+            y = int((rect.top + rect.bottom) / 2)
+            if PYAUTO_AVAILABLE:
+                pyautogui.moveTo(x, y, duration=0.2)
+        except Exception:
+            pass
+    messagebox.showinfo("高亮", "已尝试高亮/定位密码控件")
 
-# ---------------- GUI (极简，只保留两项按钮) ----------------
 def create_ui():
     root = tk.Tk()
-    root.title("QMT AutoFill - 粘贴密码与验证码（OCR）")
+    root.title("QMT AutoFill - 仅自动填写密码/验证码并登录")
     frm = tk.Frame(root, padx=12, pady=12)
     frm.pack()
-    tk.Label(frm, text="说明：先打开 QMT 登录窗口并置于前台。").grid(row=0, column=0, columnspan=2, sticky="w")
-    tk.Label(frm, text=f"将填入 用户: {USERNAME}  密码: {PASSWORD}").grid(row=1, column=0, columnspan=2, sticky="w", pady=(6, 10))
+    tk.Label(frm, text="说明：QMT 会自动预填用户名 qmt，请确保登录窗口已置于前台。\n脚本仅填写密码、识别验证码并尝试登录。").grid(row=0, column=0, columnspan=2, sticky="w")
+    tk.Label(frm, text=f"将填入 密码: {PASSWORD_DEFAULT}（用户名由 QMT 预填）").grid(row=1, column=0, columnspan=2, sticky="w", pady=(6, 10))
     tk.Button(frm, text="粘贴密码（坐标点击 + 剪贴板）", width=36, bg="#2E8BFF", fg="white", command=run_coords_paste_password).grid(row=2, column=0, columnspan=2, pady=(0, 6))
-    tk.Button(frm, text="识别并粘贴验证码（OCR -> 计算 -> 粘贴）", width=36, bg="#FF8C00", fg="black", command=run_ocr_and_paste_captcha).grid(row=3, column=0, columnspan=2, pady=(0, 6))
-    tk.Button(frm, text="退出", width=10, command=root.destroy).grid(row=4, column=1, sticky="e")
+    tk.Button(frm, text="自动填写并登录", width=36, bg="#228B22", fg="white", command=lambda: run_auto_fill_and_login(silent=False)).grid(row=3, column=0, columnspan=2, pady=(0, 6))
+    tk.Button(frm, text="手动粘贴验证码", width=36, command=run_coords_paste_captcha_manual).grid(row=4, column=0, columnspan=2, pady=(0, 6))
+    tk.Button(frm, text="高亮/定位密码控件（尝试）", width=18, command=run_highlight_password).grid(row=5, column=0, pady=6, sticky="w")
+    tk.Button(frm, text="退出", width=10, command=root.destroy).grid(row=5, column=1, sticky="e")
     root.mainloop()
 
 if __name__ == "__main__":
-    create_ui()
+    auto = False
+    if len(sys.argv) > 1 and sys.argv[1].lower() in ("auto", "--auto", "--headless"):
+        auto = True
+    if os.environ.get("QMT_AUTO_RUN") == "1":
+        auto = True
+
+    if auto:
+        success = run_auto_fill_and_login(silent=True)
+        if not success:
+            logging.error("自动登录失败（check logs and Desktop/qmt_ocr_debug for artifacts）")
+            sys.exit(2)
+        else:
+            logging.info("自动登录流程已完成（headless）")
+            sys.exit(0)
+    else:
+        create_ui()

@@ -213,3 +213,4 @@ __marimo__/
 /runtime/
 /tradeplan/
 /zz_recycle_bin/
+/preprocessing/secrets_local.py
