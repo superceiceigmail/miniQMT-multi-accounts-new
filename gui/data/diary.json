@@ -1396,11 +1396,21 @@
     },
     {
       "date": "2025-10-26",
-      "honor": [],
+      "honor": [
+        {
+          "category": "写歌",
+          "content": "完成知识青年从军歌",
+          "major": false,
+          "score": 3.0,
+          "unit": "天",
+          "project": "",
+          "tags": ""
+        }
+      ],
       "plan": [],
       "rules": "",
       "followed_plan": true,
-      "timestamp": "2025-10-26T16:58:46"
+      "timestamp": "2025-10-27T08:19:05"
     }
   ],
   "continuous_days_last_date": "2025-10-26"
