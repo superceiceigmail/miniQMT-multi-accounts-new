@@ -148,8 +148,16 @@ def print_trade_plan(
     for stock in merged_sell:
         name = stock["name"]
         ratio = float(stock["ratio"]) / 100
-        # 【修改点】使用内部加载的 get_stock_code
-        code = get_stock_code(name)
+
+        # 首先尝试使用 draft 中已有的 code（如果存在），否则再用映射函数查找
+        provided_code = stock.get("code") if isinstance(stock, dict) else None
+        if provided_code:
+            emit(logger, f"找到 draft 中的 code：{provided_code} 用于 {name}", level="debug", collector=collector)
+            code = provided_code
+        else:
+            code = get_stock_code(name)
+            emit(logger, f"使用映射表查找 code：{code} 用于 {name}", level="debug", collector=collector)
+
         norm_code = normalize_code(code)
 
         pos = None
@@ -221,8 +229,16 @@ def print_trade_plan(
     for stock in merged_buy:
         name = stock["name"]
         ratio = float(stock["ratio"]) / 100
-        # 【修改点】使用内部加载的 get_stock_code
-        code = get_stock_code(name)
+
+        # 同样优先使用 draft 中已有 code，其次使用映射查找
+        provided_code = stock.get("code") if isinstance(stock, dict) else None
+        if provided_code:
+            emit(logger, f"找到 draft 中的 code：{provided_code} 用于 {name}", level="debug", collector=collector)
+            code = provided_code
+        else:
+            code = get_stock_code(name)
+            emit(logger, f"使用映射表查找 code：{code} 用于 {name}", level="debug", collector=collector)
+
         norm_code = normalize_code(code)
         if not norm_code:
             emit(

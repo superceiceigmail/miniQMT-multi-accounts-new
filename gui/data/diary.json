@@ -1,5 +1,5 @@
 {
-  "continuous_days": 1,
+  "continuous_days": 2,
   "records": [
     {
       "date": "2025-09-01",
@@ -1410,8 +1410,26 @@
       "plan": [],
       "rules": "",
       "followed_plan": true,
-      "timestamp": "2025-10-27T08:29:06"
+      "timestamp": "2025-10-27T14:24:13"
+    },
+    {
+      "date": "2025-10-27",
+      "honor": [
+        {
+          "category": "交易",
+          "content": "云飞仓位调配",
+          "major": true,
+          "score": 3.0,
+          "unit": "天",
+          "project": "云飞自动交易",
+          "tags": ""
+        }
+      ],
+      "plan": [],
+      "rules": "",
+      "followed_plan": true,
+      "timestamp": "2025-10-27T15:09:13"
     }
   ],
-  "continuous_days_last_date": "2025-10-26"
+  "continuous_days_last_date": "2025-10-27"
 }
