@@ -44,8 +44,8 @@ def qmt_restart_program(program_name, program_path, account_password: str = None
         logging.info(f"正在打开程序: {program_path}")
         subprocess.Popen(program_path, shell=True)
         logging.info(f"程序 {program_name} 已成功启动。")
-        logging.info(f"请输入账号信息，13秒后将继续连接。")
-        time.sleep(13)
+        logging.info(f"请输入账号信息，4秒后将继续连接。")
+        time.sleep(4)
 
         # === 自动登录尝试（安全、可回退） ===
         # 在程序启动并等待一定时间后，尝试调用 preprocessing.qmt_auto_login.run_auto_fill_and_login(silent=True, password=...)
