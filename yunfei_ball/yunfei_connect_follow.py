@@ -18,7 +18,8 @@ PASSWORD = 'ceicei628'
 LOGIN_URL = 'https://www.ycyflh.com/F2/login.aspx'
 BASE_URL = 'https://www.ycyflh.com'
 INPUT_JSON = os.path.join(os.path.dirname(__file__), "allocation.json")
-BATCH_STATUS_FILE = os.path.join(os.path.dirname(__file__), "pending_batches.json")
+# 统一存放所有账户的 pending 文件目录（每个账户一个文件）
+PENDING_BATCHES_BASE_DIR = os.path.join(os.path.dirname(__file__), "pending_batches_by_account")
 CODE_INDEX_PATH = os.path.join(os.path.dirname(__file__), "code_index.json")
 TRADE_PLAN_DIR = os.path.join(os.path.dirname(__file__), "trade_plan")
 
@@ -86,11 +87,68 @@ def monitor_timers(timers, timer_info_list):
         time.sleep(30)
     print("[定时任务监控] 所有定时任务已完成。", flush=True)
 
+
+def get_batch_file(account_id: str) -> str:
+    """
+    返回某个账户的 pending_batches 文件路径（单文件，放在 pending_batches_by_account 目录下）。
+    命名规则：pending_batches_<account_id>.json
+    """
+    try:
+        os.makedirs(PENDING_BATCHES_BASE_DIR, exist_ok=True)
+    except Exception:
+        # 若目录创建失败，退回到旧路径（兼容）
+        fallback_dir = os.path.dirname(__file__)
+        return os.path.join(fallback_dir, f"pending_batches_{account_id}.json")
+    filename = f"pending_batches_{account_id}.json"
+    return os.path.join(PENDING_BATCHES_BASE_DIR, filename)
+
+
+def load_batch_status(account_id: str):
+    """
+    读取指定账户的 pending_batches_<account_id>.json 并返回当日批次字典（或空字典）。
+    若文件不存在或读取失败，返回 {}。
+    """
+    today = datetime.now().strftime("%Y-%m-%d")
+    path = get_batch_file(account_id)
+    try:
+        with open(path, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+        return data.get(today, {})
+    except Exception:
+        return {}
+
+
+def save_batch_status(account_id: str, batch_status):
+    """
+    将 batch_status 写入指定账户的 pending_batches_<account_id>.json（按日期存储）。
+    batch_status 应当是当天的映射（例如 { '1': True, '2': False }）。
+    """
+    today = datetime.now().strftime("%Y-%m-%d")
+    path = get_batch_file(account_id)
+    try:
+        if os.path.exists(path):
+            with open(path, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+        else:
+            data = {}
+    except Exception:
+        data = {}
+    data[today] = batch_status
+    with open(path, 'w', encoding='utf-8') as f:
+        json.dump(data, f, indent=2, ensure_ascii=False)
+
+
 def fetch_and_check_batch_with_trade_plan(
     batch_no, batch_time, batch_cfgs, config, account_asset_info, positions,
     generate_trade_plan_final_func, xt_trader, account
 ):
     print(f"批次{batch_no}任务已启动, 目标时间: {batch_time}, 当前时间: {datetime.now()}, 策略数: {len(batch_cfgs)}", flush=True)
+
+    # 尽早计算 account_id_str（供 load/save 使用）
+    if hasattr(account, "account_id"):
+        account_id_str = getattr(account, "account_id")
+    else:
+        account_id_str = config.get('account_id', 'unknown')
 
     today_str = datetime.now().strftime('%Y-%m-%d')
     today_date = datetime.strptime(today_str, '%Y-%m-%d').date()
@@ -98,9 +156,9 @@ def fetch_and_check_batch_with_trade_plan(
     max_retries = 10
     retry_count = 0
 
-    batch_status_at_start = load_batch_status()
+    batch_status_at_start = load_batch_status(account_id_str)
     if batch_status_at_start.get(str(batch_no)):
-        print(f"批次{batch_no}今日已执行，跳过。", flush=True)
+        print(f"批次{batch_no}今日已执行（账户 {account_id_str}），跳过。", flush=True)
         return
 
     # --- 新增去重字典 ---
@@ -281,9 +339,9 @@ def fetch_and_check_batch_with_trade_plan(
 
             if all_cfgs_checked:
                 print(f"批次{batch_no}所有策略信息已更新到今日或未来，任务完成。", flush=True)
-                batch_status = load_batch_status()
+                batch_status = load_batch_status(account_id_str)
                 batch_status[str(batch_no)] = True
-                save_batch_status(batch_status)
+                save_batch_status(account_id_str, batch_status)
                 break
 
             print("本批次部分策略还未更新到今日或未来，20秒后重试", flush=True)
@@ -303,35 +361,6 @@ def fetch_and_check_batch_with_trade_plan(
             print("抓取异常", e, flush=True)
             print("30秒后重试", flush=True)
             time.sleep(30)
-
-# ... 此处省略其他未改变的辅助函数 (load_batch_status, save_batch_status, login, etc.)
-# ...
-# ...
-# ...
-# 【为了简洁，以下辅助函数代码保持原样，无需修改】
-def load_batch_status():
-    today = datetime.now().strftime("%Y-%m-%d")
-    try:
-        with open(BATCH_STATUS_FILE, 'r', encoding='utf-8') as f:
-            data = json.load(f)
-        return data.get(today, {})
-    except Exception:
-        return {}
-
-
-def save_batch_status(batch_status):
-    today = datetime.now().strftime("%Y-%m-%d")
-    try:
-        if os.path.exists(BATCH_STATUS_FILE):
-            with open(BATCH_STATUS_FILE, 'r', encoding='utf-8') as f:
-                data = json.load(f)
-        else:
-            data = {}
-    except Exception:
-        data = {}
-    data[today] = batch_status
-    with open(BATCH_STATUS_FILE, 'w', encoding='utf-8') as f:
-        json.dump(data, f, indent=2, ensure_ascii=False)
 
 
 def get_value_by_name(soup, name):

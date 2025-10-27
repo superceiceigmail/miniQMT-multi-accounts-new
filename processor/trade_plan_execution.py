@@ -165,8 +165,8 @@ def execute_trade_plan(
     positions = trader.query_stock_positions(account)
     position_available_dict = {i.stock_code: int(getattr(i, "m_nCanUseVolume", 0)) for i in positions}
 
-    emit(lg, f"{account.account_id} 可用资金: {available_cash:.2f}")
-    emit(lg, f"{account.account_id} 可用持仓字典: {position_available_dict}")
+    #    emit(lg, f"{account.account_id} 可用资金: {available_cash:.2f}", level="debug")
+    #    emit(lg, f"{account.account_id} 可用持仓字典: {position_available_dict}", level="debug")
 
     now = datetime.datetime.now()
     cutover = now.replace(hour=9, minute=29, second=0, microsecond=0)
