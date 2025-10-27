@@ -50,18 +50,32 @@ def buy_all_funds_to_511880_factory(xt_trader, account_id):
             if available_cash <= 100:
                 logging.info("可用资金太少，不进行买入。")
                 return
+
+            # 预留比例（可以改为配置项）
+            reserve_ratio = 0.05  # 预留 5% 资金
+            usable_cash = available_cash * (1.0 - reserve_ratio)
+
             from xtquant.xttype import _XTCONST_
             tick = xtdata.get_full_tick(["511880.SH"])["511880.SH"]
             price = tick.get("lastPrice") or (tick.get("askPrice") or [None])[0]
             if not price or price <= 0:
                 logging.error("无法获取511880.SH买入价格！")
                 return
+
             board_lot = 100
-            volume = int(available_cash // price // board_lot) * board_lot
-            logging.info(f"买入银华日利时：可用资金={available_cash}，价格={price}，最小单位={board_lot}，实际买入量={volume}")
+            # 按预留后的可用资金计算买入手数（向下取整到整百股）
+            volume = int(usable_cash // price // board_lot) * board_lot
+
+            logging.info(
+                f"买入银华日利时：总可用资金={available_cash:.2f}，预留比例={reserve_ratio*100:.1f}%，"
+                f"预留金额={available_cash*reserve_ratio:.2f}，可用于买入={usable_cash:.2f}，"
+                f"价格={price}，最小单位={board_lot}，实际买入量={volume}"
+            )
+
             if volume <= 0:
-                logging.info("资金不足以买入最小单位，跳过。")
+                logging.info("预留5%后资金不足以买入最小单位，跳过。")
                 return
+
             async_seq = xt_trader.order_stock_async(
                 account, "511880.SH", _XTCONST_.STOCK_BUY, volume, _XTCONST_.FIX_PRICE, price, "auto_yinhuarili", "511880.SH"
             )
