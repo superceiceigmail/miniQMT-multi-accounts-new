@@ -3,7 +3,7 @@ import json
 import logging
 from preprocessing.self_restart_tool import qmt_restart_program, restart_self
 
-def ensure_qmt_and_connect(config_path, xt_trader, logger=None, connect_max_retry=3, wait_after_qmt=10):
+def ensure_qmt_and_connect(config_path, xt_trader, logger=None, connect_max_retry=3, wait_after_qmt=5):
     """
     自动连接QMT，连接失败3次后，重启QMT等待30秒再试3次，再失败则重启QMT并重启本main.py进程。
     此处会把 account JSON 中的 "password" 传给 qmt_restart_program，确保自动登录使用对应账户密码。
@@ -22,7 +22,7 @@ def ensure_qmt_and_connect(config_path, xt_trader, logger=None, connect_max_retr
             else:
                 retry += 1
                 log(f"连接失败！正在重试...（第{retry}次）")
-                time.sleep(5)
+                time.sleep(3)
         return False
 
     with open(config_path, "r", encoding="utf-8") as f:

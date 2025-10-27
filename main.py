@@ -5,6 +5,10 @@ import sys
 import time
 import logging
 import traceback
+import argparse
+import atexit
+import re
+import ctypes
 from datetime import datetime
 
 from utils.log_utils import ensure_utf8_stdio, setup_logging
@@ -21,6 +25,7 @@ from xtquant import xtdata
 # 本地拆分模块
 import helpers
 import tasks
+import psutil
 
 # 常量（保留你的原配置或改为外部配置）
 ACCOUNT_CONFIG_MAP = {
@@ -32,29 +37,315 @@ YUNFEI_SCHEDULE_TIMES = helpers.YUNFEI_SCHEDULE_TIMES
 AUTO_BUY_511880_TIME = helpers.AUTO_BUY_511880_TIME
 AUTO_SELL_511880_TIME = helpers.AUTO_SELL_511880_TIME
 
+# PID file directory for ui-launched processes
+_PID_DIR = os.path.join("runtime", "pids")
+
+
+def _write_ui_pid_file(ui_id: str):
+    """
+    Write a small pid file for the given ui_id. Returns path or None.
+    """
+    try:
+        if not ui_id:
+            return None
+        os.makedirs(_PID_DIR, exist_ok=True)
+        fname = os.path.join(_PID_DIR, f"{ui_id}.pid")
+        with open(fname, "w", encoding="utf-8") as f:
+            f.write(f"pid: {os.getpid()}\n")
+            f.write(f"cmd: {' '.join(sys.argv)}\n")
+            f.write(f"started_at: {datetime.now().isoformat()}\n")
+        return fname
+    except Exception:
+        return None
+
+
+def _remove_ui_pid_file(path):
+    try:
+        if path and os.path.exists(path):
+            os.remove(path)
+    except Exception:
+        pass
+
+
+# ----------------- Windows 窗口最小化（更稳健实现） -----------------
+# 思路：优先按可执行名（进程）查找其顶层窗口并最小化；若找不到，再回退到按窗口标题正则匹配。
+# 优点：如果 QMT 以 XtMiniQmt.exe 运行，按进程查找会更可靠；同时增加重试等待时间以处理窗口延迟出现或标题更新。
+def _enum_windows(callback):
+    """
+    Enumerate top-level windows via ctypes, calling callback(hwnd) for each.
+    """
+    user32 = ctypes.windll.user32
+    EnumWindows = user32.EnumWindows
+    EnumWindowsProc = ctypes.WINFUNCTYPE(ctypes.c_bool, ctypes.c_void_p, ctypes.c_void_p)
+
+    @EnumWindowsProc
+    def _proc(hwnd, lParam):
+        callback(hwnd)
+        return True
+
+    EnumWindows(_proc, 0)
+
+
+def _get_window_text(hwnd):
+    buf = ctypes.create_unicode_buffer(512)
+    ctypes.windll.user32.GetWindowTextW(hwnd, buf, 512)
+    return buf.value
+
+
+def _is_window_visible(hwnd):
+    return bool(ctypes.windll.user32.IsWindowVisible(hwnd))
+
+
+def _get_window_pid(hwnd):
+    """
+    Return process id owning this window, or None on failure.
+    """
+    try:
+        pid = ctypes.c_ulong()
+        ctypes.windll.user32.GetWindowThreadProcessId(hwnd, ctypes.byref(pid))
+        return pid.value
+    except Exception:
+        return None
+
+
+def _collect_hwnds_for_pid(pid):
+    """
+    Return a list of top-level hwnds that belong to process pid.
+    """
+    hwnds = []
+
+    def _check(hwnd):
+        try:
+            if not _is_window_visible(hwnd):
+                return
+            owner_pid = _get_window_pid(hwnd)
+            if owner_pid == pid:
+                # skip windows with empty title
+                title = _get_window_text(hwnd)
+                if title and len(title.strip()) > 0:
+                    hwnds.append((hwnd, title))
+        except Exception:
+            pass
+
+    try:
+        _enum_windows(_check)
+    except Exception:
+        pass
+    return hwnds
+
+
+def _minimize_hwnd(hwnd):
+    try:
+        SW_MINIMIZE = 6
+        ctypes.windll.user32.ShowWindow(hwnd, SW_MINIMIZE)
+        return True
+    except Exception:
+        return False
+
+
+def _find_processes_by_exe_names(candidate_names):
+    """
+    Return list of psutil.Process for processes whose name() matches any in candidate_names (case-insensitive).
+    candidate_names: list of strings like ['XtMiniQmt.exe', 'XtMiniQmt']
+    """
+    procs = []
+    lower_names = [n.lower() for n in candidate_names]
+    for p in psutil.process_iter(['pid', 'name', 'exe', 'cmdline']):
+        try:
+            nm = (p.info.get('name') or "").lower()
+            exe = (p.info.get('exe') or "")
+            if nm in lower_names:
+                procs.append(p)
+                continue
+            # also check exe basename
+            be = os.path.basename(exe).lower() if exe else ""
+            if be in lower_names:
+                procs.append(p)
+                continue
+            # sometimes the cmdline contains exe path
+            cmd0 = (p.info.get('cmdline') or [])
+            if cmd0 and len(cmd0) > 0 and os.path.basename(cmd0[0]).lower() in lower_names:
+                procs.append(p)
+        except Exception:
+            continue
+    return procs
+
+
+def minimize_qmt_window_improved(timeout=10):
+    """
+    Try multiple strategies to find and minimize QMT window:
+    1) Find process by common exe names (XtMiniQmt.exe / XtMiniQmt), enumerate its windows and minimize them.
+    2) Fallback: match top-level window titles via regex patterns.
+    3) Retry until timeout (seconds).
+    Returns True if at least one window was minimized.
+    """
+    if sys.platform != "win32":
+        logging.debug("minimize_qmt_window_improved: not on Windows, skip")
+        return False
+
+    end = time.time() + timeout
+    exe_candidates = ["XtMiniQmt.exe", "XtMiniQmt", "XtMiniQmt_x64.exe", "XtMiniQmt32.exe"]
+    title_patterns = [r"XtMiniQmt", r"miniqmt", r"QtMiniQmt"]
+
+    while time.time() < end:
+        # 1) 按进程查找
+        procs = _find_processes_by_exe_names(exe_candidates)
+        found_any = False
+        for p in procs:
+            try:
+                pid = p.pid
+                hwnds = _collect_hwnds_for_pid(pid)
+                if hwnds:
+                    for hwnd, title in hwnds:
+                        try:
+                            if _minimize_hwnd(hwnd):
+                                logging.info(f"已将进程 pid={pid} 的窗口最小化：hwnd={hwnd}, title={title}")
+                                found_any = True
+                        except Exception as e:
+                            logging.debug(f"最小化 hwnd 异常: {e}")
+            except Exception:
+                continue
+        if found_any:
+            return True
+
+        # 2) 回退：按标题正则匹配
+        for pat in title_patterns:
+            try:
+                if minimize_window_by_title_regex(pat, timeout=0.8):
+                    logging.info(f"通过标题模式 '{pat}' 最小化了窗口")
+                    return True
+            except Exception:
+                pass
+
+        time.sleep(0.5)
+
+    logging.debug(f"在 {timeout}s 内未能最小化 QMT 窗口")
+    return False
+
+
+# 保留旧的按标题最小化的实现作为回退（简短版）
+def minimize_window_by_title_regex(title_regex: str, timeout: float = 1.0) -> bool:
+    """
+    Try to find a top-level window whose title matches title_regex (re.search).
+    If found, call ShowWindow(hwnd, SW_MINIMIZE) and return True.
+    Retries until timeout seconds. Returns False if not found or on non-Windows.
+    """
+    if sys.platform != "win32":
+        logging.debug("minimize_window_by_title_regex: not on Windows, skip")
+        return False
+
+    pattern = re.compile(title_regex, re.IGNORECASE)
+    end = time.time() + timeout
+    SW_MINIMIZE = 6
+    user32 = ctypes.windll.user32
+
+    while time.time() < end:
+        found = False
+
+        def _check(hwnd):
+            nonlocal found
+            try:
+                if not _is_window_visible(hwnd):
+                    return
+                title = _get_window_text(hwnd)
+                if not title:
+                    return
+                if pattern.search(title):
+                    # minimize
+                    try:
+                        user32.ShowWindow(hwnd, SW_MINIMIZE)
+                        logging.info(f"已将窗口最小化（标题匹配）：hwnd={hwnd}, title={title}")
+                        found = True
+                    except Exception as e:
+                        logging.warning(f"最小化窗口失败 hwnd={hwnd}, title={title}, err={e}")
+            except Exception:
+                pass
+
+        try:
+            _enum_windows(_check)
+        except Exception:
+            logging.debug("窗口枚举失败（可能不是 Windows 环境或权限问题）")
+            return False
+
+        if found:
+            return True
+        time.sleep(0.2)
+
+    logging.debug(f"在 {timeout}s 内未找到匹配窗口: {title_regex}")
+    return False
+# -----------------------------------------------------------------------------
+
 
 def main():
     ensure_utf8_stdio()
     helpers.install_console_stream_filters()
 
+    # parse args here (include optional --ui-id for GUI-launched processes)
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-a', '--account', required=True, help='账户别名或ID')
+    parser.add_argument('--ui-id', required=False, help='来自 GUI 的唯一进程标识（可选）')
+    args = None
     try:
-        args = helpers.parse_args()
+        args = parser.parse_args()
         account_name = args.account
+        ui_id = getattr(args, "ui_id", None)
     except SystemExit:
+        # keep behaviour consistent with previous code: let SystemExit propagate
         raise
     except Exception as e:
         print("解析参数失败:", e)
         raise
 
+    # If GUI passed a ui_id, write a pid file and register cleanup handlers.
+    pidfile_path = None
+    if ui_id:
+        pidfile_path = _write_ui_pid_file(ui_id)
+        if pidfile_path:
+            # ensure pidfile is removed on normal exit
+            atexit.register(lambda: _remove_ui_pid_file(pidfile_path))
+
+            # signal cleanup: try to remove pidfile on abrupt termination as well
+            try:
+                import signal
+
+                def _safe_exit(signum, frame):
+                    _remove_ui_pid_file(pidfile_path)
+                    # re-raise default behavior / exit
+                    sys.exit(0)
+
+                signal.signal(signal.SIGTERM, _safe_exit)
+                signal.signal(signal.SIGINT, _safe_exit)
+                try:
+                    signal.signal(signal.SIGBREAK, _safe_exit)  # Windows
+                except Exception:
+                    pass
+            except Exception:
+                pass
+
+    # Single-instance check (same as before)
     if not helpers.check_duplicate_instance('main.py', account_name):
         print(f"账户[{account_name}]已有实例运行，退出")
         sys.exit(0)
+
+    # Optionally set process title if ui_id is provided and setproctitle is installed
+    if ui_id:
+        try:
+            from setproctitle import setproctitle
+            try:
+                setproctitle(f"miniQMT:{ui_id}")
+            except Exception:
+                pass
+        except Exception:
+            # setproctitle not installed — it's optional
+            pass
 
     setup_logging(console=True, file=True, account_name=account_name)
 
     logging.info("===============程序开始执行================")
     logging.info(f"sys.argv = {sys.argv}")
     logging.info(f"账户参数解析成功: {account_name}")
+    if ui_id:
+        logging.info(f"ui_id = {ui_id}, pidfile = {pidfile_path}")
 
     config_path = ACCOUNT_CONFIG_MAP.get(account_name)
     if not config_path:
@@ -77,7 +368,7 @@ def main():
     check_time_first = config['check_time_first']
     check_time_second = config['check_time_second']
 
-    # 检查 miniQMT 并保证连接
+    # 检查 miniQMT 并保证连接（内部可能会自动重启并登录）
     check_and_restart(config_path)
 
     # 初始化 xt_trader（回调在 helpers 中定义并注册）
@@ -85,6 +376,18 @@ def main():
 
     # 确保 qmt 连接（会使用 xt_trader）
     ensure_qmt_and_connect(config_path, xt_trader, logger=logging)
+
+    # At this point auto-login should have completed (if configured).
+    # Attempt to minimize the QMT window (Windows only). This is best-effort.
+    try:
+        # 增加更长的 timeout 以适应窗口创建/标题更新延迟
+        minimized = minimize_qmt_window_improved(timeout=12)
+        if minimized:
+            logging.info("在自动登录后已最小化 QMT 窗口（尝试成功）。")
+        else:
+            logging.info("未能找到或最小化 QMT 窗口（可能不是 Windows 或窗口标题/进程名不匹配）。")
+    except Exception as e:
+        logging.exception(f"尝试最小化 QMT 窗口时发生异常: {e}")
 
     # 加载股票代码与 reverse mapping
     try:
@@ -187,6 +490,9 @@ def main():
             xt_trader.stop()
         except Exception:
             pass
+        # remove pidfile if any (redundant with atexit but helps in case of direct exit paths)
+        if ui_id and pidfile_path:
+            _remove_ui_pid_file(pidfile_path)
         logging.info("交易线程已停止。")
 
 

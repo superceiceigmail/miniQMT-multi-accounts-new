@@ -1,3 +1,5 @@
+import threading
+import time
 import ttkbootstrap as tb
 from ttkbootstrap.constants import *
 from ttkbootstrap.scrolled import ScrolledText
@@ -13,6 +15,48 @@ ACCOUNTS = {
     "mama": {"log_file": "logs/mama.log"}
 }
 PLAN_FILE = "tradeplan/trade_plan_draft.json"
+
+# 全局进程列表（每个元素为 AccountProcess）
+procs = []
+# 顺序启动线程与控制事件
+_seq_start_thread = None
+_seq_start_stop_event = threading.Event()
+# 每个账号之间的间隔秒数（全部启动时）
+SEQ_START_INTERVAL_SECONDS = 30
+
+
+def _sequential_start_worker(interval_seconds: int):
+    """
+    在单独线程中按顺序启动 procs：
+    - 每次启动一个账号后等待 interval_seconds（中途若收到停止事件则退出）。
+    - 如果某个进程已经在运行，则跳过并继续下一项。
+    """
+    global _seq_start_thread, _seq_start_stop_event
+    try:
+        for p in procs:
+            if _seq_start_stop_event.is_set():
+                break
+            try:
+                # 如果已经在运行，略过
+                if p.proc and p.proc.poll() is None:
+                    p.update_status()
+                    continue
+                p.start()
+                p.update_status()
+            except Exception as e:
+                print(f"[sequential_start] 启动账号出错: {e}")
+            # 等待 interval，但响应停止事件（每秒检查）
+            waited = 0
+            while waited < interval_seconds:
+                if _seq_start_stop_event.is_set():
+                    break
+                time.sleep(1)
+                waited += 1
+    finally:
+        # 线程完成或被中断时清理标记
+        _seq_start_thread = None
+        _seq_start_stop_event.clear()
+
 
 def main():
     root = tb.Window(themename="cosmo")
@@ -48,11 +92,39 @@ def main():
 
     top_frame = tb.Frame(exec_frame)
     top_frame.pack(side=TOP, fill=X, pady=2)
-    global procs
-    procs = []
-    def all_start():  [p.start() or p.update_status() for p in procs]
-    def all_stop():   [p.stop() or p.update_status() for p in procs]
-    def all_refresh(): [p.update_log() for p in procs]
+    global procs, _seq_start_thread, _seq_start_stop_event
+
+    # 顺序启动：在后台线程每隔 SEQ_START_INTERVAL_SECONDS 启动下一个账号
+    def all_start():
+        global _seq_start_thread, _seq_start_stop_event
+        # 如果已有顺序启动线程在运行，不重复启动
+        if _seq_start_thread and _seq_start_thread.is_alive():
+            messagebox.showinfo("提示", "正在顺序启动账户，请稍候或先点击全部停止以终止本次顺序启动。")
+            return
+        # 清理任何旧的停止事件，启动新线程
+        _seq_start_stop_event.clear()
+        _seq_start_thread = threading.Thread(target=_sequential_start_worker, args=(SEQ_START_INTERVAL_SECONDS,), daemon=True)
+        _seq_start_thread.start()
+
+    # 全部停止：需要同时中断顺序启动线程（如果有），并调用每个进程的 stop（逻辑与单独 stop 一致）
+    def all_stop():
+        global _seq_start_thread, _seq_start_stop_event
+        # 先设置停止事件以中断顺序启动（若在进行）
+        _seq_start_stop_event.set()
+        # 等待顺序启动线程短暂结束（非阻塞主线程太久）
+        if _seq_start_thread and _seq_start_thread.is_alive():
+            # 不长时间阻塞 GUI，做短等待
+            _seq_start_thread.join(timeout=1.0)
+        # 对所有进程执行 stop（与单个 stop 相同的接口）
+        for p in procs:
+            try:
+                p.stop()
+                p.update_status()
+            except Exception as e:
+                print(f"[all_stop] 停止账户出错: {e}")
+
+    def all_refresh():
+        [p.update_log() for p in procs]
 
     tb.Button(top_frame, text="全部启动", width=13, command=all_start, bootstyle="success-outline").pack(side=LEFT, padx=6, pady=6)
     tb.Button(top_frame, text="全部停止", width=13, command=all_stop, bootstyle="danger-outline").pack(side=LEFT, padx=6, pady=6)
@@ -123,6 +195,7 @@ def main():
     show_exec()
 
     root.mainloop()
+
 
 if __name__ == "__main__":
     main()

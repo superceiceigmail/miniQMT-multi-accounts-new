@@ -7,6 +7,7 @@ import logging
 import argparse
 import traceback
 from datetime import datetime
+import argparse
 
 import psutil
 from apscheduler.schedulers.background import BackgroundScheduler
@@ -69,6 +70,11 @@ class _FilteredStream:
     def __getattr__(self, item):
         return getattr(self._stream, item)
 
+def parse_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-a', '--account', required=True, help='账户别名或ID')
+    parser.add_argument('--ui-id', required=False, help='来自 GUI 的唯一进程标识（可选）')
+    return parser.parse_args()
 
 def install_console_stream_filters():
     try:
