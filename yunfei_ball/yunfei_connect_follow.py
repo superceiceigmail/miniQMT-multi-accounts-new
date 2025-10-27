@@ -27,7 +27,7 @@ HEADERS = {
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'
 }
 
-SAMPLE_ACCOUNT_AMOUNT = 730000
+SAMPLE_ACCOUNT_AMOUNT = 680000
 
 
 def load_name_to_code_map(json_path):
@@ -217,7 +217,7 @@ def fetch_and_check_batch_with_trade_plan(
                     action = extract_operation_action(s['operation_block'])
                     if action == '买卖':
                         config_amount = cfg.get('配置仓位', 0)
-                        sample_amount = round(config_amount * SAMPLE_ACCOUNT_AMOUNT, 2)
+                        sample_amount = round(config_amount * SAMPLE_ACCOUNT_AMOUNT/100, 2)
 
                         print(f"\n>>> 策略【{s['name']}】 操作时间: {s['time']}", flush=True)
                         draft_plan_file_path = handle_trade_operation(s['operation_block'], name_to_code, batch_no,
