@@ -1,73 +1,76 @@
+#!/usr/bin/env python3
 # yunfei_ball/yunfei_login.py
-# 提取自原来的 yunfei_connect_follow.py 的登录与代理/SSL 处理逻辑。
-# 提供 login(username, password, max_retries)、is_logged_in(html_or_session)、kill_and_reset_geph()
+# Minimal, robust login following the pattern in superceiceigmail/yunfeireview:
+#  - use a single requests.Session
+#  - GET login page, keep hidden inputs (__VIEWSTATE etc.)
+#  - POST login with full headers (Referer/Origin)
+#  - small random sleep after POST to allow server-side session stabilization
+#  - try to follow simple JS/meta redirects (best-effort)
+#  - verify login by requesting the protected page /F2/b_follow.aspx
 
 import os
 import time
-import subprocess
+import random
+import re
 from typing import Optional
 import requests
-from requests.exceptions import SSLError
 from bs4 import BeautifulSoup
 
-# 默认常量（与原文件保持一致路径/URL）
-LOGIN_URL = 'https://www.ycyflh.com/F2/login.aspx'
-BASE_URL = 'https://www.ycyflh.com'
+BASE_URL = "https://www.ycyflh.com"
+LOGIN_URL = BASE_URL + "/F2/login.aspx"
+FOLLOW_URL = BASE_URL + "/F2/b_follow.aspx"
+
 HEADERS = {
-    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Safari/537.36",
+    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+    "Accept-Language": "zh-CN,zh;q=0.9",
+    "Connection": "keep-alive",
 }
 
-# 默认凭据占位（强烈建议由 GUI/配置注入）
-DEFAULT_USERNAME = os.environ.get('YUNFEI_USERNAME', 'ceicei')
-DEFAULT_PASSWORD = os.environ.get('YUNFEI_PASSWORD', 'ceicei628')
+DEFAULT_USERNAME = os.environ.get("YUNFEI_USERNAME", "ceicei")
+DEFAULT_PASSWORD = os.environ.get("YUNFEI_PASSWORD", "ceicei628")
 
-def get_value_by_name(soup, name):
-    tag = soup.find('input', {'name': name})
-    return tag['value'] if tag else ''
+def get_value_by_name(soup: BeautifulSoup, name: str) -> str:
+    tag = soup.find("input", {"name": name})
+    return tag.get("value", "") if tag else ""
 
-def is_logged_in(html_or_session) -> bool:
-    """
-    可传入完整 html 字符串，或 requests.Response, 或 requests.Session（会尝试 GET 主页）
-    """
-    try:
-        if isinstance(html_or_session, str):
-            html_text = html_or_session
-        elif hasattr(html_or_session, 'text'):
-            html_text = html_or_session.text
-        else:
-            # treat as session
-            session = html_or_session
-            resp = session.get(BASE_URL + '/F2/b_follow.aspx', headers=HEADERS, timeout=10, proxies={})
-            resp.encoding = resp.apparent_encoding
-            html_text = resp.text
-    except Exception:
+def is_logged_in(html_text: str) -> bool:
+    if not html_text:
         return False
     return ("退出" in html_text or "个人资料" in html_text or "Hi," in html_text)
 
-def kill_and_reset_geph():
-    """
-    复用原有逻辑：检测到 SSL 错误尝试关闭 geph 并重置系统代理
-    """
+def _try_follow_js_redirect(html: str, session: requests.Session) -> Optional[requests.Response]:
+    # Best-effort: follow simple window.location or meta refresh
     try:
-        print("检测到SSL错误，尝试关闭迷雾通及重置系统代理！")
-        for proc in ["geph4-client.exe", "gephgui-wry.exe", "geph4.exe"]:
-            subprocess.run(['taskkill', '/F', '/IM', proc], check=False)
-        subprocess.run('netsh winhttp reset proxy', shell=True)
-        subprocess.run(
-            'reg delete "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Internet Settings" /v ProxyServer /f',
-            shell=True)
-        subprocess.run(
-            'reg delete "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Internet Settings" /v ProxyEnable /f',
-            shell=True)
-        print("已关闭所有 geph 进程并重置系统代理设置")
-    except Exception as e:
-        print("关闭 geph 或重置代理失败:", e)
+        m = re.search(r'window\.location(?:\.href)?\s*=\s*[\'"]([^\'"]+)[\'"]', html)
+        if m:
+            url = m.group(1)
+            if url.startswith("/"):
+                url = BASE_URL + url
+            return session.get(url, headers=HEADERS, timeout=10, allow_redirects=True)
+        m2 = re.search(
+            r'<meta[^>]*http-equiv=["\']refresh["\'][^>]*content=["\']\s*\d+\s*;\s*url=([^"\']+)["\']',
+            html,
+            flags=re.IGNORECASE
+        )
+        if m2:
+            url = m2.group(1)
+            if url.startswith("/"):
+                url = BASE_URL + url
+            return session.get(url, headers=HEADERS, timeout=10, allow_redirects=True)
+    except Exception:
+        pass
+    return None
 
-def login(username: Optional[str] = None, password: Optional[str] = None, max_retries: int = 3) -> Optional[requests.Session]:
+def login(username: Optional[str] = None, password: Optional[str] = None, max_retries: int = 2) -> Optional[requests.Session]:
     """
-    返回已登录的 requests.Session 或 None
-    - username/password: 优先使用传入值；若均为 None 则使用环境变量或默认占位
-    - max_retries: 如果遇到 SSL 错误，会做少量重试
+    Try to login and return a logged-in requests.Session or None.
+    Steps:
+      - GET login page, parse hidden fields
+      - POST login with preserved hidden fields and common headers
+      - wait short random delay (2-4.5s)
+      - attempt to follow possible JS/meta redirect
+      - GET FOLLOW_URL and verify is_logged_in
     """
     if username is None:
         username = DEFAULT_USERNAME
@@ -78,49 +81,72 @@ def login(username: Optional[str] = None, password: Optional[str] = None, max_re
     while attempt < max_retries:
         attempt += 1
         session = requests.Session()
-        session.trust_env = False
+        session.trust_env = False  # avoid using system proxies unintentionally
         session.headers.update(HEADERS)
         try:
-            resp = session.get(LOGIN_URL, proxies={}, timeout=10)
-        except SSLError as e:
-            print("遇到SSL错误:", e)
-            kill_and_reset_geph()
-            time.sleep(5)
-            continue
-        except Exception as e:
-            print("其他网络异常:", e)
-            # 若是第一次失败，可以稍等并重试
-            time.sleep(1 + attempt)
-            continue
-
-        soup = BeautifulSoup(resp.text, 'html.parser')
-        viewstate = get_value_by_name(soup, '__VIEWSTATE')
-        eventvalidation = get_value_by_name(soup, '__EVENTVALIDATION')
-        viewstategen = get_value_by_name(soup, '__VIEWSTATEGENERATOR')
-        data = {
-            '__VIEWSTATE': viewstate,
-            '__EVENTVALIDATION': eventvalidation,
-            '__VIEWSTATEGENERATOR': viewstategen,
-            'txt_name_2020_byf': username,
-            'txt_pwd_2020_byf': password,
-            'ckb_UserAgreement': 'on',
-            'btn_login': '登 录',
-        }
-        try:
-            login_resp = session.post(LOGIN_URL, data=data, proxies={}, timeout=10)
-        except Exception as e:
-            print("登录请求异常:", e)
-            time.sleep(1 + attempt)
-            continue
-
-        if not is_logged_in(login_resp.text):
-            print("登录失败，可能用户名密码不正确或页面表单变化。")
-            # 不立即重试太多次；上层可决定替换凭据或中止
+            resp = session.get(LOGIN_URL, timeout=15)
+        except Exception:
             time.sleep(1)
+            continue
+
+        soup = BeautifulSoup(resp.text, "html.parser")
+        # collect form inputs (preserve hidden fields like __VIEWSTATE)
+        data = {}
+        for inp in soup.find_all("input"):
+            name = inp.get("name")
+            if not name:
+                continue
+            if name == "txt_name_2020_byf":
+                data[name] = username
+            elif name == "txt_pwd_2020_byf":
+                data[name] = password
+            else:
+                data[name] = inp.get("value", "")
+
+        # ensure agreement and submit button if not present
+        data.setdefault("ckb_UserAgreement", "on")
+        data.setdefault("btn_login", "登 录")
+
+        headers_post = dict(session.headers)
+        headers_post.update({
+            "Referer": LOGIN_URL,
+            "Origin": BASE_URL,
+            "Content-Type": "application/x-www-form-urlencoded",
+        })
+
+        try:
+            login_resp = session.post(LOGIN_URL, data=data, headers=headers_post, timeout=15, allow_redirects=True)
+        except Exception:
+            time.sleep(1 + attempt)
+            continue
+
+        # small human-like delay
+        time.sleep(random.uniform(2.0, 4.5))
+
+        # try to follow simple JS/meta redirect
+        follow = _try_follow_js_redirect(login_resp.text, session)
+        if follow is not None:
+            check_resp = follow
+        else:
+            try:
+                check_resp = session.get(FOLLOW_URL, headers=HEADERS, timeout=15, allow_redirects=True)
+            except Exception:
+                check_resp = None
+
+        if not check_resp:
+            time.sleep(1)
+            continue
+
+        # detect anti-bot/limit pages quickly
+        snippet = check_resp.text[:1000] if check_resp.text else ""
+        if "操作过于频繁" in snippet or "您的操作过于频繁" in snippet or "CODE: 301" in snippet or "Unstable Connection" in snippet:
+            # do not retry aggressively
             return None
 
-        print("登录成功")
-        return session
+        if is_logged_in(check_resp.text):
+            return session
 
-    print("达到最大重试次数，登录失败。")
+        # not logged in — try again if retries remain
+        time.sleep(1)
+
     return None

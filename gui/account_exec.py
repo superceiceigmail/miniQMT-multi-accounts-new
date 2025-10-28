@@ -1,4 +1,4 @@
-# 改进后的 gui/account_exec.py
+# 改进后的 gui/account_exec.py（在 _show_reconcile_dialog 中对 ScrolledText 的 state 操作做兼容处理）
 import os
 import subprocess
 import threading
@@ -11,7 +11,18 @@ import psutil
 import ttkbootstrap as tb
 from ttkbootstrap.constants import *
 from ttkbootstrap.scrolled import ScrolledText
-from tkinter import messagebox
+from tkinter import messagebox, Toplevel
+import webbrowser
+import json
+
+# 新增：调用 yunfei 的对账接口
+try:
+    from yunfei_ball.yunfei_reconcile import reconcile_account
+    from yunfei_ball.yunfei_login import login, BASE_URL
+except Exception:
+    reconcile_account = None
+    login = None
+    BASE_URL = "https://www.ycyflh.com"
 
 MAIN_SCRIPT = "main.py"  # 注意：可根据实际后端文件调整路径
 ENV_TAG_KEY = "MINIQMT_MANAGED_ACCOUNT"  # 旧的环境标记（account）
@@ -169,10 +180,8 @@ class AccountProcess:
                         if self._started_with_group:
                             if platform.system() == "Windows":
                                 try:
-                                    # Windows: 发送 CTRL_BREAK_EVENT 给组（如果 supported）
                                     p = psutil.Process(pid)
                                     proc_obj = p
-                                    # we cannot call proc_obj.send_signal directly if we didn't start it; fallback to terminate
                                     try:
                                         proc_obj.send_signal(signal.CTRL_BREAK_EVENT)
                                         print(f"[AccountProcess._do_stop] 发送 CTRL_BREAK_EVENT 给 pid={pid}")
@@ -187,7 +196,6 @@ class AccountProcess:
                                     print(f"[AccountProcess._do_stop] killpg SIGTERM pgid={pgid}")
                                 except Exception:
                                     pass
-                            # 给时间退出
                             try:
                                 psutil.Process(pid).wait(timeout=4)
                                 print(f"[AccountProcess._do_stop] pid={pid} 已退出 (组信号)")
@@ -335,6 +343,76 @@ class AccountProcess:
         except Exception:
             pass
 
+def _show_reconcile_dialog(parent, result):
+    dlg = Toplevel(parent)
+    dlg.title("对账结果")
+    dlg.geometry("900x700")
+    dlg.transient(parent)
+
+    fetched_at = result.get('fetched_at', '')
+    warnings = result.get('warnings', [])
+    batches = result.get('batches', {})
+
+    header = tb.Label(dlg, text=f"爬取时间: {fetched_at}    批次数: {len(batches)}", font=("微软雅黑", 11, "bold"))
+    header.pack(anchor="w", padx=10, pady=(8,4))
+
+    if warnings:
+        warn_label = tb.Label(dlg, text="警告: " + "; ".join(warnings), foreground="red")
+        warn_label.pack(anchor="w", padx=10, pady=(0,6))
+
+    txt = ScrolledText(dlg, height=30, wrap='none', font=("Consolas", 10))
+    txt.pack(fill=BOTH, expand=True, padx=10, pady=6)
+    try:
+        # Ensure the underlying text widget is writable before inserting
+        try:
+            txt.configure(state="normal")
+        except Exception:
+            # Some ScrolledText implementations expose inner text as .text or .widget
+            try:
+                getattr(txt, "text").configure(state="normal")
+            except Exception:
+                pass
+
+        try:
+            # Insert JSON formatted result, fallback to str(result)
+            txt.insert("end", json.dumps(result, ensure_ascii=False, indent=2))
+        except Exception:
+            try:
+                txt.delete(1.0, "end")
+            except Exception:
+                pass
+            txt.insert("end", str(result))
+    except Exception:
+        # Best-effort insert; if that fails, ignore
+        try:
+            txt.insert("end", str(result))
+        except Exception:
+            pass
+
+    # Try to set the text widget to disabled/read-only where supported
+    try:
+        txt.configure(state="disabled")
+    except Exception:
+        try:
+            getattr(txt, "text").configure(state="disabled")
+        except Exception:
+            pass
+
+    btn_frame = tb.Frame(dlg)
+    btn_frame.pack(fill=X, pady=6)
+    def _save():
+        from tkinter.filedialog import asksaveasfilename
+        path = asksaveasfilename(defaultextension=".json", filetypes=[("JSON files", "*.json"), ("All files", "*.*")])
+        if path:
+            try:
+                with open(path, "w", encoding="utf-8") as f:
+                    json.dump(result, f, ensure_ascii=False, indent=2)
+                messagebox.showinfo("保存成功", f"已保存到 {path}")
+            except Exception as e:
+                messagebox.showerror("保存失败", str(e))
+    tb.Button(btn_frame, text="保存到文件", command=_save, bootstyle="info-outline").pack(side=LEFT, padx=6)
+    tb.Button(btn_frame, text="关闭", command=dlg.destroy, bootstyle="secondary-outline").pack(side=RIGHT, padx=6)
+
 def build_account_frame(root, acc, config):
     frame = tb.LabelFrame(root, text=f"账户：{acc}", padding=(10,8))
     frame.pack(side=LEFT, padx=10, pady=10, fill=BOTH, expand=True)
@@ -348,6 +426,13 @@ def build_account_frame(root, acc, config):
     btn_start.pack(side=LEFT, padx=3)
     btn_stop.pack(side=LEFT, padx=3)
 
+    # 新增：强制刷新与对账按钮
+    chk_force_var = tb.IntVar(value=0)
+    chk_force = tb.Checkbutton(btn_frame, text="强制刷新", variable=chk_force_var)
+    chk_force.pack(side=LEFT, padx=6)
+    btn_reconcile = tb.Button(btn_frame, text="对账", width=10, bootstyle="primary-outline")
+    btn_reconcile.pack(side=LEFT, padx=3)
+
     log_label = tb.Label(frame, text="日志窗口：")
     log_label.pack(anchor="w", pady=(6,0))
     log_text = ScrolledText(frame, height=10, width=50, font=("Consolas", 10), bootstyle="light")
@@ -360,6 +445,90 @@ def build_account_frame(root, acc, config):
     btn_start.config(command=lambda: [proc.start(), proc.update_status()])
     btn_stop.config(command=lambda: [proc.stop(), proc.update_status()])
     btn_refresh.config(command=proc.update_log)
+
+    # 对账按钮回调（先检测登录，再后台执行 reconcile_account，然后在主线程弹窗）
+    def on_reconcile_click():
+        if reconcile_account is None or login is None:
+            messagebox.showerror("错误", "对账模块或登录模块未安装或导入失败，请检查 yunfei_ball 包。")
+            return
+        # 禁用按钮防止重复点击
+        btn_reconcile.config(state="disabled", text="检测登录中...")
+        force = bool(chk_force_var.get())
+
+        def worker():
+            result = None
+            err = None
+            try:
+                # 先快速尝试 login 检查（轻量），如果未登录则引导用户在浏览器登录
+                session = login(username=None)
+                if not session:
+                    def prompt_login():
+                        if messagebox.askyesno("未登录", "未检测到有效的云飞登录状态。是否在浏览器中打开登录页面以人工登录？"):
+                            webbrowser.open(BASE_URL + "/F2/login.aspx")
+                    # 回到主线程提示
+                    root.after(0, prompt_login)
+                    result = {'fetched_at': None, 'batches': {}, 'account_holdings': {}, 'warnings': ['not_logged_in']}
+                else:
+                    # 已登录：调用 reconcile_account，传入 session via username if needed
+                    result = reconcile_account(account=acc, account_snapshot=None, xt_trader=None, username=None, force_fetch=force, cache_ttl=600)
+            except Exception as e:
+                err = e
+
+            def on_done():
+                # 处理结果中的 rate_limited 警告：若包含 retry_after，则禁用按钮直至冷却期
+                def parse_retry_after(warnings):
+                    for w in warnings:
+                        if isinstance(w, str) and w.startswith('rate_limited:'):
+                            # formats: rate_limited:retry_after=123 OR rate_limited:...
+                            m = __import__('re').search(r'retry_after=(\d+)', w)
+                            if m:
+                                return int(m.group(1))
+                            return None
+                    return None
+
+                retry_after = None
+                if err:
+                    messagebox.showerror("对账失败", f"对账出错: {err}")
+                    btn_reconcile.config(state="normal", text="对账")
+                    return
+                if result:
+                    warnings = result.get('warnings', [])
+                    retry_after = parse_retry_after(warnings)
+                    if retry_after:
+                        # 提示用户并禁用按钮 retry_after 秒
+                        messagebox.showwarning("限流提示", f"检测到云飞对当前请求限流，请等待约 {retry_after} 秒后重试，或在浏览器手动登录后重试。")
+                        btn_reconcile.config(state="disabled", text=f"等待 {retry_after}s")
+                        # 安排定时器以重新启用按钮（每秒更新文案）
+                        start_ts = int(time.time())
+                        def tick():
+                            elapsed = int(time.time()) - start_ts
+                            remain = retry_after - elapsed
+                            if remain <= 0:
+                                btn_reconcile.config(state="normal", text="对账")
+                                return
+                            btn_reconcile.config(text=f"等待 {remain}s")
+                            root.after(1000, tick)
+                        root.after(1000, tick)
+                        _show_reconcile_dialog(root, result)
+                        return
+
+                    # 其他 warnings: 显示提示但不禁用太久
+                    if warnings:
+                        w = "; ".join(warnings)
+                        messagebox.showwarning("对账警告", f"对账完成，但存在警告: {w}\n请按提示登录或强制刷新后重试。")
+
+                btn_reconcile.config(state="normal", text="对账")
+                _show_reconcile_dialog(root, result)
+
+            try:
+                root.after(0, on_done)
+            except Exception:
+                on_done()
+
+        threading.Thread(target=worker, daemon=True).start()
+
+    btn_reconcile.config(command=on_reconcile_click)
+
     return proc
 
 def save_plan(plan_text, plan_file):

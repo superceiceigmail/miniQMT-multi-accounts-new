@@ -22,7 +22,7 @@ from yunfei_ball.yunfei_connect_follow import fetch_and_check_batch_with_trade_p
 YUNFEI_SCHEDULE_TIMES = [
     "14:52:00",
     "13:00:05",
-    "14:31:20",
+    "21:30:20",
     "14:51:25",
 ]
 AUTO_BUY_511880_TIME = (9, 33, 0)
