@@ -1441,11 +1441,21 @@
     },
     {
       "date": "2025-10-28",
-      "honor": [],
+      "honor": [
+        {
+          "category": "量化",
+          "content": "解决重复交易问题",
+          "major": false,
+          "score": 4.0,
+          "unit": "小时",
+          "project": "云飞自动交易",
+          "tags": ""
+        }
+      ],
       "plan": [],
       "rules": "",
       "followed_plan": true,
-      "timestamp": "2025-10-28T18:12:57"
+      "timestamp": "2025-10-28T21:02:27"
     }
   ],
   "continuous_days_last_date": "2025-10-28"

@@ -2,7 +2,7 @@ import os
 import json
 import hashlib
 import time
-from yunfei_ball.tradeplan_io import (
+from .tradeplan_io import (
     list_strategy_files, read_json, atomic_write_json, mark_processed, file_lock_for
 )
 
@@ -37,7 +37,7 @@ def merge_tradeplans(account_id: str, batch: int, setting_dir: str):
             merged['meta']['merged_from'].append(os.path.basename(f))
         except Exception as e:
             # 读取单个文件失败不影响其它文件
-            print(f"警告：读取 draft 文件 {f} 失败：{e}")
+            print(f"警告：读取 draft 文件 {f} 失败：{e}", flush=True)
 
     # 生成 merged 文件名（包含 hash）
     merged_hash = hashlib.sha1(json.dumps(merged, sort_keys=True).encode()).hexdigest()[:8]
@@ -56,5 +56,5 @@ def merge_tradeplans(account_id: str, batch: int, setting_dir: str):
         except Exception:
             pass
 
-    print(f"已生成合并后的草稿: {merged_path}")
+    print(f"已生成合并后的草稿: {merged_path}", flush=True)
     return merged_path

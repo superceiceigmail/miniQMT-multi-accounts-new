@@ -7,13 +7,17 @@ import json
 import threading
 import subprocess
 import glob
+import random
 from datetime import datetime, timedelta
 from bs4 import BeautifulSoup
 from collections import defaultdict
 from requests.exceptions import SSLError
-from yunfei_ball.generate_trade_plan_draft import generate_trade_plan_draft_func
+
+# 相对导入包内模块（现在都在 yunfei_ball 下）
+from .generate_trade_plan_draft import generate_trade_plan_draft_func
+from .merge_coordinator import merge_tradeplans
+
 from utils.asset_helpers import positions_to_dict, account_asset_to_tuple
-from yunfei_ball.merge_coordinator import merge_tradeplans
 
 USERNAME = 'ceicei'
 PASSWORD = 'ceicei628'
@@ -66,11 +70,20 @@ def add_code_to_operation(operation_text, name_to_code):
 def handle_trade_operation(op_block_html, name_to_code, batch_no, ratio, sample_amount, strategy_id=None):
     op_text = BeautifulSoup(op_block_html, 'lxml').get_text()
     op_text_with_code = add_code_to_operation(op_text, name_to_code)
-    print("买卖操作明细：")
-    print(op_text_with_code)
-    draft_plan_file_path = generate_trade_plan_draft_func(batch_no, op_text_with_code, ratio, sample_amount,
-                                                          output_dir=os.path.join(os.path.dirname(__file__), "trade_plan", "setting"),
-                                                          strategy_id=strategy_id)
+    print("买卖操作明细：", flush=True)
+    print(op_text_with_code, flush=True)
+
+    # 在写草稿前做短抖动，避免瞬时并发冲突（0.1-0.5s）
+    time.sleep(random.uniform(0.1, 0.5))
+
+    draft_plan_file_path = generate_trade_plan_draft_func(
+        batch_no,
+        op_text_with_code,
+        ratio,
+        sample_amount,
+        output_dir=os.path.join(os.path.dirname(__file__), "trade_plan", "setting"),
+        strategy_id=strategy_id
+    )
     return draft_plan_file_path
 
 
@@ -139,6 +152,28 @@ def save_batch_status(account_id: str, batch_status):
     data[today] = batch_status
     with open(path, 'w', encoding='utf-8') as f:
         json.dump(data, f, indent=2, ensure_ascii=False)
+
+
+def wait_for_drafts(setting_dir, batch_no, expected_count=None, timeout=30, poll_interval=0.5):
+    """
+    等待 per-strategy draft 文件到齐（按 batch 匹配），
+    如果 expected_count 为 None，则在 timeout 时间内尽可能多收集（窗口模式）。
+    返回找到的文件列表。
+    """
+    pattern = os.path.join(setting_dir, f"yunfei_trade_plan_draft_batch{batch_no}_*.json")
+    start = time.time()
+    while True:
+        files = sorted([f for f in glob.glob(pattern) if 'merged' not in os.path.basename(f)])
+        if expected_count is not None:
+            if len(files) >= expected_count:
+                return files
+        else:
+            # 窗口模式：只在 timeout 到期返回当前已有的文件
+            if time.time() - start >= timeout:
+                return files
+        if time.time() - start >= timeout:
+            return files
+        time.sleep(poll_interval)
 
 
 def fetch_and_check_batch_with_trade_plan(
@@ -225,7 +260,7 @@ def fetch_and_check_batch_with_trade_plan(
                         sample_amount = round(config_amount * SAMPLE_ACCOUNT_AMOUNT/100, 2)
 
                         print(f"\n>>> 策略【{s['name']}】 操作时间: {s['time']}", flush=True)
-                        # 传 strategy id 以便生成独立文件名
+                        # 传 strategy id 以便生成独立文件名，并在写草稿前加随机抖动
                         strat_id = cfg.get('策略ID', None)
                         draft_plan_file_path = handle_trade_operation(s['operation_block'], name_to_code, batch_no,
                                                                       config_amount, sample_amount, strategy_id=strat_id)
@@ -259,8 +294,15 @@ def fetch_and_check_batch_with_trade_plan(
 
             if all_cfgs_checked:
                 print(f"批次{batch_no}所有策略信息已更新到今日或未来，开始合并并生成最终交易计划。", flush=True)
-                # 合并 per-strategy draft 文件（setting 子目录）
+                # 等待短窗口或按预期数量收齐（如果希望，传 expected_count=len(batch_cfgs)）
                 setting_dir = os.path.join(os.path.dirname(__file__), "trade_plan", "setting")
+                # 推荐使用 expected_count 来确保收齐：expected_count = len([cfg for cfg in batch_cfgs if cfg])
+                try:
+                    expected_n = len([cfg for cfg in batch_cfgs if cfg])
+                except Exception:
+                    expected_n = None
+                wait_for_drafts(setting_dir, batch_no, expected_count=expected_n, timeout=30, poll_interval=0.5)
+
                 merged_draft = merge_tradeplans(account_id_str, batch_no, setting_dir)
                 if not merged_draft:
                     print("未发现任何策略草稿，跳过生成最终交易计划。", flush=True)
@@ -327,30 +369,35 @@ def fetch_and_check_batch_with_trade_plan(
 
                     try:
                         from processor.trade_plan_execution import execute_trade_plan
+                        # 为执行加账户级文件锁，防止并发执行同一账户
+                        from filelock import FileLock
+                        lock_dir = os.path.join(os.path.dirname(__file__), "runtime", "locks")
+                        os.makedirs(lock_dir, exist_ok=True)
+                        lock_path = os.path.join(lock_dir, f"account_{account_id_str}.lock")
+                        with FileLock(lock_path, timeout=5):
+                            # ===== 卖出阶段 =====
+                            print("开始执行 SELL 阶段（会提交卖单）...", flush=True)
+                            execute_trade_plan(xt_trader, account, trade_plan, action='sell')
+                            print("SELL 阶段已发出委托（异步），等待回调并刷新账户...", flush=True)
 
-                        # ===== 卖出阶段 =====
-                        print("开始执行 SELL 阶段（会提交卖单）...", flush=True)
-                        execute_trade_plan(xt_trader, account, trade_plan, action='sell')
-                        print("SELL 阶段已发出委托（异步），等待回调并刷新账户...", flush=True)
+                            # 等待一段时间让异步委托回调到来并稍作缓冲（保留原来的 10s，可调）
+                            time.sleep(10.0)
 
-                        # 等待一段时间让异步委托回调到来并稍作缓冲
-                        time.sleep(10.0)
+                            # 刷新实时账户/持仓，获取卖出回笼后的可用资金与可售数量
+                            try:
+                                refreshed_account_info = xt_trader.query_stock_asset(account)
+                                refreshed_positions = xt_trader.query_stock_positions(account)
+                                print("已刷新执行后实时账户与持仓。", flush=True)
+                                print(f"刷新后可用资金: {getattr(refreshed_account_info,'m_dCash', 'N/A')}", flush=True)
+                            except Exception as e_refresh:
+                                print(f"刷新执行后账户持仓失败: {e_refresh}", flush=True)
+                                refreshed_account_info = None
+                                refreshed_positions = None
 
-                        # 刷新实时账户/持仓，获取卖出回笼后的可用资金与可售数量
-                        try:
-                            refreshed_account_info = xt_trader.query_stock_asset(account)
-                            refreshed_positions = xt_trader.query_stock_positions(account)
-                            print("已刷新执行后实时账户与持仓。", flush=True)
-                            print(f"刷新后可用资金: {getattr(refreshed_account_info,'m_dCash', 'N/A')}", flush=True)
-                        except Exception as e_refresh:
-                            print(f"刷新执行后账户持仓失败: {e_refresh}", flush=True)
-                            refreshed_account_info = None
-                            refreshed_positions = None
-
-                        # ===== 买入阶段 =====
-                        print("开始执行 BUY 阶段（会提交买单）...", flush=True)
-                        execute_trade_plan(xt_trader, account, trade_plan, action='buy')
-                        print("BUY 阶段已发出委托（异步）。", flush=True)
+                            # ===== 买入阶段 =====
+                            print("开始执行 BUY 阶段（会提交买单）...", flush=True)
+                            execute_trade_plan(xt_trader, account, trade_plan, action='buy')
+                            print("BUY 阶段已发出委托（异步）。", flush=True)
 
                         # 完成后，将本批次的状态标记为完成
                         batch_status = load_batch_status(account_id_str)
@@ -415,7 +462,7 @@ def kill_and_reset_geph():
             shell=True)
         print("已关闭所有 geph 进程并重置系统代理设置")
     except Exception as e:
-        print("关闭 geph 或重置代理失败:", e)
+        print("关闭 geph 或重置代理失败:", e, flush=True)
 
 
 def login():
@@ -448,12 +495,12 @@ def login():
     try:
         login_resp = session.post(LOGIN_URL, data=data, proxies={})
     except Exception as e:
-        print("登录请求异常:", e)
+        print("登录请求异常:", e, flush=True)
         return None
     if not is_logged_in(login_resp.text):
-        print("登录失败，请检查用户名密码或表单字段。")
+        print("登录失败，请检查用户名密码或表单字段。", flush=True)
         return None
-    print("登录成功")
+    print("登录成功", flush=True)
     return session
 
 

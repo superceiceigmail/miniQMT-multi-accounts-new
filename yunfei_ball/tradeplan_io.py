@@ -4,9 +4,9 @@ import time
 from contextlib import contextmanager
 from filelock import FileLock
 
-# 配置：保证这些目录存在
-BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
-TRADEPLAN_DIR = os.path.join(BASE_DIR, 'trade_plan')         # per-strategy files root (relative to yunfei_ball/)
+# 配置：保证这些目录存在（相对于 yunfei_ball 文件夹）
+BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__)))
+TRADEPLAN_DIR = os.path.join(BASE_DIR, 'trade_plan')         # per-strategy files root (yunfei_ball/trade_plan)
 PROCESSED_DIR = os.path.join(TRADEPLAN_DIR, 'processed')
 
 os.makedirs(TRADEPLAN_DIR, exist_ok=True)

@@ -59,7 +59,7 @@ def generate_trade_plan_draft_func(batch_no, operation_str, ratio, sample_amount
         }
     }
     if not os.path.exists(output_dir):
-        os.makedirs(output_dir)
+        os.makedirs(output_dir, exist_ok=True)
 
     # 生成唯一文件名：包含批次、策略id（若有）、时间戳和短 uuid
     ts = time.strftime('%Y%m%dT%H%M%S')
@@ -73,7 +73,7 @@ def generate_trade_plan_draft_func(batch_no, operation_str, ratio, sample_amount
     # 原子写文件，避免并发写入导致半文件
     atomic_write_json(file_path, plan)
 
-    print(f"已生成交易计划草稿: {file_path}")
+    print(f"已生成交易计划草稿: {file_path}", flush=True)
 
     # 返回文件路径，让调用方收集/合并
     return file_path
