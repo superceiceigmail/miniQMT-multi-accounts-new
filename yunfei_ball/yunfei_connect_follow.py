@@ -1,3 +1,7 @@
+# yunfei_ball/yunfei_connect_follow.py
+# (主流程文件)
+# 已改为从 yunfei_login / yunfei_fetcher 导入登录和解析功能以保持行为一致，同时保留原有批次执行主流程与文件/目录常量等。
+
 import os
 import sys
 import time
@@ -19,7 +23,11 @@ from .merge_coordinator import merge_tradeplans
 
 from utils.asset_helpers import positions_to_dict, account_asset_to_tuple
 
-USERNAME = 'ceicei'
+# 新：从拆分模块导入
+from .yunfei_login import login, is_logged_in, kill_and_reset_geph
+from .yunfei_fetcher import parse_b_follow_page, fetch_b_follow
+
+USERNAME = 'ceicei'  # 保留以兼容旧逻辑；新逻辑建议通过配置或 GUI 注入
 PASSWORD = 'ceicei628'
 LOGIN_URL = 'https://www.ycyflh.com/F2/login.aspx'
 BASE_URL = 'https://www.ycyflh.com'
@@ -35,7 +43,7 @@ HEADERS = {
 
 SAMPLE_ACCOUNT_AMOUNT = 680000
 
-
+# 复制原有的名称到代码映射加载函数（保持兼容）
 def load_name_to_code_map(json_path):
     if not os.path.exists(json_path):
         print(f"错误：代码索引文件未找到于 {json_path}")
@@ -54,7 +62,6 @@ def load_name_to_code_map(json_path):
                 name_to_code[name] = code_with_sh
     return name_to_code
 
-
 def add_code_to_operation(operation_text, name_to_code):
     def repl(m):
         action = m.group(1)
@@ -65,7 +72,6 @@ def add_code_to_operation(operation_text, name_to_code):
         else:
             return f"{action} {asset}"
     return re.sub(r'(买入|卖出|调仓|换入|换出)\s*([^\s;\uff1b\uff0c,.]+)', repl, operation_text)
-
 
 def handle_trade_operation(op_block_html, name_to_code, batch_no, ratio, sample_amount, strategy_id=None):
     op_text = BeautifulSoup(op_block_html, 'lxml').get_text()
@@ -86,15 +92,16 @@ def handle_trade_operation(op_block_html, name_to_code, batch_no, ratio, sample_
     )
     return draft_plan_file_path
 
-
+# 保持原有 name_to_code 变量的初始化（兼容）
 name_to_code = load_name_to_code_map(CODE_INDEX_PATH)
 
-
+# 其余函数（get_batch_file, load_batch_status, save_batch_status, wait_for_drafts, fetch_and_check_batch_with_trade_plan）
+# 我在这里保留原始实现（仅在顶部将 login/parse_b_follow_page/k... 导入到当前命名空间），
+# 以尽可能减少对后续调用逻辑的影响。以下是原有实现（略微整理以导入新模块）。
 def delayed_run(delay, *args, **kwargs):
     print(f"[delayed_run] Will run batch after {delay} seconds", flush=True)
     time.sleep(delay)
     fetch_and_check_batch_with_trade_plan(*args, **kwargs)
-
 
 def monitor_timers(timers, timer_info_list):
     while any(t.is_alive() for t in timers):
@@ -103,27 +110,16 @@ def monitor_timers(timers, timer_info_list):
         time.sleep(30)
     print("[定时任务监控] 所有定时任务已完成。", flush=True)
 
-
 def get_batch_file(account_id: str) -> str:
-    """
-    返回某个账户的 pending_batches 文件路径（单文件，放在 pending_batches_by_account 目录下）。
-    命名规则：pending_batches_<account_id>.json
-    """
     try:
         os.makedirs(PENDING_BATCHES_BASE_DIR, exist_ok=True)
     except Exception:
-        # 若目录创建失败，退回到旧路径（兼容）
         fallback_dir = os.path.dirname(__file__)
         return os.path.join(fallback_dir, f"pending_batches_{account_id}.json")
     filename = f"pending_batches_{account_id}.json"
     return os.path.join(PENDING_BATCHES_BASE_DIR, filename)
 
-
 def load_batch_status(account_id: str):
-    """
-    读取指定账户的 pending_batches_<account_id>.json 并返回当日批次字典（或空字典）。
-    若文件不存在或读取失败，返回 {}。
-    """
     today = datetime.now().strftime("%Y-%m-%d")
     path = get_batch_file(account_id)
     try:
@@ -133,12 +129,7 @@ def load_batch_status(account_id: str):
     except Exception:
         return {}
 
-
 def save_batch_status(account_id: str, batch_status):
-    """
-    将 batch_status 写入指定账户的 pending_batches_<account_id>.json（按日期存储）。
-    batch_status 应当是当天的映射（例如 { '1': True, '2': False }）。
-    """
     today = datetime.now().strftime("%Y-%m-%d")
     path = get_batch_file(account_id)
     try:
@@ -153,13 +144,7 @@ def save_batch_status(account_id: str, batch_status):
     with open(path, 'w', encoding='utf-8') as f:
         json.dump(data, f, indent=2, ensure_ascii=False)
 
-
 def wait_for_drafts(setting_dir, batch_no, expected_count=None, timeout=30, poll_interval=0.5):
-    """
-    等待 per-strategy draft 文件到齐（按 batch 匹配），
-    如果 expected_count 为 None，则在 timeout 时间内尽可能多收集（窗口模式）。
-    返回找到的文件列表。
-    """
     pattern = os.path.join(setting_dir, f"yunfei_trade_plan_draft_batch{batch_no}_*.json")
     start = time.time()
     while True:
@@ -168,13 +153,11 @@ def wait_for_drafts(setting_dir, batch_no, expected_count=None, timeout=30, poll
             if len(files) >= expected_count:
                 return files
         else:
-            # 窗口模式：只在 timeout 到期返回当前已有的文件
             if time.time() - start >= timeout:
                 return files
         if time.time() - start >= timeout:
             return files
         time.sleep(poll_interval)
-
 
 def fetch_and_check_batch_with_trade_plan(
     batch_no, batch_time, batch_cfgs, config, account_asset_info, positions,
@@ -199,9 +182,7 @@ def fetch_and_check_batch_with_trade_plan(
         print(f"批次{batch_no}今日已执行（账户 {account_id_str}），跳过。", flush=True)
         return
 
-    # --- 新增去重字典 ---
     processed_strategy_keys = set()
-    # 用于收集本批次所有策略产生的 draft 文件路径
     draft_files_for_batch = []
 
     while session is None and retry_count < max_retries:
@@ -249,9 +230,7 @@ def fetch_and_check_batch_with_trade_plan(
                     print(f"策略【{s['name']}】日期格式错误: {strategy_date_str}，跳过检查。", flush=True)
                     continue
 
-                # --- 构造唯一键避免重复处理 ---
                 strategy_key = f"{cfg.get('策略ID','')}_{strategy_date_str}"
-                # 只有第一次满足条件才处理
                 if strategy_date >= today_date and strategy_key not in processed_strategy_keys:
                     print(f"策略【{s['name']}】 操作日期: {s['date']} >= 今日日期: {today_str}", flush=True)
                     action = extract_operation_action(s['operation_block'])
@@ -260,7 +239,6 @@ def fetch_and_check_batch_with_trade_plan(
                         sample_amount = round(config_amount * SAMPLE_ACCOUNT_AMOUNT/100, 2)
 
                         print(f"\n>>> 策略【{s['name']}】 操作时间: {s['time']}", flush=True)
-                        # 传 strategy id 以便生成独立文件名，并在写草稿前加随机抖动
                         strat_id = cfg.get('策略ID', None)
                         draft_plan_file_path = handle_trade_operation(s['operation_block'], name_to_code, batch_no,
                                                                       config_amount, sample_amount, strategy_id=strat_id)
@@ -274,19 +252,16 @@ def fetch_and_check_batch_with_trade_plan(
                             draft_files_for_batch.append(draft_plan_file_path)
 
                         trade_date = datetime.now().strftime('%Y-%m-%d')
-                        # 优先使用 account 对象的 id（如果接收到的是 StockAccount）
                         if hasattr(account, "account_id"):
                             account_id_str = getattr(account, "account_id")
                         else:
                             account_id_str = config.get('account_id', 'unknown')
 
-                        # 将最终 plan 的生成与执行，延后到本批次所有策略检查完后统一处理
                         processed_strategy_keys.add(strategy_key)
                     else:
                         print(f"策略【{s['name']}】操作为{action}，跳过", flush=True)
                         processed_strategy_keys.add(strategy_key)
                 elif strategy_date >= today_date:
-                    # 已处理过，直接跳过
                     continue
                 else:
                     all_cfgs_checked = False
@@ -294,9 +269,7 @@ def fetch_and_check_batch_with_trade_plan(
 
             if all_cfgs_checked:
                 print(f"批次{batch_no}所有策略信息已更新到今日或未来，开始合并并生成最终交易计划。", flush=True)
-                # 等待短窗口或按预期数量收齐（如果希望，传 expected_count=len(batch_cfgs)）
                 setting_dir = os.path.join(os.path.dirname(__file__), "trade_plan", "setting")
-                # 推荐使用 expected_count 来确保收齐：expected_count = len([cfg for cfg in batch_cfgs if cfg])
                 try:
                     expected_n = len([cfg for cfg in batch_cfgs if cfg])
                 except Exception:
@@ -311,7 +284,6 @@ def fetch_and_check_batch_with_trade_plan(
                     save_batch_status(account_id_str, batch_status)
                     break
 
-                # 生成最终交易计划（使用 merged draft）
                 final_trade_plan_file = os.path.join(
                     TRADE_PLAN_DIR,
                     f"yunfei_trade_plan_final_{account_id_str}_{trade_date}_batch{batch_no}.json"
@@ -352,38 +324,31 @@ def fetch_and_check_batch_with_trade_plan(
 
                     print("生成最终交易计划完毕:", flush=True)
 
-                    # 执行 final 计划：SELL -> wait refresh -> BUY
                     try:
                         with open(final_trade_plan_file, 'r', encoding='utf-8') as f:
                             trade_plan = json.load(f)
                     except Exception as e_read:
                         print(f"读取最终交易计划失败: {e_read}", flush=True)
-                        # 标记批次为完成以避免重复
                         batch_status = load_batch_status(account_id_str)
                         batch_status[str(batch_no)] = True
                         save_batch_status(account_id_str, batch_status)
                         break
 
-                    # 打印计划，方便核验
                     print(f"将要执行的最终交易计划: {json.dumps(trade_plan, ensure_ascii=False)}", flush=True)
 
                     try:
                         from processor.trade_plan_execution import execute_trade_plan
-                        # 为执行加账户级文件锁，防止并发执行同一账户
                         from filelock import FileLock
                         lock_dir = os.path.join(os.path.dirname(__file__), "runtime", "locks")
                         os.makedirs(lock_dir, exist_ok=True)
                         lock_path = os.path.join(lock_dir, f"account_{account_id_str}.lock")
                         with FileLock(lock_path, timeout=5):
-                            # ===== 卖出阶段 =====
                             print("开始执行 SELL 阶段（会提交卖单）...", flush=True)
                             execute_trade_plan(xt_trader, account, trade_plan, action='sell')
                             print("SELL 阶段已发出委托（异步），等待回调并刷新账户...", flush=True)
 
-                            # 等待一段时间让异步委托回调到来并稍作缓冲（保留原来的 10s，可调）
                             time.sleep(10.0)
 
-                            # 刷新实时账户/持仓，获取卖出回笼后的可用资金与可售数量
                             try:
                                 refreshed_account_info = xt_trader.query_stock_asset(account)
                                 refreshed_positions = xt_trader.query_stock_positions(account)
@@ -394,26 +359,22 @@ def fetch_and_check_batch_with_trade_plan(
                                 refreshed_account_info = None
                                 refreshed_positions = None
 
-                            # ===== 买入阶段 =====
                             print("开始执行 BUY 阶段（会提交买单）...", flush=True)
                             execute_trade_plan(xt_trader, account, trade_plan, action='buy')
                             print("BUY 阶段已发出委托（异步）。", flush=True)
 
-                        # 完成后，将本批次的状态标记为完成
                         batch_status = load_batch_status(account_id_str)
                         batch_status[str(batch_no)] = True
                         save_batch_status(account_id_str, batch_status)
 
                     except Exception as e_exec:
                         print(f"自动执行交易计划失败: {e_exec}", flush=True)
-                        # 即使执行失败，也标记批次为完成以免无限重试（可根据需要改为不标记）
                         batch_status = load_batch_status(account_id_str)
                         batch_status[str(batch_no)] = True
                         save_batch_status(account_id_str, batch_status)
 
                 except Exception as e_gen:
                     print(f"生成/执行最终交易计划失败: {e_gen}", flush=True)
-                    # 标记并退出
                     batch_status = load_batch_status(account_id_str)
                     batch_status[str(batch_no)] = True
                     save_batch_status(account_id_str, batch_status)
@@ -438,123 +399,10 @@ def fetch_and_check_batch_with_trade_plan(
             print("30秒后重试", flush=True)
             time.sleep(30)
 
-
-def get_value_by_name(soup, name):
-    tag = soup.find('input', {'name': name})
-    return tag['value'] if tag else ''
-
-
-def is_logged_in(html_text):
-    return ("退出" in html_text or "个人资料" in html_text or "Hi," in html_text)
-
-
-def kill_and_reset_geph():
-    try:
-        print("检测到SSL错误，尝试关闭迷雾通及重置系统代理！")
-        for proc in ["geph4-client.exe", "gephgui-wry.exe", "geph4.exe"]:
-            subprocess.run(['taskkill', '/F', '/IM', proc], check=False)
-        subprocess.run('netsh winhttp reset proxy', shell=True)
-        subprocess.run(
-            'reg delete "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Internet Settings" /v ProxyServer /f',
-            shell=True)
-        subprocess.run(
-            'reg delete "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Internet Settings" /v ProxyEnable /f',
-            shell=True)
-        print("已关闭所有 geph 进程并重置系统代理设置")
-    except Exception as e:
-        print("关闭 geph 或重置代理失败:", e, flush=True)
-
-
-def login():
-    session = requests.Session()
-    session.trust_env = False
-    session.headers.update(HEADERS)
-    try:
-        resp = session.get(LOGIN_URL, proxies={})
-    except SSLError as e:
-        print("遇到SSL错误:", e)
-        kill_and_reset_geph()
-        time.sleep(5)
-        return None
-    except Exception as e:
-        print("其他网络异常:", e)
-        return None
-    soup = BeautifulSoup(resp.text, 'html.parser')
-    viewstate = get_value_by_name(soup, '__VIEWSTATE')
-    eventvalidation = get_value_by_name(soup, '__EVENTVALIDATION')
-    viewstategen = get_value_by_name(soup, '__VIEWSTATEGENERATOR')
-    data = {
-        '__VIEWSTATE': viewstate,
-        '__EVENTVALIDATION': eventvalidation,
-        '__VIEWSTATEGENERATOR': viewstategen,
-        'txt_name_2020_byf': USERNAME,
-        'txt_pwd_2020_byf': PASSWORD,
-        'ckb_UserAgreement': 'on',
-        'btn_login': '登 录',
-    }
-    try:
-        login_resp = session.post(LOGIN_URL, data=data, proxies={})
-    except Exception as e:
-        print("登录请求异常:", e, flush=True)
-        return None
-    if not is_logged_in(login_resp.text):
-        print("登录失败，请检查用户名密码或表单字段。", flush=True)
-        return None
-    print("登录成功", flush=True)
-    return session
-
-
-def parse_b_follow_page(html):
-    soup = BeautifulSoup(html, 'lxml')
-    strategies = []
-    for table in soup.find_all('table', {'border': '1'}):
-        name = ''
-        ttime = ''
-        op_block = ''
-        holding_block = ''
-        th = table.find('th', attrs={'colspan': '2'})
-        if not th: continue
-        a = th.find('a')
-        if a:
-            name = a.get_text(strip=True)
-        else:
-            name = th.get_text(strip=True)
-        tds = table.find_all('td', attrs={'colspan': '2'})
-        if len(tds) > 0:
-            ttime_match = re.search(r'\[(\d{4}-\d{2}-\d{2} \d{2}:\d{2})\]', tds[0].get_text())
-            ttime = ttime_match.group(1) if ttime_match else ''
-            divs = tds[0].find_all('div')
-            if len(divs) > 1:
-                op_block = ''.join(str(divs[1]))
-            else:
-                op_block = tds[0].get_text(separator=' ', strip=True)
-        holdings_td = None
-        for td in tds:
-            if '目前持仓' in td.get_text():
-                holdings_td = td
-                break
-        holding_lines = []
-        if holdings_td:
-            for line in holdings_td.stripped_strings:
-                m = re.match(r'([^\s：:]+)[：:]\s*([\d\.]+)%', line)
-                if m:
-                    holding_lines.append(f"{m.group(1)}：{m.group(2)}%")
-                elif '空仓' in line:
-                    holding_lines.append('空仓')
-        strategies.append({
-            "name": name,
-            "date": ttime.split()[0] if ttime else '',
-            "time": ttime,
-            "operation_block": op_block,
-            "holding_block": holding_lines
-        })
-    return strategies
-
-
+# 以下函数保留（从原文件拷贝），用于策略匹配/操作解析等
 def extract_operation_action(op_html):
     if not op_html: return '继续持有'
     text = BeautifulSoup(op_html, 'lxml').get_text()
-    # 修正：支持“换入/换出”
     if '买入' in text or '卖出' in text or '换入' in text or '换出' in text or '调仓' in text:
         return '买卖'
     if '空仓' in text:
@@ -563,53 +411,36 @@ def extract_operation_action(op_html):
         return '继续持有'
     return '未知'
 
-
 def get_bracket_content(s):
-    # 兼容中文和英文括号
     m = re.search(r"(?:\(|（)(.*?)(?:\)|）)", s)
     return m.group(1).strip() if m else ""
 
-
-# 【最终修正】策略查找逻辑 - 优先使用 endswith，次要使用 ID+括号 匹配
 def find_strategy_by_id_and_bracket(cfg, strategies):
-    json_name = cfg['策略名称'].strip()  # 确保配置名称没有意外的空格
+    json_name = cfg['策略名称'].strip()
     json_id = str(cfg.get('策略ID', '')).strip()
 
-    # 1. 最可靠的方法：尝试使用策略名称尾部进行灵活匹配 (忽略ID前缀和空格差异)
     for s in strategies:
         web_full_name = s['name'].strip()
-
-        # 只要网页策略名称的结尾部分与配置中的名称完全一致，就认为是匹配成功
         if web_full_name.endswith(json_name):
             return s
 
-    # 2. 回退到旧版逻辑：使用 ID 前缀和括号内容进行匹配
     if not json_id:
         return None
 
-    # ID 匹配：匹配除了最后一位数字之外的 ID 前缀（旧版逻辑）
     json_id_prefix = json_id[:-1] if len(json_id) > 1 else json_id
     json_bracket = get_bracket_content(json_name)
 
     for s in strategies:
-        # 从网页名称中提取 ID，例如 L105181:
         id_match = re.search(r"L?(\d+):", s['name'])
         if not id_match:
             continue
         web_id = id_match.group(1)
-
-        # 匹配 ID 前缀
         if web_id.startswith(json_id_prefix):
-            # 匹配括号内容
             web_bracket = get_bracket_content(s['name'])
-
-            # 只有当括号内容都存在且相等时，才视为匹配成功
             if json_bracket and web_bracket and json_bracket == web_bracket:
                 return s
     return None
 
-
-# 【修正】collect_today_strategies 采用 >= today_date 的逻辑
 def collect_today_strategies():
     with open(INPUT_JSON, 'r', encoding='utf-8') as f:
         strategy_cfgs = json.load(f)
@@ -640,7 +471,6 @@ def collect_today_strategies():
                 print(f"策略【{name}】未找到！")
                 continue
 
-            # 【核心修正】：判断策略更新日期是否为当日或晚于当日
             strategy_date_str = s.get('date', '')
             is_updated = False
             if strategy_date_str:
@@ -651,16 +481,12 @@ def collect_today_strategies():
                 except ValueError:
                     pass
 
-            # 【修正】当日期 >= 今日 且 操作是买卖，则生成draft文件
             if is_updated and extract_operation_action(s['operation_block']) == '买卖':
                 config_amount = cfg.get('配置仓位', 0)
-                # 【修正】统一 sample_amount 的计算方式
                 sample_amount = round(config_amount * SAMPLE_ACCOUNT_AMOUNT, 2)
-                # 传 strategy id 生成 per-strategy draft
                 handle_trade_operation(s['operation_block'], name_to_code, batch, config_amount, sample_amount, strategy_id=cfg.get('策略ID'))
                 print(f"  配置仓位: {config_amount}，样板操作金额: {sample_amount}")
 
-            # 【修正】打印更新日期
             print(f"【{name}】更新日期: {strategy_date_str}，当前持仓:")
             if s['holding_block']:
                 for h in s['holding_block']:
@@ -668,7 +494,6 @@ def collect_today_strategies():
             else:
                 print("  （无持仓信息）")
     print("\n==================== 汇总结束 ========================")
-
 
 if __name__ == '__main__':
     collect_today_strategies()

@@ -1,5 +1,5 @@
 {
-  "last_update": "2025-10-28T18:32:51.315228",
+  "last_update": "2025-10-28T21:33:24.542435",
   "positions": [
     {
       "stock_code": "501312.SH",
@@ -16,14 +16,6 @@
       "can_use_volume": 1400,
       "avg_price": 134.471,
       "market_value": 189082.6
-    },
-    {
-      "stock_code": "511880.SH",
-      "stock_name": "国债指数",
-      "volume": 0,
-      "can_use_volume": 0,
-      "avg_price": null,
-      "market_value": 0.0
     },
     {
       "stock_code": "513100.SH",
@@ -53,7 +45,7 @@
       "stock_code": "515050.SH",
       "stock_name": "未知股票",
       "volume": 12400,
-      "can_use_volume": 0,
+      "can_use_volume": 12400,
       "avg_price": 2.274282258064516,
       "market_value": 28048.8
     },
@@ -66,19 +58,11 @@
       "market_value": 10774.4
     },
     {
-      "stock_code": "518880.SH",
-      "stock_name": "黄金ETF",
+      "stock_code": "131990.SZ",
+      "stock_name": "国债逆回购",
       "volume": 0,
       "can_use_volume": 0,
       "avg_price": null,
-      "market_value": 0.0
-    },
-    {
-      "stock_code": "131990.SZ",
-      "stock_name": "国债逆回购",
-      "volume": 1520,
-      "can_use_volume": 0,
-      "avg_price": 100.00009868421053,
       "market_value": 0.0
     },
     {
@@ -154,12 +138,12 @@
       "market_value": 14311.2
     },
     {
-      "stock_code": "RXL001.SZ",
-      "stock_name": "日鑫利",
-      "volume": 0,
+      "stock_code": "131810.SZ",
+      "stock_name": "未知股票",
+      "volume": 1520,
       "can_use_volume": 0,
-      "avg_price": null,
-      "market_value": 0.0
+      "avg_price": 100.0,
+      "market_value": 152000.0
     }
   ]
 }
