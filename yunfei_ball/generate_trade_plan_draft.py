@@ -1,7 +1,8 @@
 import json
 import re
 import os
-
+import time
+import uuid
 
 def parse_trade_operations(operation_str, ratio, sample_amount):
     sell_stocks_info = []
@@ -32,28 +33,49 @@ def parse_trade_operations(operation_str, ratio, sample_amount):
     return sell_stocks_info, buy_stocks_info
 
 
-# 【修改】函数名结尾添加 _func
-def generate_trade_plan_draft_func(batch_no, operation_str, ratio, sample_amount, output_dir="setting"):
+def atomic_write_json(path: str, obj):
+    tmp = path + '.tmp'
+    with open(tmp, 'w', encoding='utf-8') as f:
+        json.dump(obj, f, ensure_ascii=False, indent=2)
+        f.flush()
+        os.fsync(f.fileno())
+    os.replace(tmp, path)
+
+
+def generate_trade_plan_draft_func(batch_no, operation_str, ratio, sample_amount, output_dir="setting", strategy_id=None):
     """
-    生成单个批次的 yunfei_trade_plan_draft_{batch_no}.json
+    生成单个策略的交易计划草稿文件（per-strategy）。
+    如果传入 strategy_id，会把 strategy_id 写入文件名；否则会使用时间戳+uuid确保唯一性。
+    返回生成的文件路径。
     """
     sell_stocks_info, buy_stocks_info = parse_trade_operations(operation_str, ratio, sample_amount)
     plan = {
         "sell_stocks_info": sell_stocks_info,
-        "buy_stocks_info": buy_stocks_info
+        "buy_stocks_info": buy_stocks_info,
+        "meta": {
+            "batch_no": batch_no,
+            "strategy_id": strategy_id,
+            "created_at": time.strftime('%Y-%m-%dT%H:%M:%S')
+        }
     }
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
 
-    # 【修改】文件名改为 yunfei_trade_plan_draft_...
-    file_path = os.path.join(output_dir, f"yunfei_trade_plan_draft_{batch_no}.json")
-    with open(file_path, 'w', encoding='utf-8') as f:
-        json.dump(plan, f, indent=2, ensure_ascii=False)
+    # 生成唯一文件名：包含批次、策略id（若有）、时间戳和短 uuid
+    ts = time.strftime('%Y%m%dT%H%M%S')
+    uid = uuid.uuid4().hex[:8]
+    if strategy_id:
+        filename = f"yunfei_trade_plan_draft_batch{batch_no}_strategy{strategy_id}_{ts}_{uid}.json"
+    else:
+        filename = f"yunfei_trade_plan_draft_batch{batch_no}_{ts}_{uid}.json"
+    file_path = os.path.join(output_dir, filename)
 
-    # 【修改】更新打印信息
+    # 原子写文件，避免并发写入导致半文件
+    atomic_write_json(file_path, plan)
+
     print(f"已生成交易计划草稿: {file_path}")
 
-    # 【新增】返回文件路径，让调用方直接使用
+    # 返回文件路径，让调用方收集/合并
     return file_path
 
 
@@ -63,7 +85,6 @@ def batch_generate_trade_plan_drafts_func(batch_operations, ratio, sample_amount
     """
     for batch_no in range(1, 5):
         operation_str = batch_operations.get(batch_no, "")
-        # 【修改】调用更新后的函数
         generate_trade_plan_draft_func(batch_no, operation_str, ratio, sample_amount, output_dir)
 
 
@@ -77,5 +98,4 @@ if __name__ == "__main__":
     }
     ratio = 1.03
     sample_amount = 751900.0
-    # 【修改】调用更新后的示例函数
     batch_generate_trade_plan_drafts_func(batch_ops, ratio, sample_amount)

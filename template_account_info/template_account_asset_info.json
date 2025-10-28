@@ -1,10 +1,10 @@
 {
   "account_id": "8886006288",
-  "cash": 221568.48,
+  "cash": 0.0,
   "frozen_cash": 0.0,
-  "market_value": 418540.7,
-  "total_asset": 690080.27,
-  "percent_cash": "32.1%",
+  "market_value": 636777.6,
+  "total_asset": 687147.79,
+  "percent_cash": "0.0%",
   "percent_frozen": "0.0%",
-  "percent_market": "60.7%"
+  "percent_market": "92.7%"
 }
