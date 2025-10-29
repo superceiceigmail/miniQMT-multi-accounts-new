@@ -3,7 +3,7 @@
 from pathlib import Path
 import json
 
-p = Path("yunfei_ball/allocation.json")
+p = Path("../yunfei_ball/allocation.json")
 if not p.exists():
     print("文件不存在：", p)
     raise SystemExit(1)

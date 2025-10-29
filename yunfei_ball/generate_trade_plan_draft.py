@@ -42,10 +42,10 @@ def atomic_write_json(path: str, obj):
     os.replace(tmp, path)
 
 
-def generate_trade_plan_draft_func(batch_no, operation_str, ratio, sample_amount, output_dir="setting", strategy_id=None):
+def generate_trade_plan_draft_func(batch_no, operation_str, ratio, sample_amount, output_dir="setting", strategy_id=None, account_id=None):
     """
     生成单个策略的交易计划草稿文件（per-strategy）。
-    如果传入 strategy_id，会把 strategy_id 写入文件名；否则会使用时间戳+uuid确保唯一性。
+    如果传入 strategy_id，会把 strategy_id 写入文件名；如果传入 account_id，会把 account_id 写入文件名，避免不同账户混淆。
     返回生成的文件路径。
     """
     sell_stocks_info, buy_stocks_info = parse_trade_operations(operation_str, ratio, sample_amount)
@@ -55,19 +55,21 @@ def generate_trade_plan_draft_func(batch_no, operation_str, ratio, sample_amount
         "meta": {
             "batch_no": batch_no,
             "strategy_id": strategy_id,
+            "account_id": account_id,
             "created_at": time.strftime('%Y-%m-%dT%H:%M:%S')
         }
     }
     if not os.path.exists(output_dir):
         os.makedirs(output_dir, exist_ok=True)
 
-    # 生成唯一文件名：包含批次、策略id（若有）、时间戳和短 uuid
+    # 生成唯一文件名：包含批次、策略id（若有）、账户（若有）、时间戳和短 uuid
     ts = time.strftime('%Y%m%dT%H%M%S')
     uid = uuid.uuid4().hex[:8]
+    acct_part = f"_acct{account_id}" if account_id else ""
     if strategy_id:
-        filename = f"yunfei_trade_plan_draft_batch{batch_no}_strategy{strategy_id}_{ts}_{uid}.json"
+        filename = f"yunfei_trade_plan_draft_batch{batch_no}_strategy{strategy_id}{acct_part}_{ts}_{uid}.json"
     else:
-        filename = f"yunfei_trade_plan_draft_batch{batch_no}_{ts}_{uid}.json"
+        filename = f"yunfei_trade_plan_draft_batch{batch_no}{acct_part}_{ts}_{uid}.json"
     file_path = os.path.join(output_dir, filename)
 
     # 原子写文件，避免并发写入导致半文件

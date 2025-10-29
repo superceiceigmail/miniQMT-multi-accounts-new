@@ -347,7 +347,53 @@ def main():
     if ui_id:
         logging.info(f"ui_id = {ui_id}, pidfile = {pidfile_path}")
 
+    # --- enhanced config lookup: try map, direct filename, then scan for matching account_id in files ---
     config_path = ACCOUNT_CONFIG_MAP.get(account_name)
+    if not config_path:
+        # 1) try direct filename under core_parameters/account/{account_name}.json
+        direct_candidate = os.path.join("core_parameters", "account", f"{account_name}.json")
+        if os.path.exists(direct_candidate):
+            config_path = direct_candidate
+            logging.info(f"通过文件名直接找到账户配置: {config_path}")
+        else:
+            # 2) scan directory for json files whose content contains matching account_id
+            acc_dir = os.path.join("core_parameters", "account")
+            try:
+                if os.path.isdir(acc_dir):
+                    for fn in os.listdir(acc_dir):
+                        if not fn.lower().endswith(".json"):
+                            continue
+                        fp = os.path.join(acc_dir, fn)
+                        try:
+                            data = load_json_file(fp)
+                        except Exception:
+                            data = None
+                        if not data:
+                            continue
+                        # check common field names for account id
+                        candidate_ids = []
+                        if isinstance(data, dict):
+                            # standard field
+                            if data.get("account_id") is not None:
+                                candidate_ids.append(str(data.get("account_id")))
+                            # some configs might nest under "account" or other key
+                            if data.get("account") and isinstance(data.get("account"), dict):
+                                if data["account"].get("account_id") is not None:
+                                    candidate_ids.append(str(data["account"].get("account_id")))
+                            # fallback: check any top-level value that equals account_name
+                            for v in data.values():
+                                try:
+                                    if str(v) == str(account_name):
+                                        candidate_ids.append(str(account_name))
+                                except Exception:
+                                    pass
+                        if any(str(account_name) == cid for cid in candidate_ids):
+                            config_path = fp
+                            logging.info(f"通过文件内容匹配到账户配置: {config_path}")
+                            break
+            except Exception as e:
+                logging.debug(f"扫描 account 配置目录失败: {e}")
+
     if not config_path:
         logging.error("找不到账户配置，退出")
         return
@@ -493,7 +539,7 @@ def main():
         # remove pidfile if any (redundant with atexit but helps in case of direct exit paths)
         if ui_id and pidfile_path:
             _remove_ui_pid_file(pidfile_path)
-        logging.info("交易线程已停止。")
+        logging.info("交易线程已停止.")
 
 
 if __name__ == "__main__":

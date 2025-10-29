@@ -22,14 +22,15 @@ def _ensure_cache_dir():
     os.makedirs(base, exist_ok=True)
     return base
 
-def _save_fetch_artifacts(html: str, items: Optional[list], ts_iso: str):
+def _save_fetch_artifacts(html: str, items: Optional[list], ts_iso: str, logged_in: bool = False):
     """
     Save raw html and parsed items to yunfei_ball/fetch_cache/
     filenames:
       - html_{ts}.html
       - items_{ts}.json   (if items provided)
-      - latest_html.html
-      - latest_items.json
+    Additionally:
+      - if logged_in is True, update latest_html.html and latest_items.json (canonical)
+      - if logged_in is False, write latest_html_login.html (so we don't overwrite canonical latest with login page)
     """
     base = _ensure_cache_dir()
     # sanitize ts for filename (use ISO compact)
@@ -40,12 +41,18 @@ def _save_fetch_artifacts(html: str, items: Optional[list], ts_iso: str):
             fh.write(html)
     except Exception:
         pass
-    # write latest_html as convenience (overwrite)
+
+    # choose latest filename depending on login state
     try:
-        with open(os.path.join(base, "latest_html.html"), "w", encoding="utf-8") as fh:
+        if logged_in:
+            latest_html_name = "latest_html.html"
+        else:
+            latest_html_name = "latest_html_login.html"
+        with open(os.path.join(base, latest_html_name), "w", encoding="utf-8") as fh:
             fh.write(html)
     except Exception:
         pass
+
     if items is not None:
         items_path = os.path.join(base, f"items_{tsfn}.json")
         try:
@@ -54,7 +61,9 @@ def _save_fetch_artifacts(html: str, items: Optional[list], ts_iso: str):
         except Exception:
             pass
         try:
-            with open(os.path.join(base, "latest_items.json"), "w", encoding="utf-8") as fi:
+            # only update canonical latest_items.json when logged_in
+            latest_items_name = "latest_items.json" if logged_in else "latest_items_login.json"
+            with open(os.path.join(base, latest_items_name), "w", encoding="utf-8") as fi:
                 json.dump(items, fi, ensure_ascii=False, indent=2)
         except Exception:
             pass
@@ -123,11 +132,12 @@ def fetch_b_follow(session: Optional[requests.Session] = None,
         }
 
     # check if the page is still login page or not logged in
-    if not is_logged_in(html):
-        # optionally save html for debugging
+    logged_in = is_logged_in(html)
+    if not logged_in:
+        # optionally save html for debugging (but do NOT overwrite canonical latest_html.html)
         if save_to_disk:
             try:
-                _save_fetch_artifacts(html, None, now_iso)
+                _save_fetch_artifacts(html, None, now_iso, logged_in=False)
             except Exception:
                 pass
         return {
@@ -152,10 +162,10 @@ def fetch_b_follow(session: Optional[requests.Session] = None,
         except Exception as e:
             result['warning'] = f'parse_error:{e}'
             result['items'] = []
-            # save html even if parse failed
+            # save html even if parse failed (but mark as logged_in)
             if save_to_disk:
                 try:
-                    _save_fetch_artifacts(html, None, now_iso)
+                    _save_fetch_artifacts(html, None, now_iso, logged_in=True)
                 except Exception:
                     pass
             return result
@@ -163,10 +173,10 @@ def fetch_b_follow(session: Optional[requests.Session] = None,
     else:
         result['items'] = []
 
-    # finally, optionally save artifacts
+    # finally, optionally save artifacts (only canonical latest when logged_in=True)
     if save_to_disk:
         try:
-            _save_fetch_artifacts(html, result.get('items'), now_iso)
+            _save_fetch_artifacts(html, result.get('items'), now_iso, logged_in=True)
         except Exception:
             pass
 

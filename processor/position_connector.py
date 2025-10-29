@@ -33,7 +33,7 @@ def print_positions(trader, account_id, code_to_name_dict, account_asset_info):
     额外：将持仓信息以 JSON 文件保存到 account_data/positions/position_{account_id}.json，
     文件中包含 last_update 字段，方便后续读取每个账号的最新持仓信息。
     :param trader: XtQuantTrader 对象，用于查询交易数据。
-    :param account_id: 资金账号（字符串）。
+    :param account_id: 资金账号（字符串）。所有读写与模板判断以 account_id 参数为准。
     :param code_to_name_dict: 股票代码到名称的映射字典。
     :param account_asset_info: 账户资产信息元组（含total_asset在第一个位置）
     :return: List of position objects (原始返回) ；同时也返回 result (stock_code, percent_position) 列表
@@ -95,7 +95,8 @@ def print_positions(trader, account_id, code_to_name_dict, account_asset_info):
         try:
             save_dir = os.path.join("account_data", "positions")
             os.makedirs(save_dir, exist_ok=True)
-            save_path = os.path.join(save_dir, f"position_{account_id}.json")
+            # 保证 filename 使用传入的 account_id（ID），与读取逻辑一致
+            save_path = os.path.join(save_dir, f"position_{str(account_id)}.json")
             positions_list = []
             for p in positions:
                 avg_price = nan_to_none(getattr(p, "avg_price", None))
@@ -113,7 +114,7 @@ def print_positions(trader, account_id, code_to_name_dict, account_asset_info):
                 "positions": positions_list
             }
             _atomic_write_json(save_path, data_to_save)
-            logging.info(f"已写入账户持仓文件: {save_path} account_id={account_id} positions_count={len(positions_list)}")
+            logging.info(f"已写入账户持仓文件: {save_path} account_id={str(account_id)} positions_count={len(positions_list)}")
         except Exception as e:
             logging.exception(f"写入账户持仓文件失败: {e}")
 

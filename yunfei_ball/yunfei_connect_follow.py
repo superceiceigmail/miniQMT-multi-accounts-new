@@ -1,7 +1,6 @@
 # yunfei_ball/yunfei_connect_follow.py
-# 已调整：在 parse 后对策略项进行 normalize，访问字段改为 .get，修正 sample_amount 计算等。
-# 此文件的版本在原仓库基础上增加了抓取/解析产物的落盘（fetch_cache 目录），便于后续查证与使用。
-
+# 已调整：主/从账号分离 fetch 行为 —— 非主账号在 use_master_fetch 模式下不再登录云飞，
+# 并在收到主账号发布的 merged 草稿后检查 meta.empty，若为 True 则直接结束本批次。
 import os
 import sys
 import time
@@ -12,6 +11,7 @@ import threading
 import subprocess
 import glob
 import random
+import shutil
 from datetime import datetime, timedelta
 from bs4 import BeautifulSoup
 from collections import defaultdict
@@ -30,6 +30,9 @@ from .yunfei_fetcher import parse_b_follow_page, fetch_b_follow
 # 适配器
 from .parse_adapter import normalize_strategies
 
+# ---------- 固定主账号 ID（按你的要求写死） ----------
+MASTER_ACCOUNT_ID = "8886006288"
+
 USERNAME = 'ceicei'  # 保留以兼容旧逻辑
 PASSWORD = 'ceicei628'
 LOGIN_URL = 'https://www.ycyflh.com/F2/login.aspx'
@@ -45,7 +48,7 @@ HEADERS = {
 
 SAMPLE_ACCOUNT_AMOUNT = 680000
 
-# -------------------- 新增：fetch_cache 写盘 helpers --------------------
+# -------------------- fetch_cache 写盘 helpers --------------------
 def _ensure_fetch_cache_dir():
     base = os.path.join(os.path.dirname(__file__), "fetch_cache")
     try:
@@ -55,25 +58,17 @@ def _ensure_fetch_cache_dir():
     return base
 
 def _ts_to_filename(ts_iso: str):
-    # ts_iso like 2025-10-28T23:47:17+00:00 -> compact safe form
     if not ts_iso:
         ts_iso = datetime.utcnow().isoformat()
     tsfn = ts_iso.replace(":", "").replace("-", "").replace("T", "_")
-    # remove timezone suffix if present (e.g., +00:00)
     tsfn = re.sub(r'[+\-]\d{2}(\d{2})?$', '', tsfn)
     tsfn = tsfn.split(".")[0]
     return tsfn
 
 def _save_parsed_artifacts(strategies_raw, strategies_norm, html=None, ts_iso=None):
-    """
-    保存抓取的原始 HTML、解析出的原始 items（strategies_raw）和 normalize 后的 strategies 到
-    yunfei_ball/fetch_cache/ 目录。写入时间戳文件与 latest 指针文件。
-    """
     base = _ensure_fetch_cache_dir()
     ts_iso = ts_iso or datetime.utcnow().isoformat()
     tsfn = _ts_to_filename(ts_iso)
-
-    # 原始 HTML
     if html is not None:
         try:
             html_path = os.path.join(base, f"html_{tsfn}.html")
@@ -86,8 +81,6 @@ def _save_parsed_artifacts(strategies_raw, strategies_norm, html=None, ts_iso=No
                 fh.write(html)
         except Exception:
             pass
-
-    # 原始解析 items
     try:
         raw_path = os.path.join(base, f"strategies_raw_{tsfn}.json")
         with open(raw_path, "w", encoding="utf-8") as fr:
@@ -99,8 +92,6 @@ def _save_parsed_artifacts(strategies_raw, strategies_norm, html=None, ts_iso=No
             json.dump(strategies_raw, fr, ensure_ascii=False, indent=2)
     except Exception:
         pass
-
-    # normalized strategies
     try:
         norm_path = os.path.join(base, f"strategies_normalized_{tsfn}.json")
         with open(norm_path, "w", encoding="utf-8") as fn:
@@ -114,28 +105,16 @@ def _save_parsed_artifacts(strategies_raw, strategies_norm, html=None, ts_iso=No
         pass
 
 # -------------------- end helpers --------------------
+
 def load_name_to_code_map(json_path):
-    """
-    Load code_index.json and build a name -> code map.
-    Rules:
-      - If code is 6 digits and starts with 5 or 6 -> append '.SH'
-      - If code is 6 digits and starts with 1 -> append '.SZ'
-      - Otherwise, keep behavior compatible: append '.SH' by default for 6-digit codes.
-    Returns:
-      name_to_code: dict mapping name -> code_with_suffix (string)
-    NOTE: This is a minimal change to fix suffix assignment per rule. For stronger safety
-    we should instead return a list of candidates and pick based on account positions; that can be done next.
-    """
     if not os.path.exists(json_path):
         print(f"错误：代码索引文件未找到于 {json_path}")
         return {}
     with open(json_path, 'r', encoding='utf-8') as f:
         code_map = json.load(f)
-
     name_to_code = {}
     for code, namelist in code_map.items():
         code_str = str(code).strip()
-        # Determine suffix per rule
         code_with_suffix = code_str
         if len(code_str) == 6 and code_str.isdigit():
             first = code_str[0]
@@ -144,9 +123,7 @@ def load_name_to_code_map(json_path):
             elif first == '1':
                 code_with_suffix = code_str + ".SZ"
             else:
-                # default fallback: keep previous behavior (append .SH)
                 code_with_suffix = code_str + ".SH"
-        # map names to this code_with_suffix (first-seen wins as before)
         for name in namelist:
             if name not in name_to_code:
                 name_to_code[name] = code_with_suffix
@@ -163,26 +140,92 @@ def add_code_to_operation(operation_text, name_to_code):
             return f"{action} {asset}"
     return re.sub(r'(买入|卖出|调仓|换入|换出)\s*([^\s;\uff1b\uff0c,.]+)', repl, operation_text)
 
-def handle_trade_operation(op_block_html, name_to_code, batch_no, ratio, sample_amount, strategy_id=None):
+def handle_trade_operation(op_block_html, name_to_code, batch_no, ratio, sample_amount, strategy_id=None, account_id=None):
     op_text = BeautifulSoup(op_block_html, 'lxml').get_text()
     op_text_with_code = add_code_to_operation(op_text, name_to_code or {})
     print("买卖操作明细：", flush=True)
     print(op_text_with_code, flush=True)
-
     time.sleep(random.uniform(0.1, 0.5))
-
     draft_plan_file_path = generate_trade_plan_draft_func(
         batch_no,
         op_text_with_code,
         ratio,
         sample_amount,
         output_dir=os.path.join(os.path.dirname(__file__), "trade_plan", "setting"),
-        strategy_id=strategy_id
+        strategy_id=strategy_id,
+        account_id=account_id
     )
     print("已生成交易计划草稿:", draft_plan_file_path, flush=True)
     return draft_plan_file_path
 
 name_to_code = load_name_to_code_map(CODE_INDEX_PATH)
+
+# -------------------- 主/从账号共享发布目录（用于 master fetch 模式） --------------------
+def _ensure_shared_publish_dir():
+    base = os.path.join(os.path.dirname(__file__), "trade_plan", "shared")
+    os.makedirs(base, exist_ok=True)
+    return base
+
+def publish_master_merged(merged_path: str, batch_no: int, master_id: str):
+    shared = _ensure_shared_publish_dir()
+    try:
+        try:
+            dst_copy = os.path.join(shared, os.path.basename(merged_path))
+            shutil.copy2(merged_path, dst_copy)
+        except Exception:
+            dst_copy = merged_path
+        pointer = {
+            "merged_path": dst_copy,
+            "batch_no": batch_no,
+            "master_id": master_id,
+            "published_at": datetime.now().isoformat()
+        }
+        pointer_path = os.path.join(shared, f"batch{batch_no}_merged_acct{master_id}.json")
+        tmp = pointer_path + ".tmp"
+        with open(tmp, "w", encoding="utf-8") as f:
+            json.dump(pointer, f, ensure_ascii=False, indent=2)
+            f.flush()
+            os.fsync(f.fileno())
+        os.replace(tmp, pointer_path)
+        return pointer_path
+    except Exception as e:
+        print(f"发布 master merged 失败: {e}", flush=True)
+        return None
+
+def wait_for_master_merged(batch_no: int, master_id: str, timeout: int = 120, poll_interval: float = 1.0):
+    shared = _ensure_shared_publish_dir()
+    pointer_path = os.path.join(shared, f"batch{batch_no}_merged_acct{master_id}.json")
+    start = time.time()
+    while time.time() - start < timeout:
+        if os.path.exists(pointer_path):
+            try:
+                with open(pointer_path, "r", encoding="utf-8") as f:
+                    j = json.load(f)
+                merged_path = j.get("merged_path")
+                if merged_path and os.path.exists(merged_path):
+                    return merged_path
+                if merged_path:
+                    return merged_path
+            except Exception as e:
+                print(f"读取 master pointer 失败：{e}", flush=True)
+        time.sleep(poll_interval)
+    return None
+
+def is_merged_empty(merged_path: str) -> bool:
+    """
+    读取 merged draft 文件并判断 meta.empty（容错：读取失败返回 False，避免误判）
+    """
+    if not merged_path:
+        return False
+    try:
+        with open(merged_path, 'r', encoding='utf-8') as f:
+            j = json.load(f)
+        meta = j.get('meta') or {}
+        return bool(meta.get('empty', False))
+    except Exception:
+        return False
+
+# -------------------- end shared publish helpers --------------------
 
 def delayed_run(delay, *args, **kwargs):
     print(f"[delayed_run] Will run batch after {delay} seconds", flush=True)
@@ -249,12 +292,24 @@ def fetch_and_check_batch_with_trade_plan(
     batch_no, batch_time, batch_cfgs, config, account_asset_info, positions,
     generate_trade_plan_final_func, xt_trader, account
 ):
+    """
+    支持 use_master_fetch 模式：若启用且当前 account 不是 master（MASTER_ACCOUNT_ID），则不再登录/抓取云飞页面，
+    而是等待 master 发布的 merged 草稿（trade_plan/shared）。
+    若 merged.meta.empty==True，则从账号直接短路标记批次完成，不生成 final plan。
+    """
     print(f"批次{batch_no}任务已启动, 目标时间: {batch_time}, 当前时间: {datetime.now()}, 策略数: {len(batch_cfgs)}", flush=True)
 
     if hasattr(account, "account_id"):
         account_id_str = getattr(account, "account_id")
     else:
         account_id_str = config.get('account_id', 'unknown')
+
+    # use_master 可由 config 控制，master id 固定为 MASTER_ACCOUNT_ID
+    use_master = bool(config.get('use_master_fetch', True))
+    master_id = MASTER_ACCOUNT_ID
+    master_wait_timeout = int(config.get('master_wait_timeout', 180))
+    #超时后自己去抓
+    master_fallback_to_local_merge = bool(config.get('master_fallback_to_local_merge', True))
 
     today_str = datetime.now().strftime('%Y-%m-%d')
     today_date = datetime.strptime(today_str, '%Y-%m-%d').date()
@@ -267,6 +322,123 @@ def fetch_and_check_batch_with_trade_plan(
         print(f"批次{batch_no}今日已执行（账户 {account_id_str}），跳过。", flush=True)
         return
 
+    # 如果启用 master 模式并且当前不是 master，直接等待 master 发布 merged 草稿
+    if use_master and master_id and account_id_str != master_id:
+        print(f"当前账号 {account_id_str} 为从账号（use_master_fetch 模式），将等待主账号 {master_id} 发布合并草稿（超时 {master_wait_timeout}s）", flush=True)
+        merged_from_master = wait_for_master_merged(batch_no, master_id, timeout=master_wait_timeout)
+        if not merged_from_master:
+            print(f"[超时] 等待主账号合并草稿超时（batch {batch_no}）。", flush=True)
+            if master_fallback_to_local_merge:
+                print("配置允许回退到本地合并，尝试自行合并（此过程会进行本账号登录并抓取页面）", flush=True)
+            else:
+                print("不回退，标记本批次已完成并退出。", flush=True)
+                batch_status = load_batch_status(account_id_str)
+                batch_status[str(batch_no)] = True
+                save_batch_status(account_id_str, batch_status)
+                return
+        else:
+            print(f"已从主账号获取到合并草稿: {merged_from_master}", flush=True)
+            # 如果 merged 文件被标注为空（empty），直接短路结束，不生成 final plan
+            if is_merged_empty(merged_from_master):
+                print(f"合并草稿标注为 empty（本批次无交易），账号 {account_id_str} 将标记完成并退出。", flush=True)
+                batch_status = load_batch_status(account_id_str)
+                batch_status[str(batch_no)] = True
+                save_batch_status(account_id_str, batch_status)
+                return
+
+            # 否则继续用该 merged_draft 生成最终交易计划并执行
+            merged_draft = merged_from_master
+            trade_date = datetime.now().strftime('%Y-%m-%d')
+            final_trade_plan_file = os.path.join(
+                TRADE_PLAN_DIR,
+                f"yunfei_trade_plan_final_{account_id_str}_{trade_date}_batch{batch_no}.json"
+            )
+            try:
+                fresh_account_info = None
+                fresh_positions = None
+                try:
+                    fresh_account_info = xt_trader.query_stock_asset(account)
+                    fresh_positions = xt_trader.query_stock_positions(account)
+                    print("已获取实时账户与持仓，用于生成最终交易计划。", flush=True)
+                except Exception as e_query:
+                    print(f"警告：查询实时账户/持仓失败，继续使用传入快照: {e_query}", flush=True)
+
+                setting_file_path = merged_draft
+                if fresh_account_info is not None and fresh_positions is not None:
+                    fresh_account_tuple = account_asset_to_tuple(fresh_account_info)
+                    fresh_positions_list = positions_to_dict(fresh_positions)
+                    generate_trade_plan_final_func(
+                        config=config,
+                        account_asset_info=fresh_account_tuple,
+                        positions=fresh_positions_list,
+                        trade_date=trade_date,
+                        setting_file_path=setting_file_path,
+                        trade_plan_file=final_trade_plan_file
+                    )
+                else:
+                    positions_list = positions_to_dict(positions)
+                    generate_trade_plan_final_func(
+                        config=config,
+                        account_asset_info=account_asset_info,
+                        positions=positions_list,
+                        trade_date=trade_date,
+                        setting_file_path=setting_file_path,
+                        trade_plan_file=final_trade_plan_file
+                    )
+
+                print("生成最终交易计划完毕（从主账号合并草稿）:", flush=True)
+
+                try:
+                    with open(final_trade_plan_file, 'r', encoding='utf-8') as f:
+                        trade_plan = json.load(f)
+                except Exception as e_read:
+                    print(f"读取最终交易计划失败: {e_read}", flush=True)
+                    batch_status = load_batch_status(account_id_str)
+                    batch_status[str(batch_no)] = True
+                    save_batch_status(account_id_str, batch_status)
+                    return
+
+                print(f"将要执行的最终交易计划: {json.dumps(trade_plan, ensure_ascii=False)}", flush=True)
+
+                try:
+                    from processor.trade_plan_execution import execute_trade_plan
+                    from filelock import FileLock
+                    lock_dir = os.path.join(os.path.dirname(__file__), "runtime", "locks")
+                    os.makedirs(lock_dir, exist_ok=True)
+                    lock_path = os.path.join(lock_dir, f"account_{account_id_str}.lock")
+                    with FileLock(lock_path, timeout=5):
+                        print("开始执行 SELL 阶段（会提交卖单）...", flush=True)
+                        execute_trade_plan(xt_trader, account, trade_plan, action='sell')
+                        print("SELL 阶段已发出委托（异步），等待回调并刷新账户...", flush=True)
+                        time.sleep(10.0)
+                        try:
+                            refreshed_account_info = xt_trader.query_stock_asset(account)
+                            refreshed_positions = xt_trader.query_stock_positions(account)
+                            print("已刷新执行后实时账户与持仓。", flush=True)
+                            print(f"刷新后可用资金: {getattr(refreshed_account_info,'m_dCash', 'N/A')}", flush=True)
+                        except Exception as e_refresh:
+                            print(f"刷新执行后账户持仓失败: {e_refresh}", flush=True)
+                            refreshed_account_info = None
+                            refreshed_positions = None
+                        print("开始执行 BUY 阶段（会提交买单）...", flush=True)
+                        execute_trade_plan(xt_trader, account, trade_plan, action='buy')
+                        print("BUY 阶段已发出委托（异步）。", flush=True)
+                    batch_status = load_batch_status(account_id_str)
+                    batch_status[str(batch_no)] = True
+                    save_batch_status(account_id_str, batch_status)
+                except Exception as e_exec:
+                    print(f"自动执行交易计划失败: {e_exec}", flush=True)
+                    batch_status = load_batch_status(account_id_str)
+                    batch_status[str(batch_no)] = True
+                    save_batch_status(account_id_str, batch_status)
+            except Exception as e_gen:
+                print(f"生成/执行最终交易计划失败: {e_gen}", flush=True)
+                batch_status = load_batch_status(account_id_str)
+                batch_status[str(batch_no)] = True
+                save_batch_status(account_id_str, batch_status)
+            return
+
+    # ----------------- 下面是 master 或回退到本地合并时的原有逻辑（需要登录并抓取页面） -----------------
     processed_strategy_keys = set()
     draft_files_for_batch = []
 
@@ -297,14 +469,12 @@ def fetch_and_check_batch_with_trade_plan(
                         time.sleep(15)
                 continue
 
-            # ------------ parse and normalize -------------
             strategies_raw = parse_b_follow_page(html)
 
             try:
                 strategies = normalize_strategies(strategies_raw)
             except Exception as e_norm:
                 print("normalize_strategies 失败:", e_norm, flush=True)
-                # fallback: best-effort convert
                 strategies = []
                 for it in (strategies_raw or []):
                     if not isinstance(it, dict):
@@ -348,7 +518,6 @@ def fetch_and_check_batch_with_trade_plan(
                         '_raw': it
                     })
 
-            # write debug sample to file to assist troubleshooting (保留原样本文件)
             try:
                 dbg_path = os.path.join(os.path.dirname(__file__), 'debug_parsed_strategies.json')
                 with open(dbg_path, 'w', encoding='utf-8') as f_dbg:
@@ -361,7 +530,6 @@ def fetch_and_check_batch_with_trade_plan(
             except Exception as e_dump:
                 print("写 debug_parsed_strategies.json 失败:", e_dump, flush=True)
 
-            # 额外：把完整的 html/items/normalized 写入 fetch_cache（时间戳 + latest）
             try:
                 ts_iso = datetime.now().isoformat()
                 _save_parsed_artifacts(strategies_raw, strategies, html=html, ts_iso=ts_iso)
@@ -369,14 +537,12 @@ def fetch_and_check_batch_with_trade_plan(
             except Exception as e_save:
                 print("保存 full parsed strategies 失败:", e_save, flush=True)
 
-            # sanity keys print
             try:
                 sample_keys = [list(s.keys()) for s in strategies[:8]]
                 print("Parsed strategies sample keys:", sample_keys, flush=True)
             except Exception:
                 pass
 
-            # ------------ end parse / normalize -------------
             all_cfgs_checked = True
             time.sleep(5)
 
@@ -406,7 +572,7 @@ def fetch_and_check_batch_with_trade_plan(
                         print(f"\n>>> 策略【{s.get('name','(unknown)')}】 操作时间: {s.get('time','')}", flush=True)
                         strat_id = cfg.get('策略ID', None)
                         draft_plan_file_path = handle_trade_operation(s.get('operation_block',''), name_to_code, batch_no,
-                                                                      config_amount, sample_amount, strategy_id=strat_id)
+                                                                      config_amount, sample_amount, strategy_id=strat_id, account_id=account_id_str)
                         print(f"配置仓位: {config_amount}，样板操作金额: {sample_amount}", flush=True)
                         print("当前持仓:")
                         for h in s.get('holding_block', []):
@@ -442,8 +608,25 @@ def fetch_and_check_batch_with_trade_plan(
                 wait_for_drafts(setting_dir, batch_no, expected_count=expected_n, timeout=30, poll_interval=0.5)
 
                 merged_draft = merge_tradeplans(account_id_str, batch_no, setting_dir)
+
+                # 主账号合并后发布（如果启用 master 模式）
+                if merged_draft and use_master and master_id and account_id_str == master_id:
+                    try:
+                        publish_master_merged(merged_draft, batch_no, master_id)
+                        print(f"主账号已发布合并草稿: {merged_draft}", flush=True)
+                    except Exception as e:
+                        print(f"发布合并草稿失败: {e}", flush=True)
+
                 if not merged_draft:
                     print("未发现任何策略草稿，跳过生成最终交易计划。", flush=True)
+                    batch_status = load_batch_status(account_id_str)
+                    batch_status[str(batch_no)] = True
+                    save_batch_status(account_id_str, batch_status)
+                    break
+
+                # 若 merged 标注为 empty，短路并标记批次完成
+                if is_merged_empty(merged_draft):
+                    print(f"合并草稿为 empty（本批次无交易），账号 {account_id_str} 将标记完成并退出。", flush=True)
                     batch_status = load_batch_status(account_id_str)
                     batch_status[str(batch_no)] = True
                     save_batch_status(account_id_str, batch_status)
@@ -511,9 +694,7 @@ def fetch_and_check_batch_with_trade_plan(
                             print("开始执行 SELL 阶段（会提交卖单）...", flush=True)
                             execute_trade_plan(xt_trader, account, trade_plan, action='sell')
                             print("SELL 阶段已发出委托（异步），等待回调并刷新账户...", flush=True)
-
                             time.sleep(10.0)
-
                             try:
                                 refreshed_account_info = xt_trader.query_stock_asset(account)
                                 refreshed_positions = xt_trader.query_stock_positions(account)
@@ -523,27 +704,22 @@ def fetch_and_check_batch_with_trade_plan(
                                 print(f"刷新执行后账户持仓失败: {e_refresh}", flush=True)
                                 refreshed_account_info = None
                                 refreshed_positions = None
-
                             print("开始执行 BUY 阶段（会提交买单）...", flush=True)
                             execute_trade_plan(xt_trader, account, trade_plan, action='buy')
                             print("BUY 阶段已发出委托（异步）。", flush=True)
-
                         batch_status = load_batch_status(account_id_str)
                         batch_status[str(batch_no)] = True
                         save_batch_status(account_id_str, batch_status)
-
                     except Exception as e_exec:
                         print(f"自动执行交易计划失败: {e_exec}", flush=True)
                         batch_status = load_batch_status(account_id_str)
                         batch_status[str(batch_no)] = True
                         save_batch_status(account_id_str, batch_status)
-
                 except Exception as e_gen:
                     print(f"生成/执行最终交易计划失败: {e_gen}", flush=True)
                     batch_status = load_batch_status(account_id_str)
                     batch_status[str(batch_no)] = True
                     save_batch_status(account_id_str, batch_status)
-
                 break
 
             print("本批次部分策略还未更新到今日或未来，20秒后重试", flush=True)
@@ -561,7 +737,6 @@ def fetch_and_check_batch_with_trade_plan(
                     time.sleep(15)
         except Exception as e:
             print("抓取异常", e, flush=True)
-            # 将详细异常写入 debug 便于后续分析
             try:
                 err_path = os.path.join(os.path.dirname(__file__), "debug_fetch_exception.txt")
                 with open(err_path, "a", encoding="utf-8") as ef:
@@ -589,18 +764,14 @@ def get_bracket_content(s):
 def find_strategy_by_id_and_bracket(cfg, strategies):
     json_name = cfg.get('策略名称','').strip()
     json_id = str(cfg.get('策略ID', '')).strip()
-
     for s in strategies:
         web_full_name = (s.get('name') or '').strip()
         if web_full_name.endswith(json_name) and json_name:
             return s
-
     if not json_id:
         return None
-
     json_id_prefix = json_id[:-1] if len(json_id) > 1 else json_id
     json_bracket = get_bracket_content(json_name)
-
     for s in strategies:
         web_full_name = (s.get('name') or '').strip()
         id_match = re.search(r"L?(\d+):", web_full_name)
@@ -646,7 +817,6 @@ def collect_today_strategies():
             if not s:
                 print(f"策略【{name}】未找到！")
                 continue
-
             strategy_date_str = s.get('date', '')
             is_updated = False
             if strategy_date_str:
@@ -656,13 +826,11 @@ def collect_today_strategies():
                         is_updated = True
                 except ValueError:
                     pass
-
             if is_updated and extract_operation_action(s.get('operation_block','')) == '买卖':
                 config_amount = cfg.get('配置仓位', 0)
                 sample_amount = round(config_amount * SAMPLE_ACCOUNT_AMOUNT/100, 2)
                 handle_trade_operation(s.get('operation_block',''), name_to_code, batch, config_amount, sample_amount, strategy_id=cfg.get('策略ID'))
                 print(f"  配置仓位: {config_amount}，样板操作金额: {sample_amount}")
-
             print(f"【{name}】更新日期: {strategy_date_str}，当前持仓:")
             if s.get('holding_block'):
                 for h in s.get('holding_block', []):

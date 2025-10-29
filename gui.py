@@ -10,9 +10,10 @@ from gui.remind_page import RemindPage, load_reminders, save_reminders, check_du
 from tkinter import messagebox
 
 # 配置区
+# key 保留为显示别名，config 中加入 account_id（真实资金账号ID）
 ACCOUNTS = {
-    "shu": {"log_file": "logs/shu.log"},
-    "mama": {"log_file": "logs/mama.log"}
+    "shu": {"account_id": "8886006288", "log_file": "logs/shu.log"},
+    "mama": {"account_id": "8886086288", "log_file": "logs/mama.log"}
 }
 PLAN_FILE = "tradeplan/trade_plan_draft.json"
 
@@ -133,8 +134,8 @@ def main():
 
     accounts_frame = tb.Frame(exec_frame)
     accounts_frame.pack(fill=BOTH, expand=True)
-    for acc, cfg in ACCOUNTS.items():
-        proc = build_account_frame(accounts_frame, acc, cfg)
+    for acc_display, cfg in ACCOUNTS.items():
+        proc = build_account_frame(accounts_frame, acc_display, cfg)
         procs.append(proc)
 
     diary_frame = DiaryPage(main_frame)

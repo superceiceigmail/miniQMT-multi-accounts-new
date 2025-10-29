@@ -80,6 +80,17 @@
     "major": false
   },
   {
+    "content": "云飞策略保存",
+    "priority": 4,
+    "start_date": "",
+    "start_time": "",
+    "created_date": "2025-10-29",
+    "category": "量化",
+    "project": "",
+    "tags": "",
+    "major": false
+  },
+  {
     "content": "云飞的策略自动跟踪。",
     "priority": 3,
     "start_date": "",
@@ -217,6 +228,17 @@
     "start_time": "",
     "created_date": "2025-10-01",
     "category": "生活",
+    "project": "",
+    "tags": "",
+    "major": false
+  },
+  {
+    "content": "策略相关性分析",
+    "priority": 4,
+    "start_date": "",
+    "start_time": "",
+    "created_date": "2025-10-29",
+    "category": "量化",
     "project": "",
     "tags": "",
     "major": false

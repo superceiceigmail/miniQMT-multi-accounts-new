@@ -1459,11 +1459,30 @@
     },
     {
       "date": "2025-10-29",
-      "honor": [],
+      "honor": [
+        {
+          "category": "量化",
+          "content": "完成了云飞主账号统一爬取，分账号读取主账号逻辑\n完成了云飞抓取落盘后交易和对账双分支重构\n完成了基本的对账数据\n解决了很多bug\n学到了云飞封锁的处理办法\n非常累",
+          "major": true,
+          "score": 5.0,
+          "unit": "天",
+          "project": "云飞自动交易",
+          "tags": ""
+        },
+        {
+          "category": "交易",
+          "content": "对账可视化跑通",
+          "major": true,
+          "score": 1.0,
+          "unit": "天",
+          "project": "云飞自动交易",
+          "tags": ""
+        }
+      ],
       "plan": [],
       "rules": "",
       "followed_plan": true,
-      "timestamp": "2025-10-29T09:17:57"
+      "timestamp": "2025-10-29T14:51:16"
     }
   ],
   "continuous_days_last_date": "2025-10-29"

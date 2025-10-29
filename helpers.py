@@ -21,7 +21,7 @@ from yunfei_ball.yunfei_connect_follow import fetch_and_check_batch_with_trade_p
 # 云飞与自动交易时间常量（可放到 config 文件）
 YUNFEI_SCHEDULE_TIMES = [
     "14:52:00",
-    "13:00:05",
+    "13:00:01",
     "14:31:20",
     "14:51:25",
 ]

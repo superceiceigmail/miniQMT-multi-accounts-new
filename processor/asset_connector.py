@@ -33,7 +33,7 @@ def print_account_asset(trader, account_id):
     额外：将资产信息以 JSON 文件保存到 account_data/assets/asset_{account_id}.json，
     文件中包含 last_update 字段，方便后续读取每个账号的最新信息。
     :param trader: XtQuantTrader 对象，用于查询交易数据。
-    :param account_id: 资金账号（字符串）。
+    :param account_id: 资金账号（字符串）。所有文件读写与模板判断均以此 ID 为准（不依赖 asset 内部可能的名字字段）。
     :return: (total_asset, cash, frozen_cash, market_value, percent_cash, percent_frozen, percent_market)
     """
     # 创建资金账号对象
@@ -90,9 +90,9 @@ def print_account_asset(trader, account_id):
         bar_frozen = bar(frozen_cash, total_asset)
         bar_market = bar(market_value, total_asset)
 
-        # 构建资产信息字典
+        # 强制使用传入的 account_id 作为保存和识别的 ID（避免使用 asset 内部可能是别名的字段）
         asset_dict = {
-            "account_id": str(getattr(asset, "account_id", account_id)),
+            "account_id": str(account_id),
             "cash": round(float(cash or 0.0), 2),
             "frozen_cash": round(float(frozen_cash or 0.0), 2),
             "market_value": round(float(market_value or 0.0), 2),
@@ -106,19 +106,21 @@ def print_account_asset(trader, account_id):
         try:
             save_dir = os.path.join("account_data", "assets")
             os.makedirs(save_dir, exist_ok=True)
-            save_path = os.path.join(save_dir, f"asset_{asset_dict['account_id']}.json")
+            # 注意：文件名使用传入参数 account_id（ID），保证与后续读取一致
+            save_path = os.path.join(save_dir, f"asset_{str(account_id)}.json")
             data_to_save = {
                 "last_update": datetime.datetime.now().isoformat(),
                 "asset": asset_dict
             }
             _atomic_write_json(save_path, data_to_save)
-            logging.info(f"已写入账户资产文件: {save_path} account_id={asset_dict['account_id']} total_asset={asset_dict['total_asset']}")
+            logging.info(f"已写入账户资产文件: {save_path} account_id={str(account_id)} total_asset={asset_dict['total_asset']}")
         except Exception as e:
             logging.exception(f"写入账户资产文件失败: {e}")
 
         # 控制写入模板的期望账号（可通过环境变量覆盖）
         EXPECTED_TEMPLATE_ACCOUNT_ID = os.getenv("EXPECTED_TEMPLATE_ACCOUNT_ID", "8886006288")
-        should_save_template = (str(account_id) == EXPECTED_TEMPLATE_ACCOUNT_ID) or (asset_dict["account_id"] == EXPECTED_TEMPLATE_ACCOUNT_ID)
+        # 仅比较传入的 account_id 参数（使用 ID 作为唯一识别）
+        should_save_template = (str(account_id) == EXPECTED_TEMPLATE_ACCOUNT_ID)
 
         # 仅在 should_save_template 为 True 时才写入 template_account_info 和前端 public 目录（避免任意账号覆盖前端文件）
         try:
@@ -126,9 +128,9 @@ def print_account_asset(trader, account_id):
                 save_dir = "template_account_info"
                 save_path = os.path.join(save_dir, "template_account_asset_info.json")
                 _atomic_write_json(save_path, asset_dict)
-                logging.info(f"已写入本地模板: {save_path} account_id={asset_dict['account_id']} total_asset={asset_dict['total_asset']}")
+                logging.info(f"已写入本地模板: {save_path} account_id={str(account_id)} total_asset={asset_dict['total_asset']}")
             else:
-                logging.info(f"跳过写入本地模板（非期望账号 {EXPECTED_TEMPLATE_ACCOUNT_ID}），当前 account_id={asset_dict['account_id']}")
+                logging.info(f"跳过写入本地模板（非期望账号 {EXPECTED_TEMPLATE_ACCOUNT_ID}），当前 account_id={str(account_id)}")
         except Exception as e:
             logging.exception(f"写入本地模板失败: {e}")
 
@@ -137,7 +139,7 @@ def print_account_asset(trader, account_id):
                 fe_save_dir = r"C:\Users\ceicei\PycharmProjects\miniQMT-frontend\public\template_account_info"
                 fe_save_path = os.path.join(fe_save_dir, "template_account_asset_info.json")
                 _atomic_write_json(fe_save_path, asset_dict)
-                logging.info(f"已写入前端模板: {fe_save_path} account_id={asset_dict['account_id']} total_asset={asset_dict['total_asset']}")
+                logging.info(f"已写入前端模板: {fe_save_path} account_id={str(account_id)} total_asset={asset_dict['total_asset']}")
             else:
                 logging.info(f"跳过写入前端模板（非期望账号 {EXPECTED_TEMPLATE_ACCOUNT_ID}）")
         except Exception as e:

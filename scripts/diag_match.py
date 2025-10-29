@@ -26,8 +26,8 @@ try:
 except Exception:
     fetch_b_follow = None
 
-ALLOCATION_PATH = os.path.join("yunfei_ball", "allocation.json")
-DEBUG_ITEMS_PATH = "debug_out_items.json"
+ALLOCATION_PATH = os.path.join("../yunfei_ball", "allocation.json")
+DEBUG_ITEMS_PATH = "../archive/tests_archive_20251029/debug_out_items.json"
 DIAG_OUT = "diag_match_result.json"
 
 

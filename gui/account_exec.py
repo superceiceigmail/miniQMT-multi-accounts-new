@@ -1,4 +1,3 @@
-# 改进后的 gui/account_exec.py（在 _show_reconcile_dialog 中对 ScrolledText 的 state 操作做兼容处理）
 import os
 import subprocess
 import threading
@@ -11,11 +10,18 @@ import psutil
 import ttkbootstrap as tb
 from ttkbootstrap.constants import *
 from ttkbootstrap.scrolled import ScrolledText
-from tkinter import messagebox, Toplevel
+from tkinter import messagebox, Toplevel, BOTH, X, LEFT, RIGHT
 import webbrowser
 import json
+from decimal import Decimal
 
-# 新增：调用 yunfei 的对账接口
+# New: try import reconcile_ui to reuse save/viz helpers
+try:
+    from gui import reconcile_ui as ru
+except Exception:
+    ru = None
+
+# 新增：调用 yunfei 的对账接口（网络）和本地对账函数（文件比对）
 try:
     from yunfei_ball.yunfei_reconcile import reconcile_account
     from yunfei_ball.yunfei_login import login, BASE_URL
@@ -24,16 +30,27 @@ except Exception:
     login = None
     BASE_URL = "https://www.ycyflh.com"
 
+# 尝试导入本地的 reconcile_report / reconcile_ui（优先使用）
+try:
+    from gui.reconcile_report import generate_reconcile_report
+except Exception:
+    generate_reconcile_report = None
+
+try:
+    from gui.reconcile_ui import reconcile_for_account as reconcile_for_account_local
+except Exception:
+    reconcile_for_account_local = None
+
 MAIN_SCRIPT = "main.py"  # 注意：可根据实际后端文件调整路径
 ENV_TAG_KEY = "MINIQMT_MANAGED_ACCOUNT"  # 旧的环境标记（account）
 ENV_UI_ID = "MINIQMT_UI_ID"  # 新增：GUI 给子进程的唯一 id
 
 class AccountProcess:
     """
-    启动时附带唯一 ui_id（同时作为命令行参数和环境变量），便于精确终止。
-    stop 使用多阶段策略，优先匹配 ui_id（通过 cmdline 或 environ）来定位并杀死进程。
+    AccountProcess 中 self.account 现在存放 account_id（字符串），以保证所有系统调用/环境变量/命令行参数都使用资金账号 ID 而不是显示名。
     """
     def __init__(self, account, config, widgets):
+        # account here should be the account_id (ID string)
         self.account = account
         self.config = config
         self.proc = None
@@ -60,7 +77,7 @@ class AccountProcess:
         ts = int(time.time())
         self.ui_id = f"{self.account}-{ts}-{uid}"
 
-        # 传入环境变量标记，便于后代识别
+        # 传入环境变量标记，便于后代识别（使用 account_id）
         env = os.environ.copy()
         env[ENV_TAG_KEY] = str(self.account)
         env[ENV_UI_ID] = self.ui_id
@@ -343,21 +360,42 @@ class AccountProcess:
         except Exception:
             pass
 
-def _show_reconcile_dialog(parent, result):
+def _make_serializable(obj):
+    # 递归把 Decimal -> float，其他不可序列化对象尽量转成 str
+    if isinstance(obj, Decimal):
+        try:
+            return float(obj)
+        except Exception:
+            return str(obj)
+    if isinstance(obj, dict):
+        return {k: _make_serializable(v) for k, v in obj.items()}
+    if isinstance(obj, list):
+        return [_make_serializable(i) for i in obj]
+    if isinstance(obj, tuple):
+        return tuple(_make_serializable(i) for i in obj)
+    # fallback for objects with __dict__
+    try:
+        if hasattr(obj, '__dict__'):
+            return _make_serializable(obj.__dict__)
+    except Exception:
+        pass
+    return obj
+
+def _show_reconcile_dialog(parent, result, account_id):
     dlg = Toplevel(parent)
     dlg.title("对账结果")
     dlg.geometry("900x700")
     dlg.transient(parent)
 
-    fetched_at = result.get('fetched_at', '')
-    warnings = result.get('warnings', [])
-    batches = result.get('batches', {})
+    fetched_at = result.get('fetched_at', '') or result.get('fetched_at_iso', '')
+    warnings = result.get('warnings', []) or ( [result.get('warning')] if result.get('warning') else [] )
+    batches = result.get('batches', {}) or ( { "1": result.get('items', []) } if result.get('items') is not None else {} )
 
     header = tb.Label(dlg, text=f"爬取时间: {fetched_at}    批次数: {len(batches)}", font=("微软雅黑", 11, "bold"))
     header.pack(anchor="w", padx=10, pady=(8,4))
 
     if warnings:
-        warn_label = tb.Label(dlg, text="警告: " + "; ".join(warnings), foreground="red")
+        warn_label = tb.Label(dlg, text="警告: " + "; ".join([str(w) for w in warnings]), foreground="red")
         warn_label.pack(anchor="w", padx=10, pady=(0,6))
 
     txt = ScrolledText(dlg, height=30, wrap='none', font=("Consolas", 10))
@@ -373,15 +411,16 @@ def _show_reconcile_dialog(parent, result):
             except Exception:
                 pass
 
+        # make result JSON-serializable (handle Decimal etc.)
+        serial = _make_serializable(result)
         try:
-            # Insert JSON formatted result, fallback to str(result)
-            txt.insert("end", json.dumps(result, ensure_ascii=False, indent=2))
+            txt.insert("end", json.dumps(serial, ensure_ascii=False, indent=2))
         except Exception:
             try:
                 txt.delete(1.0, "end")
             except Exception:
                 pass
-            txt.insert("end", str(result))
+            txt.insert("end", str(serial))
     except Exception:
         # Best-effort insert; if that fails, ignore
         try:
@@ -398,23 +437,106 @@ def _show_reconcile_dialog(parent, result):
         except Exception:
             pass
 
+    # ----------------- buttons (保存/导出/可视化/关闭) -----------------
     btn_frame = tb.Frame(dlg)
     btn_frame.pack(fill=X, pady=6)
+
+    # 原有的 _save 函数仍保留为“另存为”功能
     def _save():
         from tkinter.filedialog import asksaveasfilename
         path = asksaveasfilename(defaultextension=".json", filetypes=[("JSON files", "*.json"), ("All files", "*.*")])
         if path:
             try:
                 with open(path, "w", encoding="utf-8") as f:
-                    json.dump(result, f, ensure_ascii=False, indent=2)
+                    json.dump(_make_serializable(result), f, ensure_ascii=False, indent=2)
                 messagebox.showinfo("保存成功", f"已保存到 {path}")
             except Exception as e:
                 messagebox.showerror("保存失败", str(e))
-    tb.Button(btn_frame, text="保存到文件", command=_save, bootstyle="info-outline").pack(side=LEFT, padx=6)
+
+    # 新增：导出 JSON（保存到 reports/reconcile_{account_id}.json）
+    def _export_json():
+        try:
+            # 优先使用 reconcile_ui.save_report_json if available
+            if ru and hasattr(ru, "save_report_json"):
+                path = ru.save_report_json(result, account_id)
+            else:
+                # 本地实现回退
+                reports_dir = os.path.join(os.path.dirname(__file__), "..", "reports")
+                os.makedirs(reports_dir, exist_ok=True)
+                fname = f"reconcile_{account_id}.json"
+                path = os.path.join(reports_dir, fname)
+                with open(path, "w", encoding="utf-8") as f:
+                    json.dump(_make_serializable(result), f, ensure_ascii=False, indent=2, default=str)
+            if path:
+                messagebox.showinfo("导出成功", f"已导出对账 JSON:\n{path}")
+            else:
+                messagebox.showerror("导出失败", "导出 JSON 失败")
+        except Exception as e:
+            messagebox.showerror("导出失败", str(e))
+
+    # 新增：生成可视化（调用 reconcile_ui.generate_visualization_from_report 或回退执行 viz 脚本）
+    def _generate_viz():
+        try:
+            # 先确保 JSON 已保存
+            if ru and hasattr(ru, "save_report_json"):
+                json_path = ru.save_report_json(result, account_id)
+            else:
+                # 本地回退保存到 reports/
+                reports_dir = os.path.join(os.path.dirname(__file__), "..", "reports")
+                os.makedirs(reports_dir, exist_ok=True)
+                fname = f"reconcile_{account_id}.json"
+                json_path = os.path.join(reports_dir, fname)
+                with open(json_path, "w", encoding="utf-8") as f:
+                    json.dump(_make_serializable(result), f, ensure_ascii=False, indent=2, default=str)
+
+            if not json_path or not os.path.exists(json_path):
+                messagebox.showerror("可视化失败", "JSON 保存失败，无法生成可视化")
+                return
+
+            # 首选使用 reconcile_ui.generate_visualization_from_report
+            if ru and hasattr(ru, "generate_visualization_from_report"):
+                out_html = os.path.join(os.path.dirname(json_path), f"reconcile_{account_id}_viz.html")
+                res_html = ru.generate_visualization_from_report(json_path, out_html=out_html, blocks=30, scale="total", top=100)
+                if res_html:
+                    messagebox.showinfo("已生成并打开可视化", f"已生成可视化并在浏览器打开：\n{res_html}")
+                else:
+                    # ru 会在失败时弹窗已包含错误信息
+                    pass
+            else:
+                # 回退：尝试执行 scripts/viz_per_instrument.py 或 viz_blocks.py
+                repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+                script1 = os.path.join(repo_root, "scripts", "viz_per_instrument.py")
+                script2 = os.path.join(repo_root, "viz_blocks.py")
+                script = script1 if os.path.exists(script1) else (script2 if os.path.exists(script2) else None)
+                if not script:
+                    messagebox.showerror("可视化失败", f"找不到可视化脚本，期待：\n{script1}\n或\n{script2}")
+                    return
+                out_html = os.path.splitext(json_path)[0] + "_viz.html"
+                cmd = [sys.executable, script, "--json", json_path, "--out", out_html, "--blocks", "30", "--scale", "total", "--top", "100"]
+                proc = subprocess.run(cmd, capture_output=True, text=True)
+                if proc.returncode != 0:
+                    messagebox.showerror("可视化失败", f"可视化脚本返回错误 (rc={proc.returncode})\n\nSTDOUT:\n{proc.stdout}\n\nSTDERR:\n{proc.stderr}")
+                    return
+                webbrowser.open("file://" + os.path.abspath(out_html))
+                messagebox.showinfo("可视化成功", f"已生成并打开: {out_html}")
+        except Exception as e:
+            messagebox.showerror("可视化失败", str(e))
+
+    # 按钮布局（包含原有“保存到文件”与新增按钮）
+    tb.Button(btn_frame, text="导出 JSON", command=_export_json, bootstyle="primary-outline").pack(side=LEFT, padx=6)
+    tb.Button(btn_frame, text="生成可视化", command=_generate_viz, bootstyle="info-outline").pack(side=LEFT, padx=6)
+    tb.Button(btn_frame, text="保存到文件", command=_save, bootstyle="secondary-outline").pack(side=LEFT, padx=6)
     tb.Button(btn_frame, text="关闭", command=dlg.destroy, bootstyle="secondary-outline").pack(side=RIGHT, padx=6)
 
-def build_account_frame(root, acc, config):
-    frame = tb.LabelFrame(root, text=f"账户：{acc}", padding=(10,8))
+def build_account_frame(root, acc_display, config):
+    """
+    acc_display: 显示用的别名（如 'shu'），用于 UI 标签
+    config: 包含至少 log_file，可选 account_id（真实资金账号ID）
+    内部所有识别/对账/进程均使用 account_id = config.get('account_id', acc_display)
+    """
+    account_id = config.get("account_id", acc_display)
+
+    frame = tb.LabelFrame(root, text=f"账户：{acc_display} ({account_id})", padding=(10,8))
     frame.pack(side=LEFT, padx=10, pady=10, fill=BOTH, expand=True)
 
     status_label = tb.Label(frame, text="未启动", foreground="#2779aa", font=("微软雅黑", 10, "bold"))
@@ -441,36 +563,59 @@ def build_account_frame(root, acc, config):
     btn_refresh.pack(pady=2)
 
     widgets = {"status": status_label, "log_text": log_text}
-    proc = AccountProcess(acc, config, widgets)
+    # 这里传入 account_id（ID）给 AccountProcess，确保所有后续操作都用 ID
+    proc = AccountProcess(account_id, config, widgets)
     btn_start.config(command=lambda: [proc.start(), proc.update_status()])
     btn_stop.config(command=lambda: [proc.stop(), proc.update_status()])
     btn_refresh.config(command=proc.update_log)
 
-    # 对账按钮回调（先检测登录，再后台执行 reconcile_account，然后在主线程弹窗）
+    # 对账按钮回调（优先使用本地对账接口，否则使用 yunfei 的网络对账）
     def on_reconcile_click():
-        if reconcile_account is None or login is None:
-            messagebox.showerror("错误", "对账模块或登录模块未安装或导入失败，请检查 yunfei_ball 包。")
-            return
-        # 禁用按钮防止重复点击
-        btn_reconcile.config(state="disabled", text="检测登录中...")
+        # 优先使用本地文件比对接口（无需网络抓取）
+        btn_reconcile.config(state="disabled", text="检测中...")
         force = bool(chk_force_var.get())
 
         def worker():
             result = None
             err = None
+            used_local = False
             try:
-                # 先快速尝试 login 检查（轻量），如果未登录则引导用户在浏览器登录
-                session = login(username=None)
-                if not session:
-                    def prompt_login():
-                        if messagebox.askyesno("未登录", "未检测到有效的云飞登录状态。是否在浏览器中打开登录页面以人工登录？"):
-                            webbrowser.open(BASE_URL + "/F2/login.aspx")
-                    # 回到主线程提示
-                    root.after(0, prompt_login)
-                    result = {'fetched_at': None, 'batches': {}, 'account_holdings': {}, 'warnings': ['not_logged_in']}
-                else:
-                    # 已登录：调用 reconcile_account，传入 session via username if needed
-                    result = reconcile_account(account=acc, account_snapshot=None, xt_trader=None, username=None, force_fetch=force, cache_ttl=600)
+                # 1) 首先尝试使用本地的 generate_reconcile_report / reconcile_for_account
+                if generate_reconcile_report is not None:
+                    try:
+                        # generate_reconcile_report(account_id, require_today=False)
+                        res = generate_reconcile_report(account_id, require_today=False)
+                        result = res
+                        used_local = True
+                    except Exception as e_local:
+                        print(f"[reconcile] generate_reconcile_report 失败: {e_local}")
+                        result = None
+
+                if result is None and reconcile_for_account_local is not None:
+                    try:
+                        res = reconcile_for_account_local(account_id)
+                        result = res
+                        used_local = True
+                    except Exception as e_local:
+                        print(f"[reconcile] reconcile_for_account_local 失败: {e_local}")
+                        result = None
+
+                # 2) 如果本地方法都不可用或失败，则回退到网络抓取的 reconcile_account（原有流程）
+                if not used_local:
+                    if reconcile_account is None or login is None:
+                        raise RuntimeError("既没有本地对账函数，也没有 yunfei 对账模块可用")
+                    # 先快速尝试 login 检查（轻量），如果未登录则引导用户在浏览器登录
+                    session = login(username=None)
+                    if not session:
+                        # 回到主线程提示用户在浏览器登录
+                        def prompt_login():
+                            if messagebox.askyesno("未登录", "未检测到有效的云飞登录状态。是否在浏览器中打开登录页面以人工登录？"):
+                                webbrowser.open(BASE_URL + "/F2/login.aspx")
+                        root.after(0, prompt_login)
+                        result = {'fetched_at': None, 'batches': {}, 'account_holdings': {}, 'warnings': ['not_logged_in']}
+                    else:
+                        # 已登录：调用 reconcile_account，传入 session via username if needed
+                        result = reconcile_account(account=account_id, account_snapshot=None, xt_trader=None, username=None, force_fetch=force, cache_ttl=600)
             except Exception as e:
                 err = e
 
@@ -492,7 +637,7 @@ def build_account_frame(root, acc, config):
                     btn_reconcile.config(state="normal", text="对账")
                     return
                 if result:
-                    warnings = result.get('warnings', [])
+                    warnings = result.get('warnings', []) or ( [result.get('warning')] if result.get('warning') else [] )
                     retry_after = parse_retry_after(warnings)
                     if retry_after:
                         # 提示用户并禁用按钮 retry_after 秒
@@ -509,16 +654,16 @@ def build_account_frame(root, acc, config):
                             btn_reconcile.config(text=f"等待 {remain}s")
                             root.after(1000, tick)
                         root.after(1000, tick)
-                        _show_reconcile_dialog(root, result)
+                        _show_reconcile_dialog(root, result, account_id)
                         return
 
                     # 其他 warnings: 显示提示但不禁用太久
                     if warnings:
-                        w = "; ".join(warnings)
+                        w = "; ".join([str(x) for x in warnings])
                         messagebox.showwarning("对账警告", f"对账完成，但存在警告: {w}\n请按提示登录或强制刷新后重试。")
 
                 btn_reconcile.config(state="normal", text="对账")
-                _show_reconcile_dialog(root, result)
+                _show_reconcile_dialog(root, result, account_id)
 
             try:
                 root.after(0, on_done)

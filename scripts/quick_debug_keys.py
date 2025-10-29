@@ -3,7 +3,7 @@
 import json, os
 from gui.reconcile_ui import load_parsed_strategies, load_account_asset_latest, load_account_positions_latest
 
-ALLOCATION_PATH = os.path.join("yunfei_ball", "allocation.json")
+ALLOCATION_PATH = os.path.join("../yunfei_ball", "allocation.json")
 
 def print_alloc_keys():
     try:

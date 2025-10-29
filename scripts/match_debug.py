@@ -11,7 +11,7 @@ try:
 except Exception:
     # fallback if gui package path differs
     import sys
-    sys.path.append(os.path.abspath('.'))
+    sys.path.append(os.path.abspath('..'))
     from gui.reconcile_ui import load_allocation_list, load_parsed_strategies, _extract_holdings_from_strategy_item
 
 try:

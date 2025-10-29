@@ -7,8 +7,8 @@ from yunfei_ball.yunfei_fetcher import fetch_b_follow, parse_b_follow_page
 from yunfei_ball.yunfei_connect_follow import find_strategy_by_id_and_bracket, handle_trade_operation, name_to_code
 from collections import defaultdict
 
-ALLOCATION_PATH = os.path.join("yunfei_ball", "allocation.json")
-SETTING_DIR = os.path.join("yunfei_ball", "trade_plan", "setting")
+ALLOCATION_PATH = os.path.join("../../yunfei_ball", "allocation.json")
+SETTING_DIR = os.path.join("../../yunfei_ball", "trade_plan", "setting")
 os.makedirs(SETTING_DIR, exist_ok=True)
 
 def extract_action(op_html):
