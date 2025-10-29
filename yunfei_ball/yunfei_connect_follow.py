@@ -1,5 +1,6 @@
 # yunfei_ball/yunfei_connect_follow.py
 # 已调整：在 parse 后对策略项进行 normalize，访问字段改为 .get，修正 sample_amount 计算等。
+# 此文件的版本在原仓库基础上增加了抓取/解析产物的落盘（fetch_cache 目录），便于后续查证与使用。
 
 import os
 import sys
@@ -44,21 +45,111 @@ HEADERS = {
 
 SAMPLE_ACCOUNT_AMOUNT = 680000
 
+# -------------------- 新增：fetch_cache 写盘 helpers --------------------
+def _ensure_fetch_cache_dir():
+    base = os.path.join(os.path.dirname(__file__), "fetch_cache")
+    try:
+        os.makedirs(base, exist_ok=True)
+    except Exception:
+        pass
+    return base
+
+def _ts_to_filename(ts_iso: str):
+    # ts_iso like 2025-10-28T23:47:17+00:00 -> compact safe form
+    if not ts_iso:
+        ts_iso = datetime.utcnow().isoformat()
+    tsfn = ts_iso.replace(":", "").replace("-", "").replace("T", "_")
+    # remove timezone suffix if present (e.g., +00:00)
+    tsfn = re.sub(r'[+\-]\d{2}(\d{2})?$', '', tsfn)
+    tsfn = tsfn.split(".")[0]
+    return tsfn
+
+def _save_parsed_artifacts(strategies_raw, strategies_norm, html=None, ts_iso=None):
+    """
+    保存抓取的原始 HTML、解析出的原始 items（strategies_raw）和 normalize 后的 strategies 到
+    yunfei_ball/fetch_cache/ 目录。写入时间戳文件与 latest 指针文件。
+    """
+    base = _ensure_fetch_cache_dir()
+    ts_iso = ts_iso or datetime.utcnow().isoformat()
+    tsfn = _ts_to_filename(ts_iso)
+
+    # 原始 HTML
+    if html is not None:
+        try:
+            html_path = os.path.join(base, f"html_{tsfn}.html")
+            with open(html_path, "w", encoding="utf-8") as fh:
+                fh.write(html)
+        except Exception:
+            pass
+        try:
+            with open(os.path.join(base, "latest_html.html"), "w", encoding="utf-8") as fh:
+                fh.write(html)
+        except Exception:
+            pass
+
+    # 原始解析 items
+    try:
+        raw_path = os.path.join(base, f"strategies_raw_{tsfn}.json")
+        with open(raw_path, "w", encoding="utf-8") as fr:
+            json.dump(strategies_raw, fr, ensure_ascii=False, indent=2)
+    except Exception:
+        pass
+    try:
+        with open(os.path.join(base, "latest_strategies_raw.json"), "w", encoding="utf-8") as fr:
+            json.dump(strategies_raw, fr, ensure_ascii=False, indent=2)
+    except Exception:
+        pass
+
+    # normalized strategies
+    try:
+        norm_path = os.path.join(base, f"strategies_normalized_{tsfn}.json")
+        with open(norm_path, "w", encoding="utf-8") as fn:
+            json.dump(strategies_norm, fn, ensure_ascii=False, indent=2)
+    except Exception:
+        pass
+    try:
+        with open(os.path.join(base, "latest_strategies_normalized.json"), "w", encoding="utf-8") as fn:
+            json.dump(strategies_norm, fn, ensure_ascii=False, indent=2)
+    except Exception:
+        pass
+
+# -------------------- end helpers --------------------
 def load_name_to_code_map(json_path):
+    """
+    Load code_index.json and build a name -> code map.
+    Rules:
+      - If code is 6 digits and starts with 5 or 6 -> append '.SH'
+      - If code is 6 digits and starts with 1 -> append '.SZ'
+      - Otherwise, keep behavior compatible: append '.SH' by default for 6-digit codes.
+    Returns:
+      name_to_code: dict mapping name -> code_with_suffix (string)
+    NOTE: This is a minimal change to fix suffix assignment per rule. For stronger safety
+    we should instead return a list of candidates and pick based on account positions; that can be done next.
+    """
     if not os.path.exists(json_path):
         print(f"错误：代码索引文件未找到于 {json_path}")
         return {}
     with open(json_path, 'r', encoding='utf-8') as f:
         code_map = json.load(f)
+
     name_to_code = {}
     for code, namelist in code_map.items():
-        if len(code) == 6:
-            code_with_sh = code + ".SH"
-        else:
-            code_with_sh = code
+        code_str = str(code).strip()
+        # Determine suffix per rule
+        code_with_suffix = code_str
+        if len(code_str) == 6 and code_str.isdigit():
+            first = code_str[0]
+            if first in ('5', '6'):
+                code_with_suffix = code_str + ".SH"
+            elif first == '1':
+                code_with_suffix = code_str + ".SZ"
+            else:
+                # default fallback: keep previous behavior (append .SH)
+                code_with_suffix = code_str + ".SH"
+        # map names to this code_with_suffix (first-seen wins as before)
         for name in namelist:
             if name not in name_to_code:
-                name_to_code[name] = code_with_sh
+                name_to_code[name] = code_with_suffix
     return name_to_code
 
 def add_code_to_operation(operation_text, name_to_code):
@@ -194,8 +285,9 @@ def fetch_and_check_batch_with_trade_plan(
         try:
             resp = session.get(BASE_URL + '/F2/b_follow.aspx', headers=HEADERS, timeout=10, proxies={})
             resp.encoding = resp.apparent_encoding
+            html = resp.text
 
-            if not is_logged_in(resp.text):
+            if not is_logged_in(html):
                 print("登录失效，重新登录...", flush=True)
                 session = None
                 while session is None:
@@ -206,7 +298,7 @@ def fetch_and_check_batch_with_trade_plan(
                 continue
 
             # ------------ parse and normalize -------------
-            strategies_raw = parse_b_follow_page(resp.text)
+            strategies_raw = parse_b_follow_page(html)
 
             try:
                 strategies = normalize_strategies(strategies_raw)
@@ -256,7 +348,7 @@ def fetch_and_check_batch_with_trade_plan(
                         '_raw': it
                     })
 
-            # write debug sample to file to assist troubleshooting
+            # write debug sample to file to assist troubleshooting (保留原样本文件)
             try:
                 dbg_path = os.path.join(os.path.dirname(__file__), 'debug_parsed_strategies.json')
                 with open(dbg_path, 'w', encoding='utf-8') as f_dbg:
@@ -268,6 +360,14 @@ def fetch_and_check_batch_with_trade_plan(
                 print("Parsed strategies saved to", dbg_path, flush=True)
             except Exception as e_dump:
                 print("写 debug_parsed_strategies.json 失败:", e_dump, flush=True)
+
+            # 额外：把完整的 html/items/normalized 写入 fetch_cache（时间戳 + latest）
+            try:
+                ts_iso = datetime.now().isoformat()
+                _save_parsed_artifacts(strategies_raw, strategies, html=html, ts_iso=ts_iso)
+                print("Full parsed strategies and html dumped to fetch_cache/", flush=True)
+            except Exception as e_save:
+                print("保存 full parsed strategies 失败:", e_save, flush=True)
 
             # sanity keys print
             try:

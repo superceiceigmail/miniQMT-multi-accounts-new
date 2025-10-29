@@ -4,6 +4,7 @@ import os
 import json
 import logging
 import tempfile
+import datetime
 
 def _atomic_write_json(path, data):
     """
@@ -29,6 +30,8 @@ def _atomic_write_json(path, data):
 def print_account_asset(trader, account_id):
     """
     打印指定资金账号的账户资产信息，并用方形分块符号可视化各项占比，同时返回金额和占比。
+    额外：将资产信息以 JSON 文件保存到 account_data/assets/asset_{account_id}.json，
+    文件中包含 last_update 字段，方便后续读取每个账号的最新信息。
     :param trader: XtQuantTrader 对象，用于查询交易数据。
     :param account_id: 资金账号（字符串）。
     :return: (total_asset, cash, frozen_cash, market_value, percent_cash, percent_frozen, percent_market)
@@ -56,7 +59,10 @@ def print_account_asset(trader, account_id):
             market_value = getattr(asset, "m_dMarketValue", 0.0)
         total_asset = getattr(asset, "total_asset", None)
         if total_asset is None:
-            total_asset = getattr(asset, "m_dAsset", cash + frozen_cash + market_value)
+            # 保底计算
+            total_asset = getattr(asset, "m_dAsset", None)
+            if total_asset is None:
+                total_asset = (cash or 0.0) + (frozen_cash or 0.0) + (market_value or 0.0)
 
         # 格式化与计算函数
         def percent(val, total):
@@ -96,11 +102,25 @@ def print_account_asset(trader, account_id):
             "percent_market": percent_market,
         }
 
+        # 保存每个账号的最新资产信息到 account_data/assets/asset_{account_id}.json
+        try:
+            save_dir = os.path.join("account_data", "assets")
+            os.makedirs(save_dir, exist_ok=True)
+            save_path = os.path.join(save_dir, f"asset_{asset_dict['account_id']}.json")
+            data_to_save = {
+                "last_update": datetime.datetime.now().isoformat(),
+                "asset": asset_dict
+            }
+            _atomic_write_json(save_path, data_to_save)
+            logging.info(f"已写入账户资产文件: {save_path} account_id={asset_dict['account_id']} total_asset={asset_dict['total_asset']}")
+        except Exception as e:
+            logging.exception(f"写入账户资产文件失败: {e}")
+
         # 控制写入模板的期望账号（可通过环境变量覆盖）
         EXPECTED_TEMPLATE_ACCOUNT_ID = os.getenv("EXPECTED_TEMPLATE_ACCOUNT_ID", "8886006288")
         should_save_template = (str(account_id) == EXPECTED_TEMPLATE_ACCOUNT_ID) or (asset_dict["account_id"] == EXPECTED_TEMPLATE_ACCOUNT_ID)
 
-        # 保存核心账户信息到 template_account_info/template_account_asset_info.json（仅针对期望账号）
+        # 仅在 should_save_template 为 True 时才写入 template_account_info 和前端 public 目录（避免任意账号覆盖前端文件）
         try:
             if should_save_template:
                 save_dir = "template_account_info"
@@ -112,7 +132,6 @@ def print_account_asset(trader, account_id):
         except Exception as e:
             logging.exception(f"写入本地模板失败: {e}")
 
-        # 仅在 should_save_template 为 True 时才写入前端 public 目录（避免任意账号覆盖前端文件）
         try:
             if should_save_template:
                 fe_save_dir = r"C:\Users\ceicei\PycharmProjects\miniQMT-frontend\public\template_account_info"
