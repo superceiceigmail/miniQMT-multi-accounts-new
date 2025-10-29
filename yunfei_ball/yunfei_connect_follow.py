@@ -294,7 +294,7 @@ def fetch_and_check_batch_with_trade_plan(
 ):
     """
     支持 use_master_fetch 模式：若启用且当前 account 不是 master（MASTER_ACCOUNT_ID），则不再登录/抓取云飞页面，
-    而是等待 master 发布的 merged 草稿（trade_plan/shared）。
+    而是等待 master 发布 merged 草稿（trade_plan/shared）。
     若 merged.meta.empty==True，则从账号直接短路标记批次完成，不生成 final plan。
     """
     print(f"批次{batch_no}任务已启动, 目标时间: {batch_time}, 当前时间: {datetime.now()}, 策略数: {len(batch_cfgs)}", flush=True)
@@ -420,6 +420,40 @@ def fetch_and_check_batch_with_trade_plan(
                             print(f"刷新执行后账户持仓失败: {e_refresh}", flush=True)
                             refreshed_account_info = None
                             refreshed_positions = None
+
+                        # -------------- 新增：刷新后将实时数据写入本地快照（保证文件与实际一致） --------------
+                        try:
+                            # 尝试优先使用现有的保存工具（asset_connector / position_connector）
+                            try:
+                                from asset_connector import print_account_asset as _print_account_asset
+                                from position_connector import print_positions as _print_positions
+                            except Exception:
+                                _print_account_asset = None
+                                _print_positions = None
+
+                            if _print_account_asset is not None:
+                                try:
+                                    # _print_account_asset 会使用 trader 查询并写入 account_data/assets/asset_{account}.json
+                                    _print_account_asset(xt_trader, account_id_str)
+                                    print(f"已将实时资产写入本地快照 for {account_id_str}", flush=True)
+                                except Exception as e_w:
+                                    print(f"写入资产快照失败: {e_w}", flush=True)
+                            else:
+                                print("未找到 asset_connector.print_account_asset，跳过保存资产快照", flush=True)
+
+                            if _print_positions is not None:
+                                try:
+                                    # _print_positions 会使用 trader 查询并写入 account_data/positions/position_{account}.json
+                                    _print_positions(xt_trader, account_id_str, {}, None)
+                                    print(f"已将实时持仓写入本地快照 for {account_id_str}", flush=True)
+                                except Exception as e_p:
+                                    print(f"写入持仓快照失败: {e_p}", flush=True)
+                            else:
+                                print("未找到 position_connector.print_positions，跳过保存持仓快照", flush=True)
+                        except Exception as e_save_all:
+                            print(f"保存快照过程中出现异常: {e_save_all}", flush=True)
+                        # -------------- 新增结束 --------------------------------------------------
+
                         print("开始执行 BUY 阶段（会提交买单）...", flush=True)
                         execute_trade_plan(xt_trader, account, trade_plan, action='buy')
                         print("BUY 阶段已发出委托（异步）。", flush=True)
@@ -596,7 +630,7 @@ def fetch_and_check_batch_with_trade_plan(
                     continue
                 else:
                     all_cfgs_checked = False
-                    print(f"策略【{s.get('name','(unknown)')}】日期: {s.get('date','')} < 今日日期: {today_str}，尚未更新...", flush=True)
+                    print(f"策略【{s.get('name','(unknown)')}】日期: {s.get('date')} < 今日日期: {today_str}，尚未更新...", flush=True)
 
             if all_cfgs_checked:
                 print(f"批次{batch_no}所有策略信息已更新到今日或未来，开始合并并生成最终交易计划。", flush=True)
@@ -704,6 +738,38 @@ def fetch_and_check_batch_with_trade_plan(
                                 print(f"刷新执行后账户持仓失败: {e_refresh}", flush=True)
                                 refreshed_account_info = None
                                 refreshed_positions = None
+
+                            # -------------- 新增：刷新后将实时数据写入本地快照（保证文件与实际一致） --------------
+                            try:
+                                # 尝试优先使用现有的保存工具（asset_connector / position_connector）
+                                try:
+                                    from asset_connector import print_account_asset as _print_account_asset
+                                    from position_connector import print_positions as _print_positions
+                                except Exception:
+                                    _print_account_asset = None
+                                    _print_positions = None
+
+                                if _print_account_asset is not None:
+                                    try:
+                                        _print_account_asset(xt_trader, account_id_str)
+                                        print(f"已将实时资产写入本地快照 for {account_id_str}", flush=True)
+                                    except Exception as e_w:
+                                        print(f"写入资产快照失败: {e_w}", flush=True)
+                                else:
+                                    print("未找到 asset_connector.print_account_asset，跳过保存资产快照", flush=True)
+
+                                if _print_positions is not None:
+                                    try:
+                                        _print_positions(xt_trader, account_id_str, {}, None)
+                                        print(f"已将实时持仓写入本地快照 for {account_id_str}", flush=True)
+                                    except Exception as e_p:
+                                        print(f"写入持仓快照失败: {e_p}", flush=True)
+                                else:
+                                    print("未找到 position_connector.print_positions，跳过保存持仓快照", flush=True)
+                            except Exception as e_save_all:
+                                print(f"保存快照过程中出现异常: {e_save_all}", flush=True)
+                            # -------------- 新增结束 --------------------------------------------------
+
                             print("开始执行 BUY 阶段（会提交买单）...", flush=True)
                             execute_trade_plan(xt_trader, account, trade_plan, action='buy')
                             print("BUY 阶段已发出委托（异步）。", flush=True)

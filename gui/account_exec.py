@@ -580,24 +580,24 @@ def build_account_frame(root, acc_display, config):
             err = None
             used_local = False
             try:
-                # 1) 首先尝试使用本地的 generate_reconcile_report / reconcile_for_account
-                if generate_reconcile_report is not None:
-                    try:
-                        # generate_reconcile_report(account_id, require_today=False)
-                        res = generate_reconcile_report(account_id, require_today=False)
-                        result = res
-                        used_local = True
-                    except Exception as e_local:
-                        print(f"[reconcile] generate_reconcile_report 失败: {e_local}")
-                        result = None
-
-                if result is None and reconcile_for_account_local is not None:
+                # 优先使用本地 reconcile_for_account_local（以确保读取 account_data 下的最新快照）
+                if reconcile_for_account_local is not None:
                     try:
                         res = reconcile_for_account_local(account_id)
                         result = res
                         used_local = True
                     except Exception as e_local:
                         print(f"[reconcile] reconcile_for_account_local 失败: {e_local}")
+                        result = None
+
+                # 若本地不可用，再尝试 generate_reconcile_report（兼容旧逻辑）
+                if result is None and generate_reconcile_report is not None:
+                    try:
+                        res = generate_reconcile_report(account_id, require_today=False)
+                        result = res
+                        used_local = True
+                    except Exception as e_local:
+                        print(f"[reconcile] generate_reconcile_report 失败: {e_local}")
                         result = None
 
                 # 2) 如果本地方法都不可用或失败，则回退到网络抓取的 reconcile_account（原有流程）
