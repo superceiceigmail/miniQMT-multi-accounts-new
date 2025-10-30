@@ -1,4 +1,5 @@
 # GUI helper: reconcile yunfei allocation vs account positions
+# NOTE: Modified to load per-account proportions when available.
 import os
 import json
 import re
@@ -39,6 +40,7 @@ VIZ_SCRIPT = os.path.join(SCRIPTS_DIR, "viz_per_instrument.py")
 VIZ_SCRIPT_FALLBACK = os.path.join(BASE_DIR, "viz_blocks.py")
 CORE_STOCK_CODE_PATH = os.path.join(os.path.dirname(__file__), "..", "core_parameters", "stocks", "core_stock_code.json")
 MAMA_PATH = os.path.join(os.path.dirname(__file__), "..", "core_parameters", "account", "mama.json")
+ACCOUNT_CONFIG_DIR = os.path.join(os.path.dirname(__file__), "..", "core_parameters", "account")
 
 # ---------- utility I/O ----------
 def _load_json(path):
@@ -99,15 +101,39 @@ def _load_core_stock_code_map():
         return _CORE_STOCK_CODE_CACHE
 
 
-# ---------- load mama proportion ----------
+# ---------- load mama proportions (per-account) ----------
 _MAMA_CACHE = None
+# cache map: account_id -> (Decimal(etf), Decimal(yf))
+_MAMA_PROPORTIONS_CACHE = {}
+
+def _parse_proportion_value(prop):
+    """
+    Parse various proportion representations:
+      - numeric (0.01, 0.5, 1)
+      - numeric string ("0.01", "1")
+      - percent string ("1%", "50%")
+    Returns float value (e.g. 0.01 for 1%) or None on failure.
+    """
+    try:
+        if prop is None:
+            return None
+        if isinstance(prop, (int, float)):
+            return float(prop)
+        if isinstance(prop, str):
+            s = prop.strip()
+            if s.endswith('%'):
+                num = float(s.rstrip('%').strip())
+                return float(num / 100.0)
+            else:
+                return float(s)
+    except Exception:
+        return None
 
 
 def _load_mama_proportion():
     """
-    Load core_parameters/account/mama.json and return a numeric proportion.
-    If file missing or invalid, return 1.0
-    Expected shape: { "proportion": 0.5 } (top-level) or a map containing numeric value.
+    Backwards-compatible loader for single 'proportion' (legacy).
+    This function does NOT try to infer proportion from unrelated numeric fields.
     """
     global _MAMA_CACHE
     if _MAMA_CACHE is not None:
@@ -118,29 +144,131 @@ def _load_mama_proportion():
             _MAMA_CACHE = 1.0
             return _MAMA_CACHE
         d = _load_json(p)
-        if not d:
+        if not d or not isinstance(d, dict):
             _MAMA_CACHE = 1.0
             return _MAMA_CACHE
-        prop = None
-        if isinstance(d, dict):
-            prop = d.get("proportion")
-            if prop is None:
-                # fallback: pick first numeric value
-                for v in d.values():
-                    if isinstance(v, (int, float)):
-                        prop = v
-                        break
-        if prop is None:
+        prop = d.get("proportion")
+        parsed = _parse_proportion_value(prop)
+        if parsed is None:
             _MAMA_CACHE = 1.0
         else:
-            try:
-                _MAMA_CACHE = float(prop)
-            except Exception:
-                _MAMA_CACHE = 1.0
+            _MAMA_CACHE = parsed
         return _MAMA_CACHE
     except Exception:
         _MAMA_CACHE = 1.0
         return _MAMA_CACHE
+
+
+def _load_mama_proportions_for_account(account_id: str):
+    """
+    Load proportion_ETF and proportion_YF for a specific account_id.
+
+    Lookup priority:
+      1) core_parameters/account/{account_id}.json -> keys proportion_ETF / proportion_YF / proportion
+      2) core_parameters/account/mama.json per-account map: mama.json may contain top-level keys named by account_id
+         e.g. { "8886006288": {"proportion_ETF": "1", "proportion_YF": "1"}, ... }
+      3) core_parameters/account/mama.json top-level keys proportion_ETF/proportion_YF/proportion
+      4) default -> (1.0, 1.0)
+
+    Important: DO NOT attempt to infer proportion by picking the first numeric value in the file.
+    Returns (Decimal(etf), Decimal(yf))
+    """
+    global _MAMA_PROPORTIONS_CACHE
+    if not account_id:
+        account_id = str(account_id or "")
+    # cached?
+    if account_id in _MAMA_PROPORTIONS_CACHE:
+        return _MAMA_PROPORTIONS_CACHE[account_id]
+    try:
+        # 1) try per-account config file core_parameters/account/{account_id}.json
+        acct_file = os.path.join(ACCOUNT_CONFIG_DIR, f"{account_id}.json")
+        if os.path.exists(acct_file):
+            data = _load_json(acct_file) or {}
+            if isinstance(data, dict):
+                # Keys can be nested; check top-level and under "account"
+                candidates = []
+                # top-level
+                candidates.append(data)
+                # nested account
+                if data.get("account") and isinstance(data.get("account"), dict):
+                    candidates.append(data.get("account"))
+                for entry in candidates:
+                    etf_v = _parse_proportion_value(entry.get('proportion_ETF') or entry.get('proportion_etf') or entry.get('proportionETF'))
+                    yf_v = _parse_proportion_value(entry.get('proportion_YF') or entry.get('proportion_yf') or entry.get('proportionYF'))
+                    if (etf_v is None or yf_v is None) and entry.get('proportion') is not None:
+                        single = _parse_proportion_value(entry.get('proportion'))
+                        if single is not None:
+                            if etf_v is None:
+                                etf_v = single
+                            if yf_v is None:
+                                yf_v = single
+                    if etf_v is None:
+                        etf_v = 1.0
+                    if yf_v is None:
+                        yf_v = 1.0
+                    result = (Decimal(str(etf_v)), Decimal(str(yf_v)))
+                    _MAMA_PROPORTIONS_CACHE[account_id] = result
+                    return result
+        # 2) try mama.json per-account map
+        mama = _load_json(MAMA_PATH) or {}
+        if isinstance(mama, dict):
+            # if there's a section for this account id
+            acct_entry = mama.get(str(account_id))
+            if isinstance(acct_entry, dict):
+                etf_v = _parse_proportion_value(acct_entry.get('proportion_ETF') or acct_entry.get('proportion_etf') or acct_entry.get('proportionETF'))
+                yf_v = _parse_proportion_value(acct_entry.get('proportion_YF') or acct_entry.get('proportion_yf') or acct_entry.get('proportionYF'))
+                if (etf_v is None or yf_v is None) and acct_entry.get('proportion') is not None:
+                    single = _parse_proportion_value(acct_entry.get('proportion'))
+                    if single is not None:
+                        if etf_v is None:
+                            etf_v = single
+                        if yf_v is None:
+                            yf_v = single
+                if etf_v is None:
+                    etf_v = 1.0
+                if yf_v is None:
+                    yf_v = 1.0
+                result = (Decimal(str(etf_v)), Decimal(str(yf_v)))
+                _MAMA_PROPORTIONS_CACHE[account_id] = result
+                return result
+            # 3) try top-level keys in mama.json
+            etf = mama.get('proportion_ETF') or mama.get('proportion_etf') or mama.get('proportionETF')
+            yf = mama.get('proportion_YF') or mama.get('proportion_yf') or mama.get('proportionYF')
+            if (etf is not None) or (yf is not None):
+                etf_v = _parse_proportion_value(etf) if etf is not None else None
+                yf_v = _parse_proportion_value(yf) if yf is not None else None
+                if (etf_v is None or yf_v is None) and mama.get('proportion') is not None:
+                    single = _parse_proportion_value(mama.get('proportion'))
+                    if single is not None:
+                        if etf_v is None:
+                            etf_v = single
+                        if yf_v is None:
+                            yf_v = single
+                if etf_v is None:
+                    etf_v = 1.0
+                if yf_v is None:
+                    yf_v = 1.0
+                result = (Decimal(str(etf_v)), Decimal(str(yf_v)))
+                _MAMA_PROPORTIONS_CACHE[account_id] = result
+                return result
+            # 4) try default subkey
+            default_entry = mama.get('default') or mama.get('DEFAULT')
+            if isinstance(default_entry, dict):
+                etf_v = _parse_proportion_value(default_entry.get('proportion_ETF') or default_entry.get('proportion'))
+                yf_v = _parse_proportion_value(default_entry.get('proportion_YF') or default_entry.get('proportion'))
+                if etf_v is None:
+                    etf_v = 1.0
+                if yf_v is None:
+                    yf_v = 1.0
+                result = (Decimal(str(etf_v)), Decimal(str(yf_v)))
+                _MAMA_PROPORTIONS_CACHE[account_id] = result
+                return result
+    except Exception:
+        pass
+    # fallback safe default
+    result = (Decimal('1.0'), Decimal('1.0'))
+    _MAMA_PROPORTIONS_CACHE[account_id] = result
+    return result
 
 
 # --------- code normalization helpers ----------
@@ -181,6 +309,32 @@ def _find_current_mv_for_code(code_key: str, current_by_code: dict):
     if base in current_by_code:
         return current_by_code[base]["market_value"], base
     return Decimal("0"), None
+
+
+# new helper: resolve code -> friendly name (reverse lookup)
+def _resolve_code_to_name(code: str):
+    """
+    Try to resolve a code (e.g. '513100' or '513100.SH') to a human-friendly name.
+    Uses core_parameters/stocks/core_stock_code.json (loaded by _load_core_stock_code_map) by inverting the mapping,
+    and falls back to NAME_TO_CODE_GLOBAL if available.
+    Returns None when unknown.
+    """
+    if not code:
+        return None
+    try:
+        core_map = _load_core_stock_code_map()  # name -> code
+        # invert by checking values
+        base = _code_base(code)
+        for name, c in core_map.items():
+            if c and _code_base(c) == base:
+                return name
+        if NAME_TO_CODE_GLOBAL:
+            for name, c in NAME_TO_CODE_GLOBAL.items():
+                if c and _code_base(c) == base:
+                    return name
+    except Exception:
+        pass
+    return None
 
 
 # --------- holdings parsing ----------
@@ -332,6 +486,7 @@ def _extract_entries_from_draft(draft):
       each entry is {'name': str, 'pct': float} or {'name': str, 'amount': float}
     Prefer suggested_pct / pct => will be used to compute amount via total_asset * proportion.
     Fallback to suggested_amount / final_market_value / amount.
+    Note: this function does NOT read final_holdings.final_pct — reconcile_for_account will prefer final_holdings if present.
     """
     out = []
     try:
@@ -372,6 +527,46 @@ def _extract_entries_from_draft(draft):
         return out
 
 
+# --------- helper: find reference total asset for draft scaling ----------
+def _find_reference_total_from_draft_or_assets(draft):
+    """
+    Determine a reference total asset to interpret draft absolute amounts against.
+    Priority:
+      1) draft.get('base_total_asset') if provided (explicit)
+      2) maximum total_asset among files in account_data/assets/ (assume main account is largest)
+      3) None if no valid reference
+    """
+    try:
+        if isinstance(draft, dict):
+            base = draft.get('base_total_asset') or draft.get('reference_total_asset')
+            if base:
+                try:
+                    return Decimal(str(base))
+                except Exception:
+                    pass
+            # Also support explicit per-draft flag 'base_is_percent': if draft stores final_pct we will use that path
+        # scan asset files to find largest total_asset
+        max_total = None
+        if os.path.isdir(ASSET_DIR):
+            for fname in os.listdir(ASSET_DIR):
+                if not fname.startswith("asset_") or not fname.endswith(".json"):
+                    continue
+                try:
+                    data = _load_json(os.path.join(ASSET_DIR, fname)) or {}
+                    candidate = data.get('asset') or data
+                    if candidate:
+                        t = candidate.get('total_asset') or candidate.get('m_dAsset') or candidate.get('m_dAssets')
+                        if t is not None:
+                            tdec = Decimal(str(t))
+                            if max_total is None or tdec > max_total:
+                                max_total = tdec
+                except Exception:
+                    continue
+        return max_total
+    except Exception:
+        return None
+
+
 # --------- reconciliation core ----------
 def reconcile_for_account(account_id, require_today: bool = False):
     """
@@ -383,19 +578,27 @@ def reconcile_for_account(account_id, require_today: bool = False):
         'as_of': iso str
       }
 
-    Behavior:
-      - combine expected amounts from yunfei allocation/strategies and GUI draft suggested holdings
-      - mapping of names uses core_stock_code.json first, then resolve_name_to_code fallback
-      - draft suggested_pct interpreted as pct/100 * total_asset * proportion (mama.json)
-      - normalization: codes reduced to 6-digit base for aggregation
+    Behavior summary:
+      - allocation (YF) uses proportion_YF (per-account if present)
+      - draft (ETF/tradeplan) uses proportion_ETF (per-account if present)
+      - if draft contains final_holdings with final_pct, prefer those percentages (final_pct/100)
+      - draft absolute amounts are scaled to the account's total_asset using a draft reference total if available
     """
     allocation_list = load_allocation_list()
     strategies = load_parsed_strategies()
+    draft = _load_trade_plan_draft()
     asset = load_account_asset_latest(account_id)
     if not asset:
         raise RuntimeError(f"找不到账户资产文件 for {account_id}")
     total_asset = Decimal(str(asset.get('total_asset') or asset.get('m_dAsset') or 0))
     positions = load_account_positions_latest(account_id)
+
+    # read two proportions (per-account)
+    try:
+        proportion_ETF, proportion_YF = _load_mama_proportions_for_account(str(account_id))
+    except Exception:
+        proportion_ETF = Decimal('1.0')
+        proportion_YF = Decimal('1.0')
 
     # Build current positions map by code and fallback by name (store variants + base)
     current_by_code = {}
@@ -425,7 +628,7 @@ def reconcile_for_account(account_id, require_today: bool = False):
     else:
         today_date = None
 
-    # Aggregate expected from allocation list (yunfei)
+    # Aggregate expected from allocation list (yunfei) -> use proportion_YF
     for cfg in allocation_list:
         try:
             config_pct = float(cfg.get('配置仓位', 0)) / 100.0
@@ -467,7 +670,8 @@ def reconcile_for_account(account_id, require_today: bool = False):
                 frac = float(pct) / 100.0
             except Exception:
                 frac = 0.0
-            expected_money = (Decimal(str(frac * config_pct)) * total_asset).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+            # apply proportion_YF for yunfei/allocation parts
+            expected_money = (Decimal(str(frac * config_pct)) * total_asset * Decimal(str(proportion_YF))).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
             code = resolve_name_to_code(name)
             if code:
                 base = _code_base(code)
@@ -478,47 +682,160 @@ def reconcile_for_account(account_id, require_today: bool = False):
                 expected_by_name[name] = (prev + expected_money).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
 
     # Merge GUI draft suggested holdings
-    draft = _load_trade_plan_draft()
+    # For draft 'amount' entries, we will attempt to scale them to this account's total_asset
+    # using either a draft-provided base_total_asset or the max total_asset across assets dir.
+    draft_entries = []
     if draft:
-        entries = _extract_entries_from_draft(draft)
-        core_map = _load_core_stock_code_map()
-        proportion = _load_mama_proportion()
-        for ent in entries:
-            name_key = str(ent.get('name') or '').strip()
-            if not name_key:
+        # If draft contains final_holdings with final_pct, prefer that
+        final_holdings = draft.get('final_holdings') or draft.get('final_holdings_info') or draft.get('final_holdings_suggested')
+        if isinstance(final_holdings, list) and final_holdings:
+            # convert final_holdings entries into entries with 'pct' field (user told us final_pct should be divided by 100)
+            for it in final_holdings:
+                name = it.get('name') or it.get('stock_name') or ''
+                fp = it.get('final_pct') if it.get('final_pct') is not None else it.get('final_pct_suggested') if it.get('final_pct_suggested') is not None else None
+                if fp is not None:
+                    try:
+                        pct_val = float(fp)
+                        draft_entries.append({'name': name, 'pct': pct_val})
+                    except Exception:
+                        pass
+        else:
+            # fallback: use the generic extractor only if no final_holdings present
+            draft_entries = _extract_entries_from_draft(draft)
+
+    # determine reference total for draft absolute amounts
+    draft_reference_total = None
+    if draft:
+        draft_reference_total = _find_reference_total_from_draft_or_assets(draft)
+
+    # compute draft contributions -> use proportion_ETF for draft/tradeplan parts
+    core_map = _load_core_stock_code_map()
+    for ent in draft_entries:
+        name_key = str(ent.get('name') or '').strip()
+        if not name_key:
+            continue
+        amt_decimal = None
+        if 'pct' in ent and ent.get('pct') is not None:
+            try:
+                # treat provided pct as percent (e.g. 2.23 -> 2.23%)
+                pct_raw = Decimal(str(ent.get('pct')))
+                pct_fraction = pct_raw / Decimal('100')
+                amt_decimal = (pct_fraction) * total_asset * Decimal(str(proportion_ETF))
+            except Exception:
+                amt_decimal = None
+        elif 'amount' in ent and ent.get('amount') is not None:
+            try:
+                raw_amt = Decimal(str(ent.get('amount')))
+                # If a reference total exists and differs from current total_asset, scale the draft amount
+                if draft_reference_total and draft_reference_total != Decimal('0') and draft_reference_total != total_asset:
+                    try:
+                        scale = (total_asset / draft_reference_total)
+                        amt_decimal = (raw_amt * scale) * Decimal(str(proportion_ETF))
+                    except Exception:
+                        # fallback: just multiply by proportion_ETF
+                        amt_decimal = raw_amt * Decimal(str(proportion_ETF))
+                else:
+                    # no reference available: treat amount as absolute for this account but still apply proportion_ETF
+                    amt_decimal = raw_amt * Decimal(str(proportion_ETF))
+            except Exception:
+                amt_decimal = None
+        if amt_decimal is None:
+            continue
+        # map name to code
+        mapped_code = None
+        if core_map and name_key in core_map:
+            mapped_code = core_map.get(name_key)
+        if not mapped_code and re.fullmatch(r'\d{6}(\.(SH|SZ))?', name_key, re.IGNORECASE):
+            mapped_code = name_key
+        if not mapped_code:
+            try:
+                mapped_code = resolve_name_to_code(name_key)
+            except Exception:
+                mapped_code = None
+        # add to expected sums
+        if mapped_code:
+            base = _code_base(mapped_code)
+            prev = expected_by_code.get(base, Decimal('0'))
+            expected_by_code[base] = (prev + amt_decimal).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+        else:
+            prev = expected_by_name.get(name_key, Decimal('0'))
+            expected_by_name[name_key] = (prev + amt_decimal).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+
+    # -------------------------
+    # Best-effort merge: try to map expected_by_name -> expected_by_code when possible
+    # This avoids duplicate display when the account position has a code but the expected entry was only by name.
+    # Strategies:
+    #  - If name can be resolved to a code via resolve_name_to_code/core_map -> merge
+    #  - Otherwise, if some current_by_code entry has market_value approximately equal to expected_money (small tolerance),
+    #    consider that the same instrument and merge.
+    # -------------------------
+    try:
+        # tolerance: 1.0 currency unit or 0.5% of total_asset, whichever larger
+        tol = Decimal('1.0')
+        try:
+            percent_tol = (total_asset * Decimal('0.005'))  # 0.5% of total asset
+            if percent_tol > tol:
+                tol = percent_tol
+        except Exception:
+            pass
+
+        names_to_remove = []
+        for name, exp_money in list(expected_by_name.items()):
+            # skip empty/placeholder names quickly
+            if not name or str(name).strip() in ('', '未知股票', '未知'):
+                # try to at least find a best code match by amount if possible
+                matched_flag = False
+                for code_k, info in current_by_code.items():
+                    cur_mv = info.get('market_value') if isinstance(info.get('market_value'), Decimal) else Decimal(str(info.get('market_value') or 0))
+                    try:
+                        if abs(cur_mv - exp_money) <= tol:
+                            base = _code_base(code_k)
+                            prev = expected_by_code.get(base, Decimal('0'))
+                            expected_by_code[base] = (prev + exp_money).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+                            matched_flag = True
+                            break
+                    except Exception:
+                        continue
+                if matched_flag:
+                    names_to_remove.append(name)
                 continue
-            amt_decimal = None
-            if 'pct' in ent and ent.get('pct') is not None:
-                try:
-                    pct = Decimal(str(ent.get('pct')))
-                    amt_decimal = (pct / Decimal('100')) * total_asset * Decimal(str(proportion))
-                except Exception:
-                    amt_decimal = None
-            elif 'amount' in ent and ent.get('amount') is not None:
-                try:
-                    amt_decimal = Decimal(str(ent.get('amount')))
-                except Exception:
-                    amt_decimal = None
-            if amt_decimal is None:
-                continue
-            # map name to code
-            mapped_code = None
-            if core_map and name_key in core_map:
-                mapped_code = core_map.get(name_key)
-            if not mapped_code and re.fullmatch(r'\d{6}(\.(SH|SZ))?', name_key, re.IGNORECASE):
-                mapped_code = name_key
-            if not mapped_code:
-                try:
-                    mapped_code = resolve_name_to_code(name_key)
-                except Exception:
-                    mapped_code = None
-            if mapped_code:
-                base = _code_base(mapped_code)
+
+            resolved = None
+            try:
+                resolved = resolve_name_to_code(name)
+            except Exception:
+                resolved = None
+            if resolved:
+                base = _code_base(resolved)
                 prev = expected_by_code.get(base, Decimal('0'))
-                expected_by_code[base] = (prev + amt_decimal).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
-            else:
-                prev = expected_by_name.get(name_key, Decimal('0'))
-                expected_by_name[name_key] = (prev + amt_decimal).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+                expected_by_code[base] = (prev + exp_money).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+                names_to_remove.append(name)
+                continue
+
+            # fallback: try to find a current_by_code whose market_value is approx equal to exp_money
+            matched = False
+            for code_k, info in current_by_code.items():
+                cur_mv = info.get('market_value') if isinstance(info.get('market_value'), Decimal) else Decimal(str(info.get('market_value') or 0))
+                try:
+                    if abs(cur_mv - exp_money) <= tol:
+                        base = _code_base(code_k)
+                        prev = expected_by_code.get(base, Decimal('0'))
+                        expected_by_code[base] = (prev + exp_money).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+                        matched = True
+                        break
+                except Exception:
+                    continue
+            if matched:
+                names_to_remove.append(name)
+
+        for nm in names_to_remove:
+            try:
+                del expected_by_name[nm]
+            except Exception:
+                pass
+    except Exception:
+        # best-effort only, ignore on failure
+        pass
 
     # Build rows
     rows = []
@@ -530,7 +847,8 @@ def reconcile_for_account(account_id, require_today: bool = False):
             name = current_by_code[matched_code].get('name')
             cur_mv = cur_mv or Decimal('0')
         else:
-            name = _load_core_stock_code_map().get(_resolve_code_to_name(code_base) or code_base) if False else (_resolve_code_to_name(code_base) or code_base)
+            # try resolve code -> friendly name
+            name = _resolve_code_to_name(code_base) or code_base
             cur_mv = cur_mv or Decimal('0')
 
         if (exp_money == Decimal('0') or exp_money == 0) and (cur_mv == Decimal('0') or cur_mv == 0):
@@ -760,7 +1078,8 @@ def show_reconcile_dialog(root_window, account_id):
         exp = f"{r['expected_money']:.2f}"
         cur = f"{r['current_market_value']:.2f}"
         diff = f"{r.get('diff_money', Decimal('0')):.2f}"
-        pct = f"{r.get('percent_diff')}%" if r.get('percent_diff') is not None else ''
+        pct_val = r.get('percent_diff')
+        pct = f"{pct_val}%" if pct_val is not None else ''
         st.insert("end", f"{code:12} {name:32} {exp:>14} {cur:>14} {diff:>14} {pct:>8}\n")
     st.configure(state='disabled')
     return res

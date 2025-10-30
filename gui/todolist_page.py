@@ -48,67 +48,98 @@ def save_diary(diary):
         json.dump(diary, f, ensure_ascii=False, indent=2)
 
 
-# --- HonorDialog 类（保持不变）---
+# --- HonorDialog 类（改进：支持长文本滚动、可缩放并保证按钮始终可见）---
 
 class HonorDialog(tb.Toplevel):
     def __init__(self, master, todo):
         super().__init__(master)
         self.result = None
         self.title("完成事项-填写honor信息")
-        # 调整窗口大小以适应内容
-        self.geometry("450x300")
-        self.resizable(False, False)
+
+        # 允许调整大小，设置初始尺寸和最小尺寸
+        self.geometry("600x420")
+        self.minsize(420, 280)
+        self.resizable(True, True)
+        self.transient(master)
         self.grab_set()
 
-        # 使用 Frame 包装内容，方便布局
-        content_frame = tb.Frame(self, padding=15)
-        content_frame.pack(fill=BOTH, expand=True)
+        # 使用 grid 布局，让主内容区（如内容文本）可以扩展并出现滚动条
+        content_frame = tb.Frame(self, padding=12)
+        content_frame.grid(row=0, column=0, sticky="nsew")
+        # 配置权重，使 dialog 扩展时内容区域增长
+        self.columnconfigure(0, weight=1)
+        self.rowconfigure(0, weight=1)
+        content_frame.columnconfigure(1, weight=1)
+        content_frame.rowconfigure(0, weight=1)
 
-        # 内容、分类、标签、重大（只读）
-        fields = [
-            ("内容:", todo.get("content", ""), 220),
-            ("分类:", todo.get("category", ""), None),
-            ("标签:", todo.get("tags", ""), None),
-            ("重大:", "是" if todo.get("major") else "否", None)
-        ]
+        # 左侧 labels 与右侧控件分两列。第一行为“内容”使用一个可滚动 Text 来显示长文本
+        tb.Label(content_frame, text="内容:", bootstyle="secondary").grid(row=0, column=0, sticky='ne', pady=4, padx=6)
 
-        for i, (label_text, value, wraplength) in enumerate(fields):
-            tb.Label(content_frame, text=label_text, bootstyle="secondary").grid(row=i, column=0, sticky='e', pady=2,
-                                                                                 padx=5)
+        # 使用 Text + Scrollbar 用来显示长文本并支持滚动
+        text_frame = tb.Frame(content_frame)
+        text_frame.grid(row=0, column=1, sticky="nsew", pady=4, padx=6)
+        text_frame.columnconfigure(0, weight=1)
+        text_frame.rowconfigure(0, weight=1)
 
-            value_label = tb.Label(content_frame, text=value, anchor='w')
-            if wraplength:
-                value_label.config(wraplength=wraplength, justify='left')
-            value_label.grid(row=i, column=1, sticky='w', pady=2, padx=5)
+        self.content_text = tk.Text(text_frame, wrap="word", height=8, padx=6, pady=4)
+        self.content_text.grid(row=0, column=0, sticky="nsew")
+        vbar = tk.Scrollbar(text_frame, orient="vertical", command=self.content_text.yview)
+        vbar.grid(row=0, column=1, sticky="ns")
+        self.content_text.configure(yscrollcommand=vbar.set)
+        # 插入内容并设置为只读
+        self.content_text.insert("1.0", todo.get("content", ""))
+        self.content_text.configure(state="disabled")
 
-        # 可编辑字段
-        edit_fields_start_row = len(fields)
+        # 其余只读字段：分类、标签、重大（放在下面）
+        tb.Label(content_frame, text="分类:", bootstyle="secondary").grid(row=1, column=0, sticky='e', pady=4, padx=6)
+        tb.Label(content_frame, text=todo.get("category", ""), anchor='w').grid(row=1, column=1, sticky='w', pady=4, padx=6)
 
-        tb.Label(content_frame, text="积分:", bootstyle="primary").grid(row=edit_fields_start_row, column=0, sticky='e',
-                                                                        pady=5, padx=5)
-        self.score_entry = tb.Entry(content_frame, width=15)
+        tb.Label(content_frame, text="标签:", bootstyle="secondary").grid(row=2, column=0, sticky='e', pady=4, padx=6)
+        tb.Label(content_frame, text=todo.get("tags", ""), anchor='w').grid(row=2, column=1, sticky='w', pady=4, padx=6)
+
+        tb.Label(content_frame, text="重大:", bootstyle="secondary").grid(row=3, column=0, sticky='e', pady=4, padx=6)
+        tb.Label(content_frame, text="是" if todo.get("major") else "否", anchor='w').grid(row=3, column=1, sticky='w', pady=4, padx=6)
+
+        # 可编辑字段（积分、单位、项目）放在下部，使用 grid 布局
+        edit_start_row = 4
+
+        tb.Label(content_frame, text="积分:", bootstyle="primary").grid(row=edit_start_row, column=0, sticky='e', pady=6, padx=6)
+        self.score_entry = tb.Entry(content_frame, width=12)
         self.score_entry.insert(0, "1.0")
-        self.score_entry.grid(row=edit_fields_start_row, column=1, sticky='w', pady=5, padx=5)
+        self.score_entry.grid(row=edit_start_row, column=1, sticky='w', pady=6, padx=6)
 
-        tb.Label(content_frame, text="单位:", bootstyle="primary").grid(row=edit_fields_start_row + 1, column=0,
-                                                                        sticky='e', pady=5, padx=5)
-        self.unit_var = tk.StringVar(value="次")  # 更换默认单位为“次”更通用
+        tb.Label(content_frame, text="单位:", bootstyle="primary").grid(row=edit_start_row + 1, column=0, sticky='e', pady=6,
+                                                                        padx=6)
+        self.unit_var = tk.StringVar(value="次")
         tb.Combobox(content_frame, textvariable=self.unit_var, values=["次", "天", "小时"], width=10,
-                    state="readonly").grid(row=edit_fields_start_row + 1, column=1, sticky='w', pady=5, padx=5)
+                    state="readonly").grid(row=edit_start_row + 1, column=1, sticky='w', pady=6, padx=6)
 
-        tb.Label(content_frame, text="项目:", bootstyle="primary").grid(row=edit_fields_start_row + 2, column=0,
-                                                                        sticky='e', pady=5, padx=5)
-        self.project_entry = tb.Entry(content_frame, width=30)
-        # 尝试使用 todo 的 category 作为默认项目
+        tb.Label(content_frame, text="项目:", bootstyle="primary").grid(row=edit_start_row + 2, column=0, sticky='ne',
+                                                                        pady=6, padx=6)
+        self.project_entry = tb.Entry(content_frame, width=36)
         self.project_entry.insert(0, todo.get("category", ""))
-        self.project_entry.grid(row=edit_fields_start_row + 2, column=1, sticky='w', pady=5, padx=5)
+        self.project_entry.grid(row=edit_start_row + 2, column=1, sticky='we', pady=6, padx=6)
 
-        # 按钮
-        button_frame = tb.Frame(self)
-        button_frame.pack(pady=10)
+        # 按钮栏放在 dialog 底部，使用单独的 frame 并固定位置（不会被主内容遮挡）
+        button_frame = tb.Frame(self, padding=8)
+        button_frame.grid(row=1, column=0, sticky="ew")
+        # 让按钮框横向填满，但高度固定
+        self.rowconfigure(1, weight=0)
+        button_frame.columnconfigure(0, weight=1)
 
-        tb.Button(button_frame, text="确定", bootstyle="success", command=self.confirm).pack(side=LEFT, padx=15)
-        tb.Button(button_frame, text="取消", bootstyle="secondary", command=self.cancel).pack(side=LEFT, padx=15)
+        # 将按钮靠右排列，确保在窗口缩小时按钮仍可见（如果窗口太小，用户可以垂直滚动主窗口或缩小内容区域）
+        btn_subframe = tb.Frame(button_frame)
+        btn_subframe.grid(row=0, column=0, sticky="e")
+
+        tb.Button(btn_subframe, text="确定", bootstyle="success", command=self.confirm).pack(side=LEFT, padx=8)
+        tb.Button(btn_subframe, text="取消", bootstyle="secondary", command=self.cancel).pack(side=LEFT, padx=8)
+
+        # 绑定回车键为确定，Esc 为取消，提升可用性
+        self.bind("<Return>", lambda e: self.confirm())
+        self.bind("<Escape>", lambda e: self.cancel())
+
+        # 将焦点设到 score_entry 方便键盘操作
+        self.score_entry.focus_set()
 
     def confirm(self):
         try:

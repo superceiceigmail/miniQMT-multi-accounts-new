@@ -28,6 +28,26 @@ YUNFEI_SCHEDULE_TIMES = [
 AUTO_BUY_511880_TIME = (9, 33, 0)
 AUTO_SELL_511880_TIME = (14, 56, 0)
 
+# ----------------- 小工具：跟投相关日志统一封装 -----------------
+def _log_follow_batch(batch_index, time_str, strategies=None, hide_details=True, redact_source=True):
+    """
+    Centralized logging for follow/batch tasks.
+    - hide_details=True: 不会打印策略列表，也不会出现 "云飞跟投" 字样（只打印通用文本）。
+    - redact_source=True: 不打印来源名称 "云飞跟投"，改为更通用的 "跟投任务"。
+    """
+    source_label = "定时任务" if redact_source else "云飞跟投任务"
+
+    if hide_details:
+        # 不暴露策略名或其它敏感信息
+        logging.info(f"已添加{source_label}: 批次{batch_index} @ {time_str}，该批次策略任务已添加")
+    else:
+        # 在确实需要显示策略详情时使用
+        try:
+            strategy_list = strategies if strategies is not None else []
+            logging.info(f"已添加{source_label}: 批次{batch_index} @ {time_str}，策略：{strategy_list}")
+        except Exception:
+            logging.info(f"已添加{source_label}: 批次{batch_index} @ {time_str}，策略信息不可用")
+
 # ----------------- Console stream filter -----------------
 class _FilteredStream:
     def __init__(self, underlying_stream, banned_substrings):
@@ -224,6 +244,16 @@ def add_yunfei_jobs(scheduler: BackgroundScheduler, xt_trader, config, account_a
         logging.warning("云飞策略配置为空，跳过云飞跟投任务设置。")
         return
 
+    # 从 config 中读取控制项（默认隐私保护开启）
+    hide_details_by_config = True
+    redact_label_by_config = True
+    try:
+        if isinstance(config, dict):
+            hide_details_by_config = config.get("hide_yunfei_details", True)
+            redact_label_by_config = config.get("redact_yunfei_label", True)
+    except Exception:
+        pass
+
     for idx, tstr in enumerate(YUNFEI_SCHEDULE_TIMES, 1):
         batch_cfgs = batch_cfgs_map.get(idx, [])
         if not batch_cfgs:
@@ -254,7 +284,11 @@ def add_yunfei_jobs(scheduler: BackgroundScheduler, xt_trader, config, account_a
             id=job_id,
             replace_existing=True
         )
-        logging.info(f"已添加 云飞跟投任务: 批次{idx} @ {tstr}，策略：{[c.get('策略名称') for c in batch_cfgs]}")
+
+        # 使用统一的日志封装（避免暴露 "云飞跟投" 与策略名）
+        strategy_names = [c.get('策略名称') for c in batch_cfgs]
+        _log_follow_batch(idx, tstr, strategies=strategy_names,
+                          hide_details=hide_details_by_config, redact_source=redact_label_by_config)
 
 # ----------------- misc helpers -----------------
 def add_seconds_to_hms(h: int, m: int, s: int, delta: int = 20):

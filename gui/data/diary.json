@@ -1,5 +1,5 @@
 {
-  "continuous_days": 6,
+  "continuous_days": 7,
   "records": [
     {
       "date": "2025-09-01",
@@ -1477,13 +1477,76 @@
           "unit": "天",
           "project": "云飞自动交易",
           "tags": ""
+        },
+        {
+          "category": "交易",
+          "content": "10月要开始布局加仓，布置云飞加仓、自动交易和双账号管理事宜。生活上完成搬家，尝试上海找工作摸底。10月命名为探索月，需要决策下阶段方向",
+          "major": false,
+          "score": 1.0,
+          "unit": "天",
+          "project": "生活",
+          "tags": "月计划"
+        },
+        {
+          "category": "生活",
+          "content": "10月第一周为双账户周，需要实现保守激进账户的正常交易和展示，可能要先实现云飞交易再自动化双账户。并完成歌曲注册。至少实现云飞部分加仓，待机雪人加仓。",
+          "major": false,
+          "score": 1.0,
+          "unit": "小时",
+          "project": "",
+          "tags": "周计划"
+        },
+        {
+          "category": "量化",
+          "content": "BALL计划，云飞球，十七只球滚动，按日期定投分散风险，到今天完成对账是一个里程碑",
+          "major": true,
+          "score": 1.0,
+          "unit": "天",
+          "project": "BALL",
+          "tags": "里程碑"
+        },
+        {
+          "category": "量化",
+          "content": "10月进展不小，月初完成了搬家，制作了遥远的天空和知识青年从军歌，补充了集合竞价买单功能，实现了双账户的顺滑登录，重构了双账号抓取和买卖逻辑避免重复抓取，完成了多账号批量登录和关闭，补充了很多量化策略，最后完成了对账功能。本月收获满满，遗憾是工作方面没有推进到。",
+          "major": false,
+          "score": 0.0,
+          "unit": "小时",
+          "project": "",
+          "tags": "月总结"
+        },
+        {
+          "category": "量化",
+          "content": "完成了云飞数据分析",
+          "major": true,
+          "score": 10.0,
+          "unit": "天",
+          "project": "云飞数据分析",
+          "tags": ""
         }
       ],
       "plan": [],
       "rules": "",
       "followed_plan": true,
-      "timestamp": "2025-10-29T15:11:06"
+      "timestamp": "2025-10-30T08:44:08"
+    },
+    {
+      "date": "2025-10-30",
+      "honor": [
+        {
+          "category": "量化",
+          "content": "完成精细化对账",
+          "major": false,
+          "score": 4.0,
+          "unit": "小时",
+          "project": "云飞自动交易",
+          "tags": ""
+        }
+      ],
+      "plan": [],
+      "rules": "",
+      "followed_plan": true,
+      "timestamp": "2025-10-30T15:11:28"
     }
   ],
-  "continuous_days_last_date": "2025-10-29"
+  "continuous_days_last_date": "2025-10-30"
 }

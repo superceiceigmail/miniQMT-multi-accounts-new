@@ -1,61 +1,25 @@
 [
   {
-    "content": "云飞定时执行交易计划",
+    "content": "11月计划：1、云飞策略保存，2、降低云飞优先级，尝试找工作，3、如果11月找不到工作，就开展B计划",
     "priority": 5,
     "start_date": "",
     "start_time": "",
-    "created_date": "2025-09-14",
-    "category": "量化",
-    "project": "",
-    "tags": "",
-    "major": true
-  },
-  {
-    "content": "10月第一周为双账户周，需要实现保守激进账户的正常交易和展示，可能要先实现云飞交易再自动化双账户。并完成歌曲注册。至少实现云飞部分加仓，待机雪人加仓。",
-    "priority": 5,
-    "start_date": "",
-    "start_time": "",
-    "created_date": "2025-09-21",
-    "category": "量化",
-    "project": "",
-    "tags": "",
-    "major": false
-  },
-  {
-    "content": "云飞双账号规划；1、先完成云飞调仓和自动交易",
-    "priority": 5,
-    "start_date": "",
-    "start_time": "",
-    "category": "量化",
-    "project": "云飞自动交易",
-    "tags": "",
-    "created_date": "2025-10-01",
-    "remind_id": "539401300e2f47fd8827d4da65f4f018",
-    "status": "",
-    "major": false
-  },
-  {
-    "content": "10月要开始布局加仓，布置云飞加仓、自动交易和双账号管理事宜。生活上完成搬家，尝试上海找工作摸底。10月命名为探索月，需要决策下阶段方向",
-    "priority": 5,
-    "start_date": "",
-    "start_time": "",
-    "category": "交易",
+    "created_date": "2025-10-29",
+    "category": "生活",
     "project": "",
     "tags": "月计划",
-    "created_date": "2025-10-02",
-    "remind_id": "5b201659c06344fd80194200a9f16df3",
-    "status": ""
+    "major": false
   },
   {
-    "content": "BALL计划，云飞球，十二只球滚动，按日期定投分散风险",
-    "priority": 4,
+    "content": "云飞代码移植运行",
+    "priority": 5,
     "start_date": "",
     "start_time": "",
-    "created_date": "2025-09-13",
+    "created_date": "2025-10-29",
     "category": "量化",
     "project": "",
     "tags": "",
-    "major": true
+    "major": false
   },
   {
     "content": "歌词学习，郑智化，beyond，汪峰，beatles研究,成龙，罗文，郑少秋，女歌手对唱，李云龙",
@@ -78,27 +42,6 @@
     "tags": "",
     "created_date": "2025-09-09",
     "major": false
-  },
-  {
-    "content": "云飞策略保存",
-    "priority": 4,
-    "start_date": "",
-    "start_time": "",
-    "created_date": "2025-10-29",
-    "category": "量化",
-    "project": "",
-    "tags": "",
-    "major": false
-  },
-  {
-    "content": "云飞的策略自动跟踪。",
-    "priority": 3,
-    "start_date": "",
-    "start_time": "",
-    "created_date": "2025-09-08",
-    "category": "交易",
-    "project": "",
-    "tags": ""
   },
   {
     "content": "记录云飞综合成交曲线",
@@ -132,6 +75,17 @@
     "project": "",
     "tags": "",
     "created_date": "2025-09-09"
+  },
+  {
+    "content": "量化PPT",
+    "priority": 3,
+    "start_date": "",
+    "start_time": "",
+    "created_date": "2025-10-29",
+    "category": "量化",
+    "project": "",
+    "tags": "",
+    "major": false
   },
   {
     "content": "成就计划思考",
@@ -219,28 +173,6 @@
     "project": "",
     "tags": "",
     "created_date": "2025-09-09",
-    "major": false
-  },
-  {
-    "content": "本周是搬家放松周，要完成放松娱乐和搬家两件事情。云飞暂停，音乐为主。",
-    "priority": 1,
-    "start_date": "",
-    "start_time": "",
-    "created_date": "2025-10-01",
-    "category": "生活",
-    "project": "",
-    "tags": "",
-    "major": false
-  },
-  {
-    "content": "策略相关性分析",
-    "priority": 4,
-    "start_date": "",
-    "start_time": "",
-    "created_date": "2025-10-29",
-    "category": "量化",
-    "project": "",
-    "tags": "",
     "major": false
   }
 ]

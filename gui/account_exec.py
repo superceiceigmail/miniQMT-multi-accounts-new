@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import os
 import subprocess
 import threading
@@ -21,10 +22,15 @@ try:
 except Exception:
     ru = None
 
-# 新增：调用 yunfei 的对账接口（网络）和本地对账函数（文件比对）
+# NOTE: network reconcile path intentionally disabled.
+# 原先这里会尝试导入 yunfei 的网络对账模块。为了强制仅使用本地文件对账，
+# 我们注释/屏蔽网络对账相关的运行逻辑。保留占位变量以避免其它引用错误。
 try:
-    from yunfei_ball.yunfei_reconcile import reconcile_account
-    from yunfei_ball.yunfei_login import login, BASE_URL
+    # from yunfei_ball.yunfei_reconcile import reconcile_account
+    # from yunfei_ball.yunfei_login import login, BASE_URL
+    reconcile_account = None
+    login = None
+    BASE_URL = "https://www.ycyflh.com"
 except Exception:
     reconcile_account = None
     login = None
@@ -569,7 +575,7 @@ def build_account_frame(root, acc_display, config):
     btn_stop.config(command=lambda: [proc.stop(), proc.update_status()])
     btn_refresh.config(command=proc.update_log)
 
-    # 对账按钮回调（优先使用本地对账接口，否则使用 yunfei 的网络对账）
+    # 对账按钮回调（仅使用本地文件对账，禁用网络抓取）
     def on_reconcile_click():
         # 优先使用本地文件比对接口（无需网络抓取）
         btn_reconcile.config(state="disabled", text="检测中...")
@@ -600,68 +606,19 @@ def build_account_frame(root, acc_display, config):
                         print(f"[reconcile] generate_reconcile_report 失败: {e_local}")
                         result = None
 
-                # 2) 如果本地方法都不可用或失败，则回退到网络抓取的 reconcile_account（原有流程）
+                # 重要改动：不再回退到网络抓取（已禁用）
                 if not used_local:
-                    if reconcile_account is None or login is None:
-                        raise RuntimeError("既没有本地对账函数，也没有 yunfei 对账模块可用")
-                    # 先快速尝试 login 检查（轻量），如果未登录则引导用户在浏览器登录
-                    session = login(username=None)
-                    if not session:
-                        # 回到主线程提示用户在浏览器登录
-                        def prompt_login():
-                            if messagebox.askyesno("未登录", "未检测到有效的云飞登录状态。是否在浏览器中打开登录页面以人工登录？"):
-                                webbrowser.open(BASE_URL + "/F2/login.aspx")
-                        root.after(0, prompt_login)
-                        result = {'fetched_at': None, 'batches': {}, 'account_holdings': {}, 'warnings': ['not_logged_in']}
-                    else:
-                        # 已登录：调用 reconcile_account，传入 session via username if needed
-                        result = reconcile_account(account=account_id, account_snapshot=None, xt_trader=None, username=None, force_fetch=force, cache_ttl=600)
+                    raise RuntimeError("本地对账函数不可用；已禁用网络抓取，请确保本地文件存在并且格式正确。")
             except Exception as e:
                 err = e
 
             def on_done():
-                # 处理结果中的 rate_limited 警告：若包含 retry_after，则禁用按钮直至冷却期
-                def parse_retry_after(warnings):
-                    for w in warnings:
-                        if isinstance(w, str) and w.startswith('rate_limited:'):
-                            # formats: rate_limited:retry_after=123 OR rate_limited:...
-                            m = __import__('re').search(r'retry_after=(\d+)', w)
-                            if m:
-                                return int(m.group(1))
-                            return None
-                    return None
-
-                retry_after = None
                 if err:
                     messagebox.showerror("对账失败", f"对账出错: {err}")
                     btn_reconcile.config(state="normal", text="对账")
                     return
-                if result:
-                    warnings = result.get('warnings', []) or ( [result.get('warning')] if result.get('warning') else [] )
-                    retry_after = parse_retry_after(warnings)
-                    if retry_after:
-                        # 提示用户并禁用按钮 retry_after 秒
-                        messagebox.showwarning("限流提示", f"检测到云飞对当前请求限流，请等待约 {retry_after} 秒后重试，或在浏览器手动登录后重试。")
-                        btn_reconcile.config(state="disabled", text=f"等待 {retry_after}s")
-                        # 安排定时器以重新启用按钮（每秒更新文案）
-                        start_ts = int(time.time())
-                        def tick():
-                            elapsed = int(time.time()) - start_ts
-                            remain = retry_after - elapsed
-                            if remain <= 0:
-                                btn_reconcile.config(state="normal", text="对账")
-                                return
-                            btn_reconcile.config(text=f"等待 {remain}s")
-                            root.after(1000, tick)
-                        root.after(1000, tick)
-                        _show_reconcile_dialog(root, result, account_id)
-                        return
 
-                    # 其他 warnings: 显示提示但不禁用太久
-                    if warnings:
-                        w = "; ".join([str(x) for x in warnings])
-                        messagebox.showwarning("对账警告", f"对账完成，但存在警告: {w}\n请按提示登录或强制刷新后重试。")
-
+                # 如果成功返回 result，直接展示
                 btn_reconcile.config(state="normal", text="对账")
                 _show_reconcile_dialog(root, result, account_id)
 
