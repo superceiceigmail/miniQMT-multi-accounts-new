@@ -1,277 +1,253 @@
-# coding:utf-8
-import time
+# processor/trade_plan_execution.py
+"""
+执行交易计划（sell / buy）。本文件对持仓 code 匹配做了后缀变体容错，
+使用 utils.code_normalizer.match_available_code_in_dict 来匹配 position keys，
+并在日志中打印匹配细节便于排查。
+"""
 import datetime
-import math
+import time
 import logging
-from typing import Dict, Any, Optional
+from typing import Optional, Dict, Any
 
+from utils.code_normalizer import normalize_code, match_available_code_in_dict, canonical_variants
 from xtquant import xtdata
-from xtquant.xttrader import XtQuantTrader, XtQuantTraderCallback
-from xtquant.xttype import StockAccount, _XTCONST_
+from xtquant.xttype import StockAccount
 
-from utils.log_utils import emit, get_logger
+logger = logging.getLogger(__name__)
 
-logger = get_logger(__name__)
-
-class MyXtQuantTraderCallback(XtQuantTraderCallback):
-    def on_disconnected(self):
-        emit(logger, f"{datetime.datetime.now()} - 连接断开回调", level="error")
-
-    def on_stock_order(self, order):
-        emit(logger, f"{datetime.datetime.now()} - 委托回调 投资备注: {order.order_remark}")
-
-    def on_stock_trade(self, trade):
-        emit(
-            logger,
-            f"{datetime.datetime.now()} - 成交回调 {trade.order_remark} "
-            f"委托方向(48买 49卖) {trade.offset_flag} 成交价格 {trade.traded_price} 成交数量 {trade.traded_volume}"
-        )
-
-    def on_order_error(self, order_error):
-        emit(logger, f"委托报错回调 {order_error.order_remark} {order_error.error_msg}", level="error")
-
-    def on_cancel_error(self, cancel_error):
-        emit(logger, f"{datetime.datetime.now()} - 撤单失败回调", level="error")
-
-    def on_order_stock_async_response(self, response):
-        emit(logger, f"异步委托回调 投资备注: {response.order_remark}")
-
-    def on_cancel_order_stock_async_response(self, response):
-        emit(logger, f"{datetime.datetime.now()} - 撤单异步回调")
-
-    def on_account_status(self, status):
-        emit(logger, f"{datetime.datetime.now()} - 账户状态回调")
-
-
-def _round_price_to_tick(price: float, tick: float) -> float:
-    if tick and tick > 0:
-        # 避免浮点误差，保留多一点精度
-        return round(round(price / tick) * tick, 10)
-    return price
-
-
-def _clamp_price(price: float, lower: Optional[float], upper: Optional[float]) -> float:
-    if lower is not None:
-        price = max(price, lower)
-    if upper is not None:
-        price = min(price, upper)
-    return price
-
-
-def _get_board_lot(detail: Dict[str, Any], default_lot: int = 100) -> int:
-    # 从合约细节里兜底读取最小成交单位
-    for key in ("MinVolume", "VolumeStep", "TradeVolumeUnit"):
-        v = detail.get(key)
-        if isinstance(v, (int, float)) and v > 0:
-            return int(v)
-    return default_lot
-
-
-def _safe_get_tick(stock: str, side: str, retry: int = 2, sleep_sec: float = 0.2) -> Dict[str, Any]:
-    """
-    获取 tick，必要时短重试。side: 'buy' 或 'sell'，用于回退价选择。
-    """
-    last_exc: Optional[Exception] = None
-    for _ in range(max(1, retry + 1)):
-        try:
-            data = xtdata.get_full_tick([stock]) or {}
-            tick = data.get(stock) or {}
-            last_price = tick.get("lastPrice")
-            if last_price is not None and last_price > 0:
-                return tick
-            if side == "buy":
-                asks = tick.get("askPrice")
-                if asks and isinstance(asks, (list, tuple)) and asks and asks[0]:
-                    return tick
-            else:
-                bids = tick.get("bidPrice")
-                if bids and isinstance(bids, (list, tuple)) and bids and bids[0]:
-                    return tick
-        except Exception as e:
-            last_exc = e
-        time.sleep(sleep_sec)
-    if last_exc:
-        emit(logger, f"{stock} 获取tick失败，返回空tick，原因：{last_exc}", level="warning")
-    return {}
-
-
-def _extract_working_price(tick: Dict[str, Any], side: str) -> Optional[float]:
-    """
-    提取用于下单的价格：
-    - 优先 lastPrice
-    - 买单回退 askPrice[0]，卖单回退 bidPrice[0]
-    """
-    p = tick.get("lastPrice")
-    if p and p > 0:
-        return float(p)
-    if side == "buy":
-        asks = tick.get("askPrice")
-        if asks and isinstance(asks, (list, tuple)) and asks and asks[0]:
-            return float(asks[0])
+def emit(lg, msg: str, level: str = "info"):
+    if level == "error":
+        lg.error(msg)
+    elif level == "warning":
+        lg.warning(msg)
     else:
-        bids = tick.get("bidPrice")
-        if bids and isinstance(bids, (list, tuple)) and bids and bids[0]:
-            return float(bids[0])
+        lg.info(msg)
+
+def _get_board_lot(detail: dict, default_lot: int = 100) -> int:
+    """
+    Try to determine board lot (lot size) from instrument detail.
+    Fallback to default_lot.
+    """
+    try:
+        # common keys
+        if not detail:
+            return default_lot
+        for k in ("BoardLot", "boardLot", "lotSize", "BoardLotSize"):
+            if k in detail and detail.get(k):
+                try:
+                    return int(detail.get(k))
+                except Exception:
+                    pass
+        # some funds/ETF may standardize on 100
+        return default_lot
+    except Exception:
+        return default_lot
+
+def _safe_get_tick(stock: str, side: str = "sell") -> dict:
+    """
+    get tick from xtdata; returns {} on failure
+    side used to pick bid/ask if necessary.
+    """
+    try:
+        tick = xtdata.get_full_tick([stock]).get(stock) or {}
+        return tick
+    except Exception:
+        return {}
+
+def _extract_working_price(tick: dict, side: str = "sell") -> Optional[float]:
+    """
+    Choose a working price from tick data depending on side:
+      - for sell: use bid price (or lastPrice)
+      - for buy: use ask price (or lastPrice)
+    """
+    try:
+        if not tick:
+            return None
+        last = tick.get("lastPrice") or tick.get("last") or None
+        if side == "sell":
+            bid = tick.get("bidPrice") or tick.get("bid") or (tick.get("bidPrice1") if isinstance(tick.get("bidPrice1"), (int, float)) else None)
+            if bid:
+                return float(bid)
+            if last:
+                return float(last)
+            # try ask fallback
+            ask = tick.get("askPrice") or tick.get("ask")
+            if ask:
+                return float(ask)
+        else:
+            ask = tick.get("askPrice") or tick.get("ask") or (tick.get("askPrice1") if isinstance(tick.get("askPrice1"), (int, float)) else None)
+            if ask:
+                return float(ask)
+            if last:
+                return float(last)
+            bid = tick.get("bidPrice") or tick.get("bid")
+            if bid:
+                return float(bid)
+    except Exception:
+        return None
     return None
 
-
-def _get_limits(detail: Dict[str, Any], tick: Dict[str, Any]) -> (Optional[float], Optional[float]):
+def execute_trade_plan(trader, account: StockAccount, trade_plan: dict, action: Optional[str] = None, logger_: Optional[logging.Logger] = None):
     """
-    提取涨跌停限制（尽可能兼容不同字段名）。
-    """
-    keys_upper = ["UpperLimitPrice", "LimitUp", "highLimited", "upperLimitPrice"]
-    keys_lower = ["LowerLimitPrice", "LimitDown", "lowLimited", "lowerLimitPrice"]
-
-    upper = None
-    lower = None
-    for k in keys_upper:
-        v = detail.get(k)
-        if v:
-            upper = float(v)
-            break
-    for k in keys_lower:
-        v = detail.get(k)
-        if v:
-            lower = float(v)
-            break
-
-    if upper is None:
-        v = tick.get("highLimited")
-        if v:
-            upper = float(v)
-    if lower is None:
-        v = tick.get("lowLimited")
-        if v:
-            lower = float(v)
-    return lower, upper
-
-
-def execute_trade_plan(
-    trader: XtQuantTrader,
-    account: StockAccount,
-    trade_plan: dict,
-    action: Optional[str] = None,
-    logger_: Optional[logging.Logger] = None
-):
-    """
-    根据交易计划执行所有卖单和买单
-    :param action: 'buy' 只买入, 'sell' 只卖出, None或'all'买卖都执行
+    Execute trade_plan for given account.
+    :param trader: xt_trader instance (supports query_stock_asset, query_stock_positions, order_stock_async etc.)
+    :param account: StockAccount instance
+    :param trade_plan: dict containing 'sell' and 'buy' lists
+    :param action: 'sell', 'buy', or None/'all'
     """
     lg = logger_ or logger
 
-    # 账户资金与持仓
-    account_info = trader.query_stock_asset(account)
-    available_cash = float(getattr(account_info, "m_dCash", 0.0))
-    positions = trader.query_stock_positions(account)
-    position_available_dict = {i.stock_code: int(getattr(i, "m_nCanUseVolume", 0)) for i in positions}
+    # query account & positions
+    try:
+        account_info = trader.query_stock_asset(account)
+        available_cash = float(getattr(account_info, "m_dCash", 0.0) or 0.0)
+    except Exception as e:
+        available_cash = 0.0
+        emit(lg, f"查询账户资金失败: {e}", level="error")
 
-    #    emit(lg, f"{account.account_id} 可用资金: {available_cash:.2f}", level="debug")
-    #    emit(lg, f"{account.account_id} 可用持仓字典: {position_available_dict}", level="debug")
+    try:
+        positions = trader.query_stock_positions(account) or []
+    except Exception as e:
+        positions = []
+        emit(lg, f"查询持仓失败: {e}", level="error")
 
-    now = datetime.datetime.now()
-    cutover = now.replace(hour=9, minute=29, second=0, microsecond=0)
-    tick_offset = 5 if now < cutover else 1
+    # build available dict: keys are the exact codes returned by broker (e.g. '159949.SZ') and possibly normalized variants
+    position_available: Dict[str, int] = {}
+    position_raw_map: Dict[str, Any] = {}
+    for p in positions:
+        try:
+            # support xt position object or dict-like
+            stock_code = getattr(p, "stock_code", None) or getattr(p, "m_strStockCode", None) or getattr(p, "stock", None) or getattr(p, "stock_code", None)
+            if not stock_code:
+                # try dict keys
+                try:
+                    stock_code = p.get('stock_code') or p.get('code') or p.get('stock')
+                except Exception:
+                    stock_code = None
+            if not stock_code:
+                continue
+            stock_code = str(stock_code).strip()
+            can_use = int(getattr(p, "m_nCanUseVolume", 0) or getattr(p, "m_iCanUse", 0) or (p.get('m_nCanUseVolume') if isinstance(p, dict) else None) or (p.get('can_use') if isinstance(p, dict) else None) or 0)
+            # store under as-is key and normalized key
+            position_available[stock_code] = position_available.get(stock_code, 0) + int(can_use or 0)
+            norm = normalize_code(stock_code)
+            if norm != stock_code:
+                position_available[norm] = position_available.get(norm, 0) + int(can_use or 0)
+            # also store base (no suffix)
+            base = stock_code.split('.')[0]
+            if base and base not in position_available:
+                position_available[base] = position_available.get(base, 0) + int(can_use or 0)
+            # raw map
+            position_raw_map[stock_code] = p
+            position_raw_map[norm] = p
+            position_raw_map[base] = p
+        except Exception:
+            continue
 
-    # 先卖，释放资金
+    emit(lg, f"{account.account_id} 可用持仓字典 keys: {list(position_available.keys())}", level="debug")
+
+    # SELL phase: submit sell orders first
     if action in (None, "all", "sell"):
         for sell_item in trade_plan.get("sell", []):
-            stock = sell_item.get("code")
+            stock = sell_item.get("code") or sell_item.get("stock_code") or sell_item.get("stock")
             if not stock:
                 emit(lg, f"【严重报错】卖单缺少代码字段: {sell_item}", level="error")
                 continue
-            try:
-                target_vol = int(sell_item.get("actual_lots", 0))
-                available_vol = int(position_available_dict.get(stock, 0))
+            name = sell_item.get("name") or sell_item.get("stock") or stock
+            norm_code = normalize_code(stock)
+            # try to find available key in position_available using variants
+            matched_key = match_available_code_in_dict(norm_code, position_available)
+            if not matched_key:
+                # second attempt: try plain norm_code if present
+                if norm_code in position_available:
+                    matched_key = norm_code
+            can_use_volume = int(position_available.get(matched_key, 0)) if matched_key else 0
 
-                detail = xtdata.get_instrument_detail(stock) or {}
-                price_tick = float(detail.get("PriceTick") or 0.01)
-                board_lot = _get_board_lot(detail, default_lot=100)
+            emit(lg, f"准备卖出: {name} 原始code={stock} 规范后={norm_code} 匹配到键={matched_key} 可用={can_use_volume}", level="info")
 
-                sell_vol = max(0, min(target_vol, available_vol))
-                sell_vol = (sell_vol // board_lot) * board_lot
-
-                tick = _safe_get_tick(stock, side="sell")
-                current_price = _extract_working_price(tick, side="sell")
-                if not current_price:
-                    emit(lg, f"【严重报错】无法获取 {stock} 的有效卖出价格，跳过卖单", level="error")
-                    continue
-
-                raw_price = current_price - price_tick * tick_offset
-                lower, upper = _get_limits(detail, tick)
-                adjusted_price = _round_price_to_tick(_clamp_price(raw_price, lower, upper), price_tick)
-
-                emit(
-                    lg,
-                    f"{stock} 当前价: {current_price:.4f} 偏移{tick_offset}tick后: {adjusted_price:.4f} "
-                    f"目标量 {target_vol} 可用 {available_vol} 实际卖出 {sell_vol} 手({board_lot}/手)"
-                )
-
-                if sell_vol > 0 and adjusted_price > 0:
-                    async_seq = trader.order_stock_async(
-                        account, stock, _XTCONST_.STOCK_SELL, sell_vol, _XTCONST_.FIX_PRICE, adjusted_price,
-                        "strategy_name", stock
-                    )
-                    emit(lg, f"{stock} 卖单已提交，异步委托序列号: {async_seq}")
-                else:
-                    emit(lg, f"{stock} 卖单未提交（数量或价格无效）", level="warning")
-            except Exception as e:
-                emit(lg, f"【严重报错】 卖单执行异常: {sell_item.get('name', stock)}，错误信息: {e}", level="error")
+            if can_use_volume <= 0:
+                emit(lg, f"[错误] 【{name}】当前没有可用持仓量！", level="error")
                 continue
 
-    # 后买，逐笔扣减可用资金
+            # determine board lot and lots to sell (round down to board lot)
+            try:
+                detail = xtdata.get_instrument_detail(matched_key or norm_code) or {}
+            except Exception:
+                detail = {}
+            board_lot = _get_board_lot(detail, default_lot=100)
+            lots_to_sell = (can_use_volume // board_lot) * board_lot
+            if lots_to_sell <= 0:
+                emit(lg, f"[警告] {name} 计算到下单手数为0（board_lot={board_lot}，可用={can_use_volume}），跳过", level="warning")
+                continue
+
+            # get working price
+            tick = _safe_get_tick(matched_key or norm_code, side="sell")
+            price = _extract_working_price(tick, side="sell")
+            if not price or price <= 0:
+                emit(lg, f"【严重报错】无法获取 {matched_key or norm_code} 的有效卖出价格，跳过卖单", level="error")
+                continue
+
+            # submit order (async)
+            try:
+                from xtquant.xttype import _XTCONST_
+                async_seq = trader.order_stock_async(account, matched_key or norm_code, _XTCONST_.STOCK_SELL, lots_to_sell, _XTCONST_.FIX_PRICE, price, f"auto_sell_{name}", matched_key or norm_code)
+                emit(lg, f"已提交卖单 {matched_key or norm_code} 卖出 {lots_to_sell} 股，价格 {price}，异步号 {async_seq}", level="info")
+            except Exception as e:
+                emit(lg, f"提交卖单失败: {e}", level="error")
+
+    # small pause to let async callbacks update positions (if any callback mechanism exists)
+    time.sleep(1.0)
+
+    # BUY phase
     if action in (None, "all", "buy"):
         for buy_item in trade_plan.get("buy", []):
-            stock = buy_item.get("code")
+            stock = buy_item.get("code") or buy_item.get("stock_code") or buy_item.get("stock")
             if not stock:
                 emit(lg, f"【严重报错】买单缺少代码字段: {buy_item}", level="error")
                 continue
-            try:
-                target_amount = float(buy_item.get("amount", 0.0))
-                if available_cash <= 0:
-                    emit(lg, f"{stock} 可用资金为 0，跳过后续买单", level="warning")
-                    break
-
-                detail = xtdata.get_instrument_detail(stock) or {}
-                price_tick = float(detail.get("PriceTick") or 0.01)
-                board_lot = _get_board_lot(detail, default_lot=100)
-
-                tick = _safe_get_tick(stock, side="buy")
-                current_price = _extract_working_price(tick, side="buy")
-                if not current_price:
-                    emit(lg, f"【严重报错】无法获取 {stock} 的有效买入价格，跳过买单", level="error")
-                    continue
-
-                raw_price = current_price + price_tick * tick_offset
-                lower, upper = _get_limits(detail, tick)
-                adjusted_price = _round_price_to_tick(_clamp_price(raw_price, lower, upper), price_tick)
-
-                budget = min(target_amount, available_cash)
-                est_vol = int(budget / adjusted_price / board_lot) * board_lot
-
-                emit(
-                    lg,
-                    f"{stock} 当前价: {current_price:.4f} 偏移{tick_offset}tick后: {adjusted_price:.4f} "
-                    f"目标金额 {target_amount:.2f} 预算 {budget:.2f} 估算股数 {est_vol} 手({board_lot}/手)"
-                )
-
-                if est_vol > 0 and adjusted_price > 0:
-                    async_seq = trader.order_stock_async(
-                        account, stock, _XTCONST_.STOCK_BUY, est_vol, _XTCONST_.FIX_PRICE, adjusted_price,
-                        "strategy_name", stock
-                    )
-                    emit(lg, f"{stock} 买单已提交，异步委托序列号: {async_seq}")
-                    # 粗估扣减（手续费忽略或另行处理）
-                    available_cash -= est_vol * adjusted_price
-                else:
-                    emit(lg, f"{stock} 买单未提交（预算不足以整手或价格无效）", level="warning")
-            except Exception as e:
-                emit(lg, f"【严重报错】 买单执行异常: {buy_item.get('name', stock)}，错误信息: {e}", level="error")
+            name = buy_item.get("name") or buy_item.get("stock") or stock
+            norm_code = normalize_code(stock)
+            # amount to spend
+            target_amount = float(buy_item.get("amount") or buy_item.get("sample_amount") or buy_item.get("target_amount") or 0.0)
+            if target_amount <= 0:
+                emit(lg, f"[警告] 买单 {name} 目标金额为0，跳过", level="warning")
                 continue
 
-    # === 在这里加委托列表打印（卖买都处理完后） ===
-    orders = trader.query_stock_orders(account)
-    emit(lg, f"当前委托列表: {[o.order_remark for o in orders]}")
-    emit(lg, "所有交易计划已尝试提交，检查券商客户端委托流水确认。")
+            # refresh available cash (best-effort)
+            try:
+                account_info = trader.query_stock_asset(account)
+                available_cash = float(getattr(account_info, "m_dCash", 0.0) or 0.0)
+            except Exception:
+                available_cash = available_cash  # keep previous
 
-if __name__ == '__main__':
-    emit(logger, "开始交易执行模块")
+            if available_cash <= 0:
+                emit(lg, f"{norm_code} 可用资金为 0，跳过后续买单", level="warning")
+                break
+
+            # get price and board_lot
+            detail = xtdata.get_instrument_detail(norm_code) or {}
+            board_lot = _get_board_lot(detail, default_lot=100)
+            tick = _safe_get_tick(norm_code, side="buy")
+            price = _extract_working_price(tick, side="buy")
+            if not price or price <= 0:
+                emit(lg, f"无法获取 {norm_code} 的买入价格，跳过买单", level="error")
+                continue
+
+            # compute volume (round down to board lot)
+            volume = int(target_amount // price // board_lot) * board_lot
+            if volume <= 0:
+                emit(lg, f"按目标金额 {target_amount} 与价格 {price} 无法买入最小单位({board_lot})，跳过", level="info")
+                continue
+
+            # submit buy order
+            try:
+                from xtquant.xttype import _XTCONST_
+                async_seq = trader.order_stock_async(account, norm_code, _XTCONST_.STOCK_BUY, volume, _XTCONST_.FIX_PRICE, price, f"auto_buy_{name}", norm_code)
+                emit(lg, f"已提交买单 {norm_code} 买入 {volume} 股，价格 {price}，异步号 {async_seq}", level="info")
+                # deduct estimated amount from available_cash to avoid over-placing subsequent buys in same loop
+                available_cash -= volume * price
+            except Exception as e:
+                emit(lg, f"提交买单失败: {e}", level="error")
+
+    emit(lg, "execute_trade_plan 完成", level="info")
+    return
