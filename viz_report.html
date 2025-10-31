@@ -1,0 +1,162 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Reconcile Blocks</title>
+<style>
+body{font-family: Arial, Helvetica, sans-serif; padding:16px; background:#f7f9fc; color:#222}
+.container{max-width:1100px;margin:0 auto}
+.row-title{margin-top:12px;font-weight:700}
+.row{display:flex;align-items:center;height:48px;gap:4px; margin-bottom:8px;}
+.box{height:40px;line-height:40px;color:#fff;padding:0 6px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-size:12px;border-radius:4px}
+.exp{background:#2b8a3e}
+.cur{background:#c0392b}
+.legend{margin:8px 0 18px 0}
+.legend span{display:inline-block;padding:6px 10px;border-radius:4px;color:#fff;margin-right:8px}
+.legend .e{background:#2b8a3e} .legend .c{background:#c0392b}
+.small{font-size:12px;color:#666;margin-top:6px}
+.tooltip{font-size:12px;color:#333}
+.note{margin-top:18px;color:#666;font-size:13px}
+</style>
+</head>
+<body>
+<div class="container">
+  <h2>对账符号化可视化</h2>
+  <div class="note">每个方块宽度表示该标的占账户总资产的比例（Expected 与 Current 行分别显示）。鼠标移动到方块上可查看具体金额与比例。</div>
+  <div class="legend"><span class="e">应配置（Expected）</span> <span class="c">当前持仓（Current）</span></div>
+
+  <div class="row-title">Expected (按账户总资产比例)</div>
+  <div class="row" id="expected-row">
+    <div class="box exp" title="511380 可转债 — expected 106222.20 (15.41%)" style="width:15.41%">511380 可转债</div><div class="box exp" title="513100 纳指3100 — expected 90919.57 (13.19%)" style="width:13.19%">513100 纳指3100</div><div class="box exp" title="501312 海外科技 — expected 32052.77 (4.65%)" style="width:4.65%">501312 海外科技</div><div class="box exp" title="160723 嘉实原油 — expected 30053.78 (4.36%)" style="width:4.36%">160723 嘉实原油</div><div class="box exp" title="511260 十年国债 — expected 20058.83 (2.91%)" style="width:2.91%">511260 十年国债</div><div class="box exp" title="511880 国债指数 — expected 18680.22 (2.71%)" style="width:2.71%">511880 国债指数</div><div class="box exp" title="515050 5G通信 — expected 15026.89 (2.18%)" style="width:2.18%">515050 5G通信</div><div class="box exp" title="164701 黄金LOF — expected 15026.89 (2.18%)" style="width:2.18%">164701 黄金LOF</div><div class="box exp" title="161126 标普医疗 — expected 15026.89 (2.18%)" style="width:2.18%">161126 标普医疗</div><div class="box exp" title="162415 美国消费 — expected 15026.89 (2.18%)" style="width:2.18%">162415 美国消费</div><div class="box exp" title="161125 标普500 — expected 13234.69 (1.92%)" style="width:1.92%">161125 标普500</div><div class="box exp" title="159949 创业板50 — expected 10270.67 (1.49%)" style="width:1.49%">159949 创业板50</div><div class="box exp" title="515220 煤炭ETF — expected 9994.95 (1.45%)" style="width:1.45%">515220 煤炭ETF</div><div class="box exp" title="161116 黄金主题 — expected 9994.95 (1.45%)" style="width:1.45%">161116 黄金主题</div><div class="box exp" title="159509 纳指科技ETF — expected 9374.57 (1.36%)" style="width:1.36%">159509 纳指科技ETF</div><div class="box exp" title="518880 黄金ETF — expected 8823.13 (1.28%)" style="width:1.28%">518880 黄金ETF</div><div class="box exp" title="513520 日经 — expected 7927.03 (1.15%)" style="width:1.15%">513520 日经</div><div class="box exp" title="159941 纳指9941 — expected 0.00 (0.00%)" style="width:0.00%">159941 纳指9941</div><div class="box exp" title="513300 纳斯达克ETF — expected 0.00 (0.00%)" style="width:0.00%">513300 纳斯达克ETF</div>
+  </div>
+
+  <div class="row-title">Current (按账户总资产比例)</div>
+  <div class="row" id="current-row">
+    <div class="box cur" title="511380 可转债 — current 102873.60 (14.92%)" style="width:14.92%">511380 可转债</div><div class="box cur" title="513100 纳指3100 — current 64373.90 (9.34%)" style="width:9.34%">513100 纳指3100</div><div class="box cur" title="501312 海外科技 — current 41076.00 (5.96%)" style="width:5.96%">501312 海外科技</div><div class="box cur" title="160723 嘉实原油 — current 29346.00 (4.26%)" style="width:4.26%">160723 嘉实原油</div><div class="box cur" title="511260 十年国债 — current 0.00 (0.00%)" style="width:0.00%">511260 十年国债</div><div class="box cur" title="511880 国债指数 — current 262626.00 (38.10%)" style="width:38.10%">511880 国债指数</div><div class="box cur" title="515050 5G通信 — current 14129.80 (2.05%)" style="width:2.05%">515050 5G通信</div><div class="box cur" title="164701 黄金LOF — current 14382.40 (2.09%)" style="width:2.09%">164701 黄金LOF</div><div class="box cur" title="161126 标普医疗 — current 15342.20 (2.23%)" style="width:2.23%">161126 标普医疗</div><div class="box cur" title="162415 美国消费 — current 14884.80 (2.16%)" style="width:2.16%">162415 美国消费</div><div class="box cur" title="161125 标普500 — current 10503.50 (1.52%)" style="width:1.52%">161125 标普500</div><div class="box cur" title="159949 创业板50 — current 10250.50 (1.49%)" style="width:1.49%">159949 创业板50</div><div class="box cur" title="515220 煤炭ETF — current 10920.00 (1.58%)" style="width:1.58%">515220 煤炭ETF</div><div class="box cur" title="161116 黄金主题 — current 0.00 (0.00%)" style="width:0.00%">161116 黄金主题</div><div class="box cur" title="159509 纳指科技ETF — current 0.00 (0.00%)" style="width:0.00%">159509 纳指科技ETF</div><div class="box cur" title="518880 黄金ETF — current 0.00 (0.00%)" style="width:0.00%">518880 黄金ETF</div><div class="box cur" title="513520 日经 — current 7960.00 (1.15%)" style="width:1.15%">513520 日经</div><div class="box cur" title="159941 纳指9941 — current 27453.60 (3.98%)" style="width:3.98%">159941 纳指9941</div><div class="box cur" title="513300 纳斯达克ETF — current 4892.00 (0.71%)" style="width:0.71%">513300 纳斯达克ETF</div>
+  </div>
+
+  <div class="small">Denominator used: 689306.96 (账户总资产或总和)</div>
+
+  <div style="margin-top:18px;">
+    <details><summary>导出数据（JSON）</summary>
+    <pre>[
+  {
+    "code": "511380",
+    "name": "可转债",
+    "expected": 106222.2,
+    "current": 102873.59999999999
+  },
+  {
+    "code": "513100",
+    "name": "纳指3100",
+    "expected": 90919.57,
+    "current": 64373.9
+  },
+  {
+    "code": "501312",
+    "name": "海外科技",
+    "expected": 32052.77,
+    "current": 41076.0
+  },
+  {
+    "code": "160723",
+    "name": "嘉实原油",
+    "expected": 30053.78,
+    "current": 29346.0
+  },
+  {
+    "code": "511260",
+    "name": "十年国债",
+    "expected": 20058.83,
+    "current": 0.0
+  },
+  {
+    "code": "511880",
+    "name": "国债指数",
+    "expected": 18680.22,
+    "current": 262626.0
+  },
+  {
+    "code": "515050",
+    "name": "5G通信",
+    "expected": 15026.89,
+    "current": 14129.8
+  },
+  {
+    "code": "164701",
+    "name": "黄金LOF",
+    "expected": 15026.89,
+    "current": 14382.400000000001
+  },
+  {
+    "code": "161126",
+    "name": "标普医疗",
+    "expected": 15026.89,
+    "current": 15342.2
+  },
+  {
+    "code": "162415",
+    "name": "美国消费",
+    "expected": 15026.89,
+    "current": 14884.8
+  },
+  {
+    "code": "161125",
+    "name": "标普500",
+    "expected": 13234.69,
+    "current": 10503.5
+  },
+  {
+    "code": "159949",
+    "name": "创业板50",
+    "expected": 10270.67,
+    "current": 10250.5
+  },
+  {
+    "code": "515220",
+    "name": "煤炭ETF",
+    "expected": 9994.95,
+    "current": 10920.0
+  },
+  {
+    "code": "161116",
+    "name": "黄金主题",
+    "expected": 9994.95,
+    "current": 0.0
+  },
+  {
+    "code": "159509",
+    "name": "纳指科技ETF",
+    "expected": 9374.57,
+    "current": 0.0
+  },
+  {
+    "code": "518880",
+    "name": "黄金ETF",
+    "expected": 8823.13,
+    "current": 0.0
+  },
+  {
+    "code": "513520",
+    "name": "日经",
+    "expected": 7927.03,
+    "current": 7960.0
+  },
+  {
+    "code": "159941",
+    "name": "纳指9941",
+    "expected": 0.0,
+    "current": 27453.6
+  },
+  {
+    "code": "513300",
+    "name": "纳斯达克ETF",
+    "expected": 0.0,
+    "current": 4892.0
+  }
+]</pre>
+    </details>
+  </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,187 @@
+{
+  "account_id": "8886006288",
+  "total_asset": 686500.45,
+  "as_of": "2025-10-29T01:16:29.206913",
+  "both": [
+    {
+      "stock_code": "513100.SH",
+      "stock_name": "纳指3100",
+      "expected_money": 80595.17,
+      "current_market_value": 63340.3,
+      "diff_money": 17254.87,
+      "percent_diff": 21.4
+    },
+    {
+      "stock_code": "515050.SH",
+      "stock_name": "未知股票",
+      "expected_money": 14965.71,
+      "current_market_value": 28048.8,
+      "diff_money": -13083.09,
+      "percent_diff": -87.4
+    },
+    {
+      "stock_code": "159949.SZ",
+      "stock_name": "创业板50",
+      "expected_money": 10228.86,
+      "current_market_value": 9997.0,
+      "diff_money": 231.86,
+      "percent_diff": 2.3
+    },
+    {
+      "stock_code": "513520.SH",
+      "stock_name": "日经",
+      "expected_money": 7894.76,
+      "current_market_value": 7740.0,
+      "diff_money": 154.76,
+      "percent_diff": 2.0
+    }
+  ],
+  "yunfei_only": [
+    {
+      "stock_code": "511880.SH",
+      "stock_name": "511880.SH",
+      "expected_money": 18604.16,
+      "current_market_value": 0.0,
+      "diff_money": 18604.16,
+      "percent_diff": 100.0
+    },
+    {
+      "stock_code": "513500.SH",
+      "stock_name": "513500.SH",
+      "expected_money": 13180.81,
+      "current_market_value": 0.0,
+      "diff_money": 13180.81,
+      "percent_diff": 100.0
+    },
+    {
+      "stock_code": "159509.SZ",
+      "stock_name": "159509.SZ",
+      "expected_money": 9336.41,
+      "current_market_value": 0.0,
+      "diff_money": 9336.41,
+      "percent_diff": 100.0
+    },
+    {
+      "stock_code": "518880.SH",
+      "stock_name": "518880.SH",
+      "expected_money": 8787.21,
+      "current_market_value": 0.0,
+      "diff_money": 8787.21,
+      "percent_diff": 100.0
+    },
+    {
+      "stock_code": "000832.SH",
+      "stock_name": "000832.SH",
+      "expected_money": 3707.1,
+      "current_market_value": 0.0,
+      "diff_money": 3707.1,
+      "percent_diff": 100.0
+    }
+  ],
+  "positions_only": [
+    {
+      "stock_code": "511260.SH",
+      "stock_name": "十年国债",
+      "expected_money": 0.0,
+      "current_market_value": 189082.6,
+      "diff_money": -189082.6,
+      "percent_diff": null
+    },
+    {
+      "stock_code": "161116.SZ",
+      "stock_name": "黄金主题",
+      "expected_money": 0.0,
+      "current_market_value": 36710.4,
+      "diff_money": -36710.4,
+      "percent_diff": null
+    },
+    {
+      "stock_code": "160723.SZ",
+      "stock_name": "嘉实原油",
+      "expected_money": 0.0,
+      "current_market_value": 29718.3,
+      "diff_money": -29718.3,
+      "percent_diff": null
+    },
+    {
+      "stock_code": "160719.SZ",
+      "stock_name": "嘉实黄金",
+      "expected_money": 0.0,
+      "current_market_value": 28799.0,
+      "diff_money": -28799.0,
+      "percent_diff": null
+    },
+    {
+      "stock_code": "161126.SZ",
+      "stock_name": "标普医疗",
+      "expected_money": 0.0,
+      "current_market_value": 15391.4,
+      "diff_money": -15391.4,
+      "percent_diff": null
+    },
+    {
+      "stock_code": "162415.SZ",
+      "stock_name": "美国消费",
+      "expected_money": 0.0,
+      "current_market_value": 14817.6,
+      "diff_money": -14817.6,
+      "percent_diff": null
+    },
+    {
+      "stock_code": "164701.SZ",
+      "stock_name": "黄金LOF",
+      "expected_money": 0.0,
+      "current_market_value": 14311.2,
+      "diff_money": -14311.2,
+      "percent_diff": null
+    },
+    {
+      "stock_code": "159941.SZ",
+      "stock_name": "纳指9941",
+      "expected_money": 0.0,
+      "current_market_value": 13540.8,
+      "diff_money": -13540.8,
+      "percent_diff": null
+    },
+    {
+      "stock_code": "515220.SH",
+      "stock_name": "煤炭ETF",
+      "expected_money": 0.0,
+      "current_market_value": 10774.4,
+      "diff_money": -10774.4,
+      "percent_diff": null
+    },
+    {
+      "stock_code": "161125.SZ",
+      "stock_name": "标普500",
+      "expected_money": 0.0,
+      "current_market_value": 10437.0,
+      "diff_money": -10437.0,
+      "percent_diff": null
+    },
+    {
+      "stock_code": "501312.SH",
+      "stock_name": "海外科技",
+      "expected_money": 0.0,
+      "current_market_value": 9655.8,
+      "diff_money": -9655.8,
+      "percent_diff": null
+    },
+    {
+      "stock_code": "513300.SH",
+      "stock_name": "纳斯达克ETF",
+      "expected_money": 0.0,
+      "current_market_value": 2413.0000000000005,
+      "diff_money": -2413.0,
+      "percent_diff": null
+    },
+    {
+      "stock_code": "131990.SZ",
+      "stock_name": "国债逆回购",
+      "expected_money": 0.0,
+      "current_market_value": 0.0,
+      "diff_money": 0.0,
+      "percent_diff": null
+    }
+  ]
+}

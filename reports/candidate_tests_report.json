@@ -1,0 +1,32 @@
+{
+  "generated_by": "find_candidate_tests.py",
+  "root": "C:\\Users\\ceicei\\PycharmProjects\\miniQMT-multi-accounts-new",
+  "candidates": [
+    {
+      "path": "test_force_generate_drafts.py",
+      "score": 5,
+      "reasons": [
+        "导入潜在缺失模块: json, collections, re",
+        "文件中未发现 assert（可能是工具/辅助脚本而非测试）"
+      ],
+      "git": {
+        "author": "superceiceigmail",
+        "date": "Wed Oct 29 01:35:53 2025 +0800",
+        "sha": "7fb6be3d69356ae561a4545feac21429ac36a952"
+      }
+    },
+    {
+      "path": "test_ocr.py",
+      "score": 5,
+      "reasons": [
+        "导入潜在缺失模块: PIL, pytesseract, shutil",
+        "文件中未发现 assert（可能是工具/辅助脚本而非测试）"
+      ],
+      "git": {
+        "author": "superceiceigmail",
+        "date": "Thu Oct 23 13:17:09 2025 +0800",
+        "sha": "e105f71aeb1141c7753f3b817b4526f4c995c39f"
+      }
+    }
+  ]
+}

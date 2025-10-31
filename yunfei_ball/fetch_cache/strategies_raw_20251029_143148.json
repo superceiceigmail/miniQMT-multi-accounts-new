@@ -1,0 +1,704 @@
+[
+  {
+    "short_id": 45671,
+    "title": "L45671:小新呀你笑啦-5号(下午50版)",
+    "detail_id": 456711,
+    "follow_id": 89260,
+    "time": "2025-10-28 14:50",
+    "op_text": "继续持有 中证转债;",
+    "holdings": [
+      {
+        "name": "中证转债",
+        "pct": 100.0,
+        "profit_str": "+1.92%",
+        "profit_pct": 1.92
+      }
+    ]
+  },
+  {
+    "short_id": 71879,
+    "title": "L71879:深林-23号(收盘版)",
+    "detail_id": 718790,
+    "follow_id": 166339,
+    "time": "2025-10-28 15:00",
+    "op_text": "卖出 通信设备; 买入 5G通信;",
+    "holdings": [
+      {
+        "name": "5G通信",
+        "pct": 100.0,
+        "profit_str": "+0.49%",
+        "profit_pct": 0.49
+      }
+    ]
+  },
+  {
+    "short_id": 16221,
+    "title": "L16221:愚人节-15号(下午30版)",
+    "detail_id": 162213,
+    "follow_id": 180617,
+    "time": "2025-10-29 14:30",
+    "op_text": "继续持有 纳指ETF;",
+    "holdings": [
+      {
+        "name": "纳指ETF",
+        "pct": 100.0,
+        "profit_str": "+1.84%",
+        "profit_pct": 1.84
+      }
+    ]
+  },
+  {
+    "short_id": 71879,
+    "title": "L71879:深林-23号(下午30版)",
+    "detail_id": 718793,
+    "follow_id": 190021,
+    "time": "2025-10-29 14:30",
+    "op_text": "卖出 5G通信; 买入 软件指数;",
+    "holdings": [
+      {
+        "name": "软件指数",
+        "pct": 100.0,
+        "profit_str": "+0.04%",
+        "profit_pct": 0.04
+      }
+    ]
+  },
+  {
+    "short_id": 91948,
+    "title": "L91948:xiaoma9933-12号(下午30版)",
+    "detail_id": 919483,
+    "follow_id": 251837,
+    "time": "2025-10-29 14:30",
+    "op_text": "继续持有 国债指数;",
+    "holdings": [
+      {
+        "name": "国债指数",
+        "pct": 100.0,
+        "profit_str": "+0.17%",
+        "profit_pct": 0.17
+      }
+    ]
+  },
+  {
+    "short_id": 91964,
+    "title": "L91964:慢即是快666-1号(次日版)",
+    "detail_id": 919640,
+    "follow_id": 251892,
+    "time": "2025-10-29 15:00",
+    "op_text": "继续持有 黄金指数;",
+    "holdings": [
+      {
+        "name": "黄金指数",
+        "pct": 100.0,
+        "profit_str": "-5.89%",
+        "profit_pct": -5.89
+      }
+    ]
+  },
+  {
+    "short_id": 92439,
+    "title": "L92439:xiaoma9933-4号(下午30版)",
+    "detail_id": 924393,
+    "follow_id": 253732,
+    "time": "2025-10-29 14:30",
+    "op_text": "卖出 通信设备; 买入 光伏产业;",
+    "holdings": [
+      {
+        "name": "光伏产业",
+        "pct": 100.0,
+        "profit_str": "-0.01%",
+        "profit_pct": -0.01
+      }
+    ]
+  },
+  {
+    "short_id": 103645,
+    "title": "L103645:xiaoma9933-52号(下午30版)",
+    "detail_id": 1036453,
+    "follow_id": 290133,
+    "time": "2025-10-29 14:30",
+    "op_text": "继续持有 国债指数;",
+    "holdings": [
+      {
+        "name": "国债指数",
+        "pct": 100.0,
+        "profit_str": "+0.04%",
+        "profit_pct": 0.04
+      }
+    ]
+  },
+  {
+    "short_id": 105181,
+    "title": "L105181:愚人节-19号(中午版)",
+    "detail_id": 1051812,
+    "follow_id": 293252,
+    "time": "2025-10-29 11:30",
+    "op_text": "继续持有 纳指ETF;",
+    "holdings": [
+      {
+        "name": "纳指ETF",
+        "pct": 100.0,
+        "profit_str": "+7.96%",
+        "profit_pct": 7.96
+      }
+    ]
+  },
+  {
+    "short_id": 108190,
+    "title": "L108190:xiaoma9933-66号(下午30版)",
+    "detail_id": 1081903,
+    "follow_id": 299187,
+    "time": "2025-10-29 14:30",
+    "op_text": "卖出 创成长; 买入 上证商品;",
+    "holdings": [
+      {
+        "name": "上证商品",
+        "pct": 100.0,
+        "profit_str": "+0.09%",
+        "profit_pct": 0.09
+      }
+    ]
+  },
+  {
+    "short_id": 112245,
+    "title": "L112245:xiaoma9933-74号(下午30版)",
+    "detail_id": 1122453,
+    "follow_id": 309074,
+    "time": "2025-10-29 14:30",
+    "op_text": "卖出 国债指数; 买入 创成长;",
+    "holdings": [
+      {
+        "name": "创成长",
+        "pct": 100.0,
+        "profit_str": "+0.06%",
+        "profit_pct": 0.06
+      }
+    ]
+  },
+  {
+    "short_id": 112338,
+    "title": "L112338:Sean-4号(收盘版)",
+    "detail_id": 1123380,
+    "follow_id": 309434,
+    "time": "2025-10-28 15:00",
+    "op_text": "卖出 黄金ETF; 买入 纳指ETF;",
+    "holdings": [
+      {
+        "name": "纳指ETF",
+        "pct": 100.0,
+        "profit_str": "+1.68%",
+        "profit_pct": 1.68
+      }
+    ]
+  },
+  {
+    "short_id": 116193,
+    "title": "L116193:愚人节-10号(下午30版)",
+    "detail_id": 1161933,
+    "follow_id": 318593,
+    "time": "2025-10-29 14:30",
+    "op_text": "继续持有 纳指ETF;",
+    "holdings": [
+      {
+        "name": "纳指ETF",
+        "pct": 100.0,
+        "profit_str": "+37.71%",
+        "profit_pct": 37.71
+      }
+    ]
+  },
+  {
+    "short_id": 116369,
+    "title": "L116369:大號灰太狼-7号(下午30版)",
+    "detail_id": 1163693,
+    "follow_id": 319264,
+    "time": "2025-10-29 14:30",
+    "op_text": "继续持有 创业板50;",
+    "holdings": [
+      {
+        "name": "创业板50",
+        "pct": 100.0,
+        "profit_str": "+2.50%",
+        "profit_pct": 2.5
+      }
+    ]
+  },
+  {
+    "short_id": 117883,
+    "title": "L117883:熊-11号(下午50版)",
+    "detail_id": 1178831,
+    "follow_id": 322236,
+    "time": "2025-10-28 14:50",
+    "op_text": "继续持有 标普500;",
+    "holdings": [
+      {
+        "name": "标普500",
+        "pct": 100.0,
+        "profit_str": "+6.31%",
+        "profit_pct": 6.31
+      }
+    ]
+  },
+  {
+    "short_id": 120847,
+    "title": "L120847:哄哄j-1号(中午版)",
+    "detail_id": 1208472,
+    "follow_id": 327915,
+    "time": "2025-10-29 11:30",
+    "op_text": "继续持有 纳指ETF(33.54%); 继续持有 标普500(33.25%);",
+    "holdings": [
+      {
+        "name": "纳指ETF",
+        "pct": 33.54,
+        "profit_str": "+2.68%",
+        "profit_pct": 2.68
+      },
+      {
+        "name": "标普500",
+        "pct": 33.25,
+        "profit_str": "+1.78%",
+        "profit_pct": 1.78
+      }
+    ]
+  },
+  {
+    "short_id": 121274,
+    "title": "L121274:签派宅急便-19号(下午30版)",
+    "detail_id": 1212743,
+    "follow_id": 329560,
+    "time": "2025-10-29 14:30",
+    "op_text": "继续持有 创业板50;",
+    "holdings": [
+      {
+        "name": "创业板50",
+        "pct": 100.0,
+        "profit_str": "+4.97%",
+        "profit_pct": 4.97
+      }
+    ]
+  },
+  {
+    "short_id": 122803,
+    "title": "L122803:我心飞扬-8号(下午30版)",
+    "detail_id": 1228033,
+    "follow_id": 332661,
+    "time": "2025-10-29 14:30",
+    "op_text": "继续持有 纳指ETF;",
+    "holdings": [
+      {
+        "name": "纳指ETF",
+        "pct": 100.0,
+        "profit_str": "+3.00%",
+        "profit_pct": 3.0
+      }
+    ]
+  },
+  {
+    "short_id": 124255,
+    "title": "L124255:熊-18号(下午50版)",
+    "detail_id": 1242551,
+    "follow_id": 335421,
+    "time": "2025-10-28 14:50",
+    "op_text": "继续持有 纳指ETF;",
+    "holdings": [
+      {
+        "name": "纳指ETF",
+        "pct": 100.0,
+        "profit_str": "+2.57%",
+        "profit_pct": 2.57
+      }
+    ]
+  },
+  {
+    "short_id": 124727,
+    "title": "L124727:雪域雄鹰-16号(中午版)",
+    "detail_id": 1247272,
+    "follow_id": 337222,
+    "time": "2025-10-29 11:30",
+    "op_text": "继续持有 国债指数;",
+    "holdings": [
+      {
+        "name": "国债指数",
+        "pct": 100.0,
+        "profit_str": "+0.14%",
+        "profit_pct": 0.14
+      }
+    ]
+  },
+  {
+    "short_id": 127652,
+    "title": "L127652:鸿歌-6号(下午30版)",
+    "detail_id": 1276523,
+    "follow_id": 342772,
+    "time": "2025-10-29 14:30",
+    "op_text": "卖出 国债指数; 买入 纳指ETF;",
+    "holdings": [
+      {
+        "name": "纳指ETF",
+        "pct": 100.0,
+        "profit_str": "-0.10%",
+        "profit_pct": -0.1
+      }
+    ]
+  },
+  {
+    "short_id": 129193,
+    "title": "L129193:深林-21号(下午30版)",
+    "detail_id": 1291933,
+    "follow_id": 345837,
+    "time": "2025-10-29 14:30",
+    "op_text": "继续持有 纳指ETF;",
+    "holdings": [
+      {
+        "name": "纳指ETF",
+        "pct": 100.0,
+        "profit_str": "+3.00%",
+        "profit_pct": 3.0
+      }
+    ]
+  },
+  {
+    "short_id": 130837,
+    "title": "L130837:熊-26号(下午30版)",
+    "detail_id": 1308373,
+    "follow_id": 349254,
+    "time": "2025-10-29 14:30",
+    "op_text": "卖出 创成长; 买入 日经ETF;",
+    "holdings": [
+      {
+        "name": "日经ETF",
+        "pct": 100.0,
+        "profit_str": "+0.05%",
+        "profit_pct": 0.05
+      }
+    ]
+  },
+  {
+    "short_id": 137164,
+    "title": "L137164:xiaoma9933-91号(下午50版)",
+    "detail_id": 1371641,
+    "follow_id": 361798,
+    "time": "2025-10-28 14:50",
+    "op_text": "继续持有 国债指数;",
+    "holdings": [
+      {
+        "name": "国债指数",
+        "pct": 100.0,
+        "profit_str": "+0.16%",
+        "profit_pct": 0.16
+      }
+    ]
+  },
+  {
+    "short_id": 138354,
+    "title": "L138354:xiaoma9933-93号(下午50版)",
+    "detail_id": 1383541,
+    "follow_id": 366350,
+    "time": "2025-10-28 14:50",
+    "op_text": "卖出 创成长; 买入 国债指数;",
+    "holdings": [
+      {
+        "name": "国债指数",
+        "pct": 100.0,
+        "profit_str": "+0.04%",
+        "profit_pct": 0.04
+      }
+    ]
+  },
+  {
+    "short_id": 143371,
+    "title": "L143371:xiaoma9933-96号(下午30版)",
+    "detail_id": 1433713,
+    "follow_id": 374139,
+    "time": "2025-10-29 14:30",
+    "op_text": "继续持有 创成长;",
+    "holdings": [
+      {
+        "name": "创成长",
+        "pct": 100.0,
+        "profit_str": "+0.96%",
+        "profit_pct": 0.96
+      }
+    ]
+  },
+  {
+    "short_id": 143543,
+    "title": "L143543:舰长长长-12号(下午50版)",
+    "detail_id": 1435431,
+    "follow_id": 374777,
+    "time": "2025-10-28 14:50",
+    "op_text": "卖出 黄金ETF; 买入 纳指ETF;",
+    "holdings": [
+      {
+        "name": "纳指ETF",
+        "pct": 100.0,
+        "profit_str": "+1.37%",
+        "profit_pct": 1.37
+      }
+    ]
+  },
+  {
+    "short_id": 146022,
+    "title": "L146022:xiaoma9933-100号(下午30版)",
+    "detail_id": 1460223,
+    "follow_id": 381242,
+    "time": "2025-10-29 14:30",
+    "op_text": "卖出 纳指ETF; 买入 日经ETF;",
+    "holdings": [
+      {
+        "name": "日经ETF",
+        "pct": 100.0,
+        "profit_str": "+0.05%",
+        "profit_pct": 0.05
+      }
+    ]
+  },
+  {
+    "short_id": 147288,
+    "title": "L147288:老门童-4号(中午版)",
+    "detail_id": 1472882,
+    "follow_id": 383258,
+    "time": "2025-10-29 11:30",
+    "op_text": "继续持有 纳指科技ETF;",
+    "holdings": [
+      {
+        "name": "纳指科技ETF",
+        "pct": 100.0,
+        "profit_str": "+4.02%",
+        "profit_pct": 4.02
+      }
+    ]
+  },
+  {
+    "short_id": 149724,
+    "title": "L149724:我心飞扬-11号(下午50版)",
+    "detail_id": 1497241,
+    "follow_id": 389732,
+    "time": "2025-10-28 14:50",
+    "op_text": "卖出 创成长;",
+    "holdings": [
+      {
+        "name": "空仓",
+        "pct": null,
+        "profit_str": null,
+        "profit_pct": null
+      }
+    ]
+  },
+  {
+    "short_id": 149979,
+    "title": "L149979:签派宅急便-64号(下午50版)",
+    "detail_id": 1499791,
+    "follow_id": 390655,
+    "time": "2025-10-28 14:50",
+    "op_text": "继续空仓",
+    "holdings": [
+      {
+        "name": "空仓",
+        "pct": null,
+        "profit_str": null,
+        "profit_pct": null
+      }
+    ]
+  },
+  {
+    "short_id": 153496,
+    "title": "L153496:AFF-10号(中午版)",
+    "detail_id": 1534962,
+    "follow_id": 398348,
+    "time": "2025-10-29 11:30",
+    "op_text": "继续持有 纳指ETF;",
+    "holdings": [
+      {
+        "name": "纳指ETF",
+        "pct": 100.0,
+        "profit_str": "+2.68%",
+        "profit_pct": 2.68
+      }
+    ]
+  },
+  {
+    "short_id": 157774,
+    "title": "L157774:。-13号(下午50版)",
+    "detail_id": 1577741,
+    "follow_id": 408979,
+    "time": "2025-10-28 14:50",
+    "op_text": "卖出 创成长;",
+    "holdings": [
+      {
+        "name": "空仓",
+        "pct": null,
+        "profit_str": null,
+        "profit_pct": null
+      }
+    ]
+  },
+  {
+    "short_id": 158010,
+    "title": "L158010:咸蛋超人-22号(下午30版)",
+    "detail_id": 1580103,
+    "follow_id": 409838,
+    "time": "2025-10-29 14:30",
+    "op_text": "卖出 国债指数; 买入 纳指ETF;",
+    "holdings": [
+      {
+        "name": "纳指ETF",
+        "pct": 100.0,
+        "profit_str": "-0.10%",
+        "profit_pct": -0.1
+      }
+    ]
+  },
+  {
+    "short_id": 161978,
+    "title": "L161978:大號灰太狼-5号(下午30版)",
+    "detail_id": 1619783,
+    "follow_id": 416524,
+    "time": "2025-10-29 14:30",
+    "op_text": "继续持有 国债指数;",
+    "holdings": [
+      {
+        "name": "国债指数",
+        "pct": 100.0,
+        "profit_str": "+0.14%",
+        "profit_pct": 0.14
+      }
+    ]
+  },
+  {
+    "short_id": 162454,
+    "title": "L162454:WIN-51号(下午50版)",
+    "detail_id": 1624541,
+    "follow_id": 418371,
+    "time": "2025-10-28 14:50",
+    "op_text": "继续持有 日经ETF;",
+    "holdings": [
+      {
+        "name": "日经ETF",
+        "pct": 100.0,
+        "profit_str": "+2.74%",
+        "profit_pct": 2.74
+      }
+    ]
+  },
+  {
+    "short_id": 166949,
+    "title": "L166949:嘉晋-16号(下午50版)",
+    "detail_id": 1669491,
+    "follow_id": 427223,
+    "time": "2025-10-28 14:50",
+    "op_text": "纳指ETF 仓位50.26%→0%; 国债指数 仓位49.74%→100%;",
+    "holdings": [
+      {
+        "name": "国债指数",
+        "pct": 100.0,
+        "profit_str": "+0.04%",
+        "profit_pct": 0.04
+      }
+    ]
+  },
+  {
+    "short_id": 169688,
+    "title": "L169688:糊涂虫-36号(下午50版)",
+    "detail_id": 1696881,
+    "follow_id": 434885,
+    "time": "2025-10-28 14:50",
+    "op_text": "卖出 创成长; 买入 招商双债LOF;",
+    "holdings": [
+      {
+        "name": "招商双债LOF",
+        "pct": 100.0,
+        "profit_str": "0.00%",
+        "profit_pct": 0.0
+      }
+    ]
+  },
+  {
+    "short_id": 175370,
+    "title": "L175370:我心飞扬-56号(中午版)",
+    "detail_id": 1753702,
+    "follow_id": 445056,
+    "time": "2025-10-29 11:30",
+    "op_text": "创业板50 仓位0%→19.44%; 上证指数 仓位0%→19.44%; 国债指数 仓位58.31%→19.44%; 继续持有 纳指ETF(20.55%); 继续持有 标普500(21.14%);",
+    "holdings": [
+      {
+        "name": "国债指数",
+        "pct": 19.44,
+        "profit_str": "0.00%",
+        "profit_pct": 0.0
+      },
+      {
+        "name": "纳指ETF",
+        "pct": 20.55,
+        "profit_str": "+9.56%",
+        "profit_pct": 9.56
+      },
+      {
+        "name": "标普500",
+        "pct": 21.14,
+        "profit_str": "+5.53%",
+        "profit_pct": 5.53
+      },
+      {
+        "name": "创业板50",
+        "pct": 19.44,
+        "profit_str": "+1.12%",
+        "profit_pct": 1.12
+      },
+      {
+        "name": "上证指数",
+        "pct": 19.44,
+        "profit_str": "+0.16%",
+        "profit_pct": 0.16
+      }
+    ]
+  },
+  {
+    "short_id": 183531,
+    "title": "L183531:铃儿响叮铛-27号(收盘版)",
+    "detail_id": 1835310,
+    "follow_id": 464381,
+    "time": "2025-10-28 15:00",
+    "op_text": "卖出 可转债ETF; 买入 30年国债ETF;",
+    "holdings": [
+      {
+        "name": "30年国债ETF",
+        "pct": 100.0,
+        "profit_str": "-0.19%",
+        "profit_pct": -0.19
+      }
+    ]
+  },
+  {
+    "short_id": 183531,
+    "title": "L183531:铃儿响叮铛-27号(下午30版)",
+    "detail_id": 1835313,
+    "follow_id": 464384,
+    "time": "2025-10-29 14:30",
+    "op_text": "卖出 30年国债ETF; 买入 可转债ETF;",
+    "holdings": [
+      {
+        "name": "可转债ETF",
+        "pct": 100.0,
+        "profit_str": "+0.05%",
+        "profit_pct": 0.05
+      }
+    ]
+  },
+  {
+    "short_id": 189628,
+    "title": "L189628:Candy-12号(次日版)",
+    "detail_id": 1896280,
+    "follow_id": 473496,
+    "time": "2025-10-29 15:00",
+    "op_text": "继续持有 纳指ETF;",
+    "holdings": [
+      {
+        "name": "纳指ETF",
+        "pct": 100.0,
+        "profit_str": "+5.89%",
+        "profit_pct": 5.89
+      }
+    ]
+  }
+]

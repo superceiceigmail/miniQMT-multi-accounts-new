@@ -1,16 +1,27 @@
-from xtquant.xttype import StockAccount
-import math
-from tabulate import tabulate
+"""
+processor/position_connector.py
+
+Helpers to query positions from trader and persist them to:
+  account_data/positions/position_{account_id}.json
+
+This version:
+ - keeps compatibility with existing output format
+ - enriches saved position entries with normalized code and base code fields:
+     - stock_code_norm: normalized with suffix (e.g. 159949.SZ)
+     - stock_code_base: 6-digit base (e.g. 159949)
+ - ensures code->name lookup uses normalized base keys
+ - uses atomic write for safety
+"""
 import os
 import json
+import math
 import logging
 import datetime
+from typing import Any, Dict, List, Tuple
 
-def _atomic_write_json(path, data):
-    """
-    原子写 JSON：先写入临时文件再替换目标文件，避免中间状态文件。
-    （与 asset_connector.py 中的实现保持一致，独立定义以避免循环依赖）
-    """
+from xtquant.xttype import StockAccount
+
+def _atomic_write_json(path: str, data: Any):
     import tempfile
     dirpath = os.path.dirname(path)
     os.makedirs(dirpath, exist_ok=True)
@@ -27,30 +38,35 @@ def _atomic_write_json(path, data):
             pass
         raise
 
-def print_positions(trader, account_id, code_to_name_dict, account_asset_info):
+def print_positions(trader, account_id, code_to_name_dict: Dict[str, str], account_asset_info):
     """
-    打印指定资金账号的当前持仓情况，并展示每只股票的仓位占比，使用 tabulate 库美化表格。
-    额外：将持仓信息以 JSON 文件保存到 account_data/positions/position_{account_id}.json，
-    文件中包含 last_update 字段，方便后续读取每个账号的最新持仓信息。
-    :param trader: XtQuantTrader 对象，用于查询交易数据。
-    :param account_id: 资金账号（字符串）。所有读写与模板判断以 account_id 参数为准。
-    :param code_to_name_dict: 股票代码到名称的映射字典。
-    :param account_asset_info: 账户资产信息元组（含total_asset在第一个位置）
-    :return: List of position objects (原始返回) ；同时也返回 result (stock_code, percent_position) 列表
+    Query positions and print / save them.
+    :param trader: xt_trader
+    :param account_id: account id string
+    :param code_to_name_dict: mapping base_code (no suffix) -> friendly name
+    :param account_asset_info: tuple or data used to calculate percent positions
+    :return: list of (stock_code, percent_position)
     """
+    # extract total asset if present
+    total_asset = None
+    try:
+        if isinstance(account_asset_info, (list, tuple)):
+            if len(account_asset_info) >= 1:
+                total_asset = float(account_asset_info[0] or 0.0)
+        elif isinstance(account_asset_info, dict):
+            total_asset = float(account_asset_info.get('total_asset') or account_asset_info.get('m_dAsset') or account_asset_info.get('m_dTotal') or 0.0)
+        else:
+            total_asset = float(getattr(account_asset_info, 'm_dTotal', 0.0) or getattr(account_asset_info, 'm_dAssets', 0.0) or 0.0)
+    except Exception:
+        total_asset = None
 
-    if not account_asset_info:
-        print("没有资产数据返回")
-        return None  # 或者 return [] 取决于你的需求
-
-    # 解包total_asset
-    total_asset = account_asset_info[0]
-
-    # 创建资金账号对象
     account = StockAccount(account_id)
 
-    # 查询持仓数据
-    positions = trader.query_stock_positions(account)
+    try:
+        positions = trader.query_stock_positions(account) or []
+    except Exception as e:
+        logging.warning("查询持仓失败: %s", e)
+        positions = []
 
     result = []
     table = []
@@ -65,82 +81,110 @@ def print_positions(trader, account_id, code_to_name_dict, account_asset_info):
     if not positions:
         logging.warning("没有持仓数据返回")
     else:
+        positions_list = []
         for position in positions:
-            stock_code = getattr(position, "stock_code", "")
-            stock_name = code_to_name_dict.get(stock_code.split('.')[0], '未知股票')
-            volume = getattr(position, "volume", 0)
-            can_use_volume = getattr(position, "can_use_volume", 0)
-            avg_price = getattr(position, "avg_price", None)
-            market_value = getattr(position, "market_value", None)
+            try:
+                # support object-like or dict-like
+                stock_code = getattr(position, "stock_code", None) or getattr(position, "m_strStockCode", None) or getattr(position, "stock", None)
+                if not stock_code and isinstance(position, dict):
+                    stock_code = position.get('stock_code') or position.get('code') or position.get('stock')
+                stock_code = str(stock_code).strip() if stock_code else ""
+                stock_name = getattr(position, "stock_name", None) or getattr(position, "stock", None) or ""
+                if not stock_name and isinstance(position, dict):
+                    stock_name = position.get('stock_name') or position.get('stock') or ""
+                # numeric fields
+                volume = getattr(position, "volume", None) or getattr(position, "m_iHoldQty", None) or (position.get('volume') if isinstance(position, dict) else None) or 0
+                can_use_volume = getattr(position, "can_use_volume", None) or getattr(position, "m_iCanUse", None) or getattr(position, "m_nCanUseVolume", None) or (position.get('can_use') if isinstance(position, dict) else None) or 0
+                avg_price = getattr(position, "avg_price", None) or getattr(position, "m_dCostPrice", None) or (position.get('avg_price') if isinstance(position, dict) else None)
+                market_value = getattr(position, "market_value", None) or getattr(position, "m_dMarketValue", None) or (position.get('market_value') if isinstance(position, dict) else None)
+                # normalize numeric types
+                try:
+                    volume = int(volume or 0)
+                except Exception:
+                    try:
+                        volume = int(float(volume))
+                    except Exception:
+                        volume = 0
+                try:
+                    can_use_volume = int(can_use_volume or 0)
+                except Exception:
+                    try:
+                        can_use_volume = int(float(can_use_volume))
+                    except Exception:
+                        can_use_volume = 0
+                try:
+                    avg_price = float(avg_price) if avg_price is not None else None
+                except Exception:
+                    avg_price = None
+                try:
+                    market_value = float(market_value) if market_value is not None else None
+                except Exception:
+                    market_value = None
 
-            # 仓位占比公式：可用量 * 成本价 / 总资产
-            if total_asset and total_asset > 0 and avg_price is not None and isinstance(avg_price, (int, float)) and avg_price > 0 and can_use_volume > 0:
-                percent_position = math.ceil((can_use_volume * avg_price / total_asset) * 10000) / 100.0
-            else:
-                percent_position = 0.0
+                # percent position calculation
+                if total_asset and total_asset > 0 and avg_price is not None and isinstance(avg_price, (int, float)) and avg_price > 0 and volume > 0:
+                    percent_position = math.ceil((volume * avg_price / total_asset) * 10000) / 100.0
+                else:
+                    percent_position = 0.0
 
-            table.append([
-                stock_name,
-                stock_code,
-                volume,
-                can_use_volume,
-                f"{avg_price:.2f}" if avg_price is not None and isinstance(avg_price, (int, float)) and not (math.isnan(avg_price) or math.isinf(avg_price)) else "nan",
-                f"{market_value:.2f}" if market_value is not None else "0.00",
-                f"{percent_position:.2f}"
-            ])
+                # enriched codes
+                stock_code_base = stock_code.split('.')[0] if stock_code else ""
+                try:
+                    from utils.code_normalizer import normalize_code as _normalize_code
+                    stock_code_norm = _normalize_code(stock_code) if stock_code else ""
+                except Exception:
+                    # fallback: keep as-is
+                    stock_code_norm = stock_code
 
-            result.append((stock_code, percent_position))
+                # used name detection: prefer explicit name, else lookup from code_to_name_dict by base
+                display_name = stock_name or code_to_name_dict.get(stock_code_base, '未知股票')
 
-        # 将每个账号的持仓保存到 account_data/positions/position_{account_id}.json
+                # build saved entry (keep compatibility)
+                entry = {
+                    "stock_code": stock_code,
+                    "stock_code_norm": stock_code_norm,
+                    "stock_code_base": stock_code_base,
+                    "stock_name": display_name,
+                    "volume": volume,
+                    "can_use_volume": can_use_volume,
+                    "avg_price": avg_price,
+                    "market_value": market_value
+                }
+                positions_list.append(entry)
+
+                table.append([
+                    display_name,
+                    stock_code,
+                    volume,
+                    can_use_volume,
+                    f"{avg_price:.2f}" if avg_price is not None else "nan",
+                    f"{market_value:.2f}" if market_value is not None and market_value is not None else "0.00",
+                    f"{percent_position:.2f}"
+                ])
+                result.append((stock_code, percent_position))
+            except Exception as e:
+                logging.exception("处理单个持仓项失败: %s", e)
+                continue
+
+        # persist to account_data/positions/position_{account_id}.json
         try:
             save_dir = os.path.join("account_data", "positions")
             os.makedirs(save_dir, exist_ok=True)
-            # 保证 filename 使用传入的 account_id（ID），与读取逻辑一致
             save_path = os.path.join(save_dir, f"position_{str(account_id)}.json")
-            positions_list = []
-            for p in positions:
-                avg_price = nan_to_none(getattr(p, "avg_price", None))
-                market_value = nan_to_none(getattr(p, "market_value", None))
-                positions_list.append({
-                    "stock_code": getattr(p, "stock_code", ""),
-                    "stock_name": code_to_name_dict.get(getattr(p, "stock_code", "").split('.')[0], '未知股票'),
-                    "volume": getattr(p, "volume", 0),
-                    "can_use_volume": getattr(p, "can_use_volume", 0),
-                    "avg_price": avg_price,
-                    "market_value": market_value
-                })
             data_to_save = {
                 "last_update": datetime.datetime.now().isoformat(),
                 "positions": positions_list
             }
             _atomic_write_json(save_path, data_to_save)
-            logging.info(f"已写入账户持仓文件: {save_path} account_id={str(account_id)} positions_count={len(positions_list)}")
+            logging.info("已写入账户持仓文件: %s account_id=%s positions_count=%d", save_path, str(account_id), len(positions_list))
         except Exception as e:
-            logging.exception(f"写入账户持仓文件失败: {e}")
+            logging.exception("写入账户持仓文件失败: %s", e)
 
-        # 兼容旧逻辑：如果是模板账号，仍然写入 template_account_info 和前端目录（保留原有行为）
-        try:
-            if account_id == "8886006288":
-                save_dir = "template_account_info"
-                save_path = os.path.join(save_dir, "template_account_position_info.json")
-                os.makedirs(save_dir, exist_ok=True)
-                data_to_save_template = {
-                    "last_update": datetime.datetime.now().isoformat(),
-                    "positions": positions_list
-                }
-                with open(save_path, "w", encoding="utf-8") as f:
-                    json.dump(data_to_save_template, f, ensure_ascii=False, indent=2)
-                # 额外保存到前端 public 目录
-                fe_save_dir = r"C:\Users\ceicei\PycharmProjects\miniQMT-frontend\public\template_account_info"
-                fe_save_path = os.path.join(fe_save_dir, "template_account_position_info.json")
-                os.makedirs(fe_save_dir, exist_ok=True)
-                with open(fe_save_path, "w", encoding="utf-8") as f:
-                    json.dump(data_to_save_template, f, ensure_ascii=False, indent=2)
-        except Exception as e:
-            logging.exception(f"写入 template/前端 持仓文件失败: {e}")
+    # optional: print table to console (keeps previous behaviour)
+    try:
+        from tabulate import tabulate
+        logging.info("\n" + tabulate(table, headers=headers))
+    except Exception:
+        pass
 
-        logging.info("                                                                         ")
-        logging.info("================================账户持仓信息================================")
-        logging.info("\n" + tabulate(table, headers, tablefmt="github", stralign="center"))
-
-    return positions
+    return result

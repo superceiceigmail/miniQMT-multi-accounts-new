@@ -1,0 +1,490 @@
+
+<html>
+<head>
+    <title>云飞量化模拟系统</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <link rel="icon" href="/imgs/yf.ico" mce_href="/imgs/yf.ico" type="image/x-icon" />
+    <link rel="shortcut icon" href="/imgs/yf.ico" mce_href="/imgs/yf.ico" type="image/x-icon" />
+    <link rel="stylesheet" href="//17fx.net/static/styles/site.css" type="text/css" />
+    <link rel="stylesheet" href="//17fx.net/static/styles/font-awesome.min.css" />
+    <script src="//17fx.net/static/scripts/jquery-1.12.4.min.js"></script>
+    <script src="//17fx.net/static/scripts/jquery.cookie.min.js"></script>
+    <script src="//17fx.net/static/scripts/funs.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <script> var _hmt = _hmt || []; (function() { var hm = document.createElement("script"); hm.src = "https://hm.baidu.com/hm.js?fbad7e1f45f919ea8f4e31a31c4969a9"; var s = document.getElementsByTagName("script")[0]; s.parentNode.insertBefore(hm, s); })(); </script>
+    <script src="//17fx.net/static/scripts/echarts.min.js"></script>
+    <style>
+        .linechart_toolbox_btn
+        {
+            background-color: #E6E6E6;
+            padding: 4px 6px;
+            cursor: pointer;
+        }
+        .linechart_toolbox_btn_selected
+        {
+            background-color: #C3CBD8;
+            padding: 4px 6px;
+            cursor: pointer;
+        }
+        #linechart_toolbox_left
+        {
+            display: inline-block;
+            padding: 4px 2px;
+        }
+        #linechart_toolbox_right
+        {
+            display: inline-block;
+            float: right;
+            padding: 4px 2px;
+        }
+        #linechart_toolbox_right input
+        {
+            width: 7.875rem;
+        } 
+        #linechart_main
+        {
+            clear: both;
+        }
+    </style>
+    <script>        saveUrlToCookie("alstpageurl");</script>
+    <script>        saveUrlToCookie("bclstpageurl");</script>
+    <script>        saveUrlToCookie("gaugepripageurl");</script>
+    <style>
+        #idxmaintb {
+            background-color: #C3CBD8;
+            margin: 1px 0px;
+        }
+
+            #idxmaintb td {
+                width: 25%;
+            }
+
+            #idxmaintb a {
+                display: block;
+                text-align: center;
+                line-height: 260%;
+                padding: 0.75rem 0rem;
+            }
+
+            #idxmaintb i {
+                display: block;
+                color: #305798;
+                font-size: 1.25rem;
+            }
+    </style>
+</head>
+<body>
+    
+<div onclick="feedback()" id="btn_feedback">
+    反馈<br />
+    建议
+</div>
+<div id="main">
+    <table width="100%" id="top" border="0">
+        <tr>
+            <td nowrap="nowrap"> <b>云飞量化</b></td>
+            <td align="right" nowrap="nowrap">
+                <div id="nav_area">
+                    <span style="font-size:0.875rem">Hi, 树jt</span>&nbsp;
+                    <span id="nav_menu_button" class="like_a"><i class="fa fa-navicon"></i>&nbsp;功能导航</span>
+                    <div id="nav_menu">
+                        <div>
+                            <table cellpadding="8" cellspacing="0" border="1" bordercolor="#29497E" style="border-collapse: collapse">
+                                <tr>
+                                    <td>
+                                        <a href="/F2/b_demo.aspx"><i class="fa fa-cubes"></i>内置策略</a>
+                                    </td>
+                                    <td>
+                                        <a href="/F2/"><i class="fa fa-home"></i>系统首页</a>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>
+                                        <a href="/F2/b_ranking.aspx?action=y1"><i class="fa fa-line-chart"></i>策略排名</a>
+                                    </td>
+                                    <td>
+                                        <a href="/F2/b_follow.aspx"><i class="fa fa-cube"></i>我的策略</a>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>
+                                        <a href="/F2/a_ranking.aspx?action=y1"><i class="fa fa-area-chart"></i>组合排名</a>
+                                    </td>
+                                    <td>
+                                        <a href="/F2/a_my.aspx"><i class="fa fa-gears"></i>我的组合</a>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td nowrap="nowrap">
+                                        <a href="/F2/tools.aspx"><i class="fa fa-dropbox"></i>量化小工具</a>
+                                    </td>
+                                    <td>
+                                        <a href="/F2/c_create.aspx"><i class="fa fa-building-o"></i>在线回测</a>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>
+                                        <a href="/F2/about.aspx"><i class="fa fa-id-card-o"></i>关于我们</a>
+                                    </td>
+                                    <td>
+                                        <a href="/F2/z.aspx"><i class="fa fa-book"></i>实盘账本</a>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>
+                                        <a href="/Help/"><i class="fa fa-question-circle"></i>常见问题</a>
+                                    </td>
+                                    <td>
+                                        <a href="/F2/u_info.aspx"><i class="fa fa-user-circle-o"></i>个人资料</a>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>
+                                        <a href="/F2/k.aspx"><i class="fa fa-pencil"></i>自动交易</a>
+                                    </td>
+                                    <td>
+                                        <a href="/F2/tzj.aspx"><i class="fa fa-clipboard"></i>指数跟投</a>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td colspan="2">
+                                        <a href="/go/exit.aspx"><i class="fa fa-sign-out"></i>退出</a>
+                                    </td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+                    
+                </div>
+            </td>
+        </tr>
+    </table>
+
+    <div class="content">
+        <div id="idxmaintb">
+            <table width="100%" border="0" cellpadding="0" cellspacing="1">
+                <tr>
+                    <td>
+                        <a href="b_ranking.aspx?action=y1"><i class="fa fa-line-chart"></i>策略排名</a>
+                    </td>
+                    <td>
+                        <a href="b_follow.aspx"><i class="fa fa-cube"></i>我的策略</a>
+                    </td>
+                    <td>
+                        <a href="c_create.aspx"><i class="fa fa-building-o"></i>在线回测</a>
+                    </td>
+                    <td>
+                        <a href="tools.aspx"><i class="fa fa-dropbox"></i>量化小工具</a>
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        <a href="a_ranking.aspx?action=y1"><i class="fa fa-area-chart"></i>组合排名</a>
+                    </td>
+                    <td>
+                        <a href="a_my.aspx"><i class="fa fa-gears"></i>我的组合</a>
+                    </td>
+                    <td>
+                        <a href="z.aspx"><i class="fa fa-book"></i>实盘账本</a>
+                    </td>
+                    <td>
+                        <a href="tzj.aspx"><i class="fa fa-clipboard"></i>指数跟投</a>
+                    </td>
+                </tr>
+                <tr>
+                    <td colspan="2">
+                        <div id="linechart_gauge0" style="height: 6rem; padding: 0.75rem 0rem; cursor: pointer"
+                            onclick="Go('graham.aspx');">
+                        </div>
+                    </td>
+                    <td colspan="2">
+                        <div id="linechart_gauge1" style="height: 6rem; padding: 0.75rem 0rem; cursor: pointer"
+                            onclick="Go('yf_indicator.aspx');">
+                        </div>
+                    </td>
+                </tr>
+            </table>
+            <script type="text/javascript">
+                var time2 = '2025-10-28';
+                $(document).ready(function () {
+                    viewgauge('linechart_gauge0', '格雷厄姆指数', 2.38, 0, 4, '{value}');
+                    viewgauge('linechart_gauge1', '云飞量化温度计', 37.14, 0, 100, '{value}℃');
+                    setTimeout(viewchartsgrid1, 50);
+                    setTimeout(viewchartsgrid2, 600);
+                    setTimeout(viewchartsgrid3, 1200);
+                    setTimeout(viewchartsgrid4, 1800);
+                });
+                function viewgauge(p0, p1, p2, p3, p4, p5) {
+                    var chartDom = document.getElementById(p0);
+                    var myChart = echarts.init(chartDom);
+                    var option = {
+                        series: [
+                            {
+                                name: '',
+                                type: 'gauge',
+                                progress: {
+                                    show: true,
+                                    width: 4
+                                },
+                                axisLine: {
+                                    lineStyle: {
+                                        width: 6
+                                    }
+                                },
+                                axisTick: {
+                                    length: 4
+                                },
+                                itemStyle: {
+                                    color: '#305798'
+                                },
+                                startAngle: 180,
+                                endAngle: 0,
+                                radius: '180%',
+                                center: ['50%', '90%'],
+                                min: p3,
+                                max: p4,
+                                splitNumber: 1,
+                                pointer: {
+                                    show: false
+                                },
+                                detail: {
+                                    fontSize: 15,
+                                    offsetCenter: [0, '-50%'],
+                                    formatter: p5
+                                },
+                                title: {
+                                    fontSize: 12,
+                                    offsetCenter: [0, '-25%']
+                                },
+                                data: [
+                                    {
+                                        value: p2,
+                                        name: p1
+                                    }
+                                ]
+                            }
+                        ]
+                    };
+                    myChart.setOption(option);
+                }
+                function viewchartsgrid1() {
+                    $.get("actioncharts.ashx?t=b&id=12004&time1=2014-01-01&time2=" + time2 + "&bid=I2",
+                        function (data, status) {
+                            var myChart = echarts.init(document.getElementById('linechart_grid1'));
+                            eval(data);
+                            myChart.clear();
+                            myChart.setOption(option);
+                        });
+                }
+                function viewchartsgrid2() {
+                    $.get("actioncharts.ashx?t=b&id=13002&time1=2014-01-01&time2=" + time2 + "&bid=I2",
+                        function (data, status) {
+                            var myChart = echarts.init(document.getElementById('linechart_grid2'));
+                            eval(data);
+                            myChart.clear();
+                            myChart.setOption(option);
+                        });
+                }
+                function viewchartsgrid3() {
+                    $.get("actioncharts.ashx?t=c&id=130630&time1=2014-01-01&time2=" + time2 + "&bid=I2",
+                        function (data, status) {
+                            var myChart = echarts.init(document.getElementById('linechart_grid3'));
+                            eval(data);
+                            myChart.clear();
+                            myChart.setOption(option);
+                        });
+                }
+                function viewchartsgrid4() {
+                    $.get("actioncharts.ashx?t=a&id=47265&time1=2014-01-01&time2=" + time2 + "&bid=I2",
+                        function (data, status) {
+                            var myChart = echarts.init(document.getElementById('linechart_grid4'));
+                            eval(data);
+                            myChart.clear();
+                            myChart.setOption(option);
+                        });
+                }
+            </script>
+        </div>
+        
+        <table cellpadding="3" cellspacing="0" border="1" bordercolor="#D6D6D6" style="border-collapse: collapse; margin-top: 3px">
+            <tr>
+                <th colspan="5" align="left">
+                    <a href="b_detail.aspx?id=12004" style="display: block">精选策略B4:宽基轮动及时版四</a>
+                </th>
+            </tr>
+            <tr onclick="Go('b_detail.aspx?id=12004');" style="cursor: pointer">
+                <td class="td_top" align="center">年化收益
+                </td>
+                <td class="td_top" align="center">年均次数
+                </td>
+                <td class="td_top" align="center">最大回撤
+                </td>
+                <td class="td_top" align="center">最长回撤
+                </td>
+                <td class="td_top" align="center">云飞比率
+                </td>
+            </tr>
+            <tr onclick="Go('b_detail.aspx?id=12004');" style="cursor: pointer">
+                <td align="center">
+                    <span style="color:red">48.04%</span>
+                </td>
+                <td align="center">
+                    177
+                </td>
+                <td align="center">
+                    <span style="color:green">-21.36%</span>
+                </td>
+                <td align="center">
+                    423天
+                </td>
+                <td align="center">
+                    1.86
+                </td>
+            </tr>
+            <tr>
+                <td colspan="5">
+                    <div id="linechart_grid1" style="width: 100%; height: 17rem;">
+                    </div>
+                </td>
+            </tr>
+        </table>
+        
+        <table cellpadding="3" cellspacing="0" border="1" bordercolor="#D6D6D6" style="border-collapse: collapse; margin-top: 3px">
+            <tr>
+                <th colspan="5" align="left">
+                    <a href="b_detail.aspx?id=13002" style="display: block">精选策略C2:股债轮动低频二(下午50版)</a>
+                </th>
+            </tr>
+            <tr onclick="Go('b_detail.aspx?id=13002');" style="cursor: pointer">
+                <td class="td_top" align="center">年化收益
+                </td>
+                <td class="td_top" align="center">年均次数
+                </td>
+                <td class="td_top" align="center">最大回撤
+                </td>
+                <td class="td_top" align="center">最长回撤
+                </td>
+                <td class="td_top" align="center">云飞比率
+                </td>
+            </tr>
+            <tr onclick="Go('b_detail.aspx?id=13002');" style="cursor: pointer">
+                <td align="center">
+                    <span style="color:red">30.72%</span>
+                </td>
+                <td align="center">
+                    6
+                </td>
+                <td align="center">
+                    <span style="color:green">-27.41%</span>
+                </td>
+                <td align="center">
+                    1167天
+                </td>
+                <td align="center">
+                    0.8
+                </td>
+            </tr>
+            <tr>
+                <td colspan="5">
+                    <div id="linechart_grid2" style="width: 100%; height: 17rem;">
+                    </div>
+                </td>
+            </tr>
+        </table>
+        
+        <table cellpadding="3" cellspacing="0" border="1" bordercolor="#D6D6D6" style="border-collapse: collapse; margin-top: 3px">
+            <tr>
+                <th colspan="5" align="left">
+                    <a href="c_detail.aspx?id=130630" style="display: block">精选策略L13063:白云飞-18号(收盘版)</a>
+                </th>
+            </tr>
+            <tr onclick="Go('c_detail.aspx?id=130630');" style="cursor: pointer">
+                <td class="td_top" align="center">年化收益
+                </td>
+                <td class="td_top" align="center">年均次数
+                </td>
+                <td class="td_top" align="center">最大回撤
+                </td>
+                <td class="td_top" align="center">最长回撤
+                </td>
+                <td class="td_top" align="center">云飞比率
+                </td>
+            </tr>
+            <tr onclick="Go('c_detail.aspx?id=130630');" style="cursor: pointer">
+                <td align="center">
+                    <span style="color:red">27.61%</span>
+                </td>
+                <td align="center">
+                    4
+                </td>
+                <td align="center">
+                    <span style="color:green">-20.6%</span>
+                </td>
+                <td align="center">
+                    609天
+                </td>
+                <td align="center">
+                    0.92
+                </td>
+            </tr>
+            <tr>
+                <td colspan="5">
+                    <div id="linechart_grid3" style="width: 100%; height: 17rem;">
+                    </div>
+                </td>
+            </tr>
+        </table>
+        
+        <table cellpadding="3" cellspacing="0" border="1" bordercolor="#D6D6D6" style="border-collapse: collapse; margin-top: 3px">
+            <tr>
+                <th colspan="4" align="left">
+                    <a href="a_detail.aspx?id=47265" style="display: block">精选组合:白云飞-2号</a>
+                </th>
+            </tr>
+            <tr onclick="Go('a_detail.aspx?id=47265');" style="cursor: pointer">
+                <td class="td_top" align="center">年化收益
+                </td>
+                <td class="td_top" align="center">最大回撤
+                </td>
+                <td class="td_top" align="center">最长回撤
+                </td>
+                <td class="td_top" align="center">云飞比率
+                </td>
+            </tr>
+            <tr onclick="Go('a_detail.aspx?id=47265');" style="cursor: pointer">
+                <td align="center">
+                    <span style="color:red">34.69%</span>
+                </td>
+                <td align="center">
+                    <span style="color:green">-19.5%</span>
+                </td>
+                <td align="center">
+                    529天
+                </td>
+                <td align="center">
+                    1.59
+                </td>
+            </tr>
+            <tr>
+                <td colspan="4">
+                    <div id="linechart_grid4" style="width: 100%; height: 17rem;">
+                    </div>
+                </td>
+            </tr>
+        </table>
+    </div>
+    
+<div style="text-align: center; padding: 0.375rem; color: White; background-color: #305798;
+    margin-top: 2px">
+    <div style="font-size: 0.625rem">
+        本系统仅作学习研究之用，不作任何投资建议，不承担由此导致的任何责任！
+    </div>
+    <div style="font-size: 0.75rem">
+        <a href="agreement.aspx" style="color: White">风险提示</a>
+        &nbsp;&nbsp; Copyright © 云飞量化
+        
+    </div>
+</div>
+</div> 
+</body>
+</html>

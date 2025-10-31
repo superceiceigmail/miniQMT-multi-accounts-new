@@ -1,0 +1,127 @@
+{
+  "account_id": "8886006288",
+  "total_asset": "688222.26",
+  "rows": [
+    {
+      "stock_code": "511880",
+      "stock_name": "国债指数",
+      "expected_money": "38884.55",
+      "current_market_value": "0",
+      "diff_money": "38884.55",
+      "percent_diff": null
+    },
+    {
+      "stock_code": "513100",
+      "stock_name": "纳指3100",
+      "expected_money": "72056.86",
+      "current_market_value": "47243.0",
+      "diff_money": "24813.86",
+      "percent_diff": null
+    },
+    {
+      "stock_code": "511380",
+      "stock_name": "可转债",
+      "expected_money": "136680.94",
+      "current_market_value": "115867.8",
+      "diff_money": "20813.14",
+      "percent_diff": null
+    },
+    {
+      "stock_code": "518880",
+      "stock_name": "黄金ETF",
+      "expected_money": "8946.89",
+      "current_market_value": "0",
+      "diff_money": "8946.89",
+      "percent_diff": null
+    },
+    {
+      "stock_code": "161116",
+      "stock_name": "黄金主题",
+      "expected_money": "24982.47",
+      "current_market_value": "17933.600000000002",
+      "diff_money": "7048.87",
+      "percent_diff": null
+    },
+    {
+      "stock_code": "515220",
+      "stock_name": "煤炭ETF",
+      "expected_money": "9979.22",
+      "current_market_value": "10865.4",
+      "diff_money": "-886.18",
+      "percent_diff": null
+    },
+    {
+      "stock_code": "159949",
+      "stock_name": "创业板50",
+      "expected_money": "10873.91",
+      "current_market_value": "10127.0",
+      "diff_money": "746.91",
+      "percent_diff": null
+    },
+    {
+      "stock_code": "164701",
+      "stock_name": "黄金LOF",
+      "expected_money": "15003.25",
+      "current_market_value": "14418.000000000002",
+      "diff_money": "585.25",
+      "percent_diff": null
+    },
+    {
+      "stock_code": "159509",
+      "stock_name": "纳指科技ETF",
+      "expected_money": "2615.24",
+      "current_market_value": "2956.2",
+      "diff_money": "-340.96",
+      "percent_diff": null
+    },
+    {
+      "stock_code": "161126",
+      "stock_name": "标普医疗",
+      "expected_money": "15003.25",
+      "current_market_value": "15243.8",
+      "diff_money": "-240.55",
+      "percent_diff": null
+    },
+    {
+      "stock_code": "162415",
+      "stock_name": "美国消费",
+      "expected_money": "15003.25",
+      "current_market_value": "14769.6",
+      "diff_money": "233.65",
+      "percent_diff": null
+    },
+    {
+      "stock_code": "512400",
+      "stock_name": "有色金属",
+      "expected_money": "4542.27",
+      "current_market_value": "4460.0",
+      "diff_money": "82.27",
+      "percent_diff": null
+    },
+    {
+      "stock_code": "160719",
+      "stock_name": "嘉实黄金",
+      "expected_money": "29937.67",
+      "current_market_value": "30016.0",
+      "diff_money": "-78.33",
+      "percent_diff": null
+    },
+    {
+      "stock_code": "161125",
+      "stock_name": "标普500",
+      "expected_money": "6331.64",
+      "current_market_value": "6272.7",
+      "diff_money": "58.94",
+      "percent_diff": null
+    },
+    {
+      "stock_code": "513520",
+      "stock_name": "日经",
+      "expected_money": "6813.40",
+      "current_market_value": "6828.5",
+      "diff_money": "-15.10",
+      "percent_diff": null
+    }
+  ],
+  "as_of": "2025-10-30T10:14:38.338316"
+}

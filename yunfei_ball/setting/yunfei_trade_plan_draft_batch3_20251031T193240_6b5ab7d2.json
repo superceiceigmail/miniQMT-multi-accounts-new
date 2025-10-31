@@ -1,0 +1,24 @@
+{
+  "sell_stocks_info": [
+    {
+      "name": "创业板50",
+      "code": "159949.SZ",
+      "ratio": "1.58",
+      "sample_amount": 1153400.0
+    }
+  ],
+  "buy_stocks_info": [
+    {
+      "name": "国债指数",
+      "code": "511880.SH",
+      "ratio": "1.58",
+      "sample_amount": 1153400.0
+    }
+  ],
+  "meta": {
+    "batch_no": 3,
+    "strategy_id": null,
+    "account_id": null,
+    "created_at": "2025-10-31T19:32:40"
+  }
+}
