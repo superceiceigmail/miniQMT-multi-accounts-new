@@ -3,21 +3,16 @@ import datetime
 import json
 from xtquant import xtdata
 
+from utils.code_normalizer import normalize_code
+
 def auto_add_suffix(code):
     """
-    自动为股票代码加市场后缀。简单规则：
-    - 以6、5、9开头的为沪市 .SH
-    - 以0、1、2、3、R开头的为深市 .SZ
-    - 其它保留原样
+    使用统一的 normalize_code 规则来返回带后缀的代码。
     """
-    if code.startswith(('6', '5', '9')):
-        return code + '.SH'
-    elif code.startswith(('0', '1', '2', '3', 'R')):
-        return code + '.SZ'
-    elif code.startswith('8'):
-        return code + '.SH'
-    else:
-        return code  # 保留原样
+    try:
+        return normalize_code(str(code).strip())
+    except Exception:
+        return code  # 失败时保持原样
 
 def load_stock_codes(filename):
     """

@@ -1,5 +1,5 @@
 import os
-
+from utils.code_normalizer import normalize_code
 
 def load_stock_codes(file_path):
     """
@@ -15,11 +15,8 @@ def load_stock_codes(file_path):
                         name, code = line.strip().split(':')
                         name = name.strip().strip("'")
                         code = code.strip().strip("',")
-                        # 根据股票代码自动添加尾缀 .SH 或 .SZ
-                        if code.startswith('6') or code.startswith('5'):
-                            code += '.SH'
-                        elif code.startswith('0') or code.startswith('1') or code.startswith('3'):
-                            code += '.SZ'
+                        # 使用统一的 normalize_code 来给出带后缀的 code
+                        code = normalize_code(code)
                         stock_code_dict[name] = code
                     except ValueError:
                         print(f"[WARN] 跳过无效行: {line.strip()}")
@@ -30,7 +27,6 @@ def load_stock_codes(file_path):
 
     return stock_code_dict
 
-
 def generate_reverse_mapping(stock_code_dict):
     """
     根据股票代码字典生成反向映射，支持从代码查找名称。
@@ -40,14 +36,11 @@ def generate_reverse_mapping(stock_code_dict):
 
 if __name__ == "__main__":
     # 测试代码
-    # 替换为实际的股票代码文件路径
-    test_file_path = "E:\pankou\DailyTrading\stock_code.txt"
-
+    test_file_path = "E:\\pankou\\DailyTrading\\stock_code.txt"
     if os.path.exists(test_file_path):
         stock_code_dict = load_stock_codes(test_file_path)
         print("股票代码字典:")
         print(stock_code_dict)
-
         reverse_mapping = generate_reverse_mapping(stock_code_dict)
         print("\n反向映射:")
         print(reverse_mapping)

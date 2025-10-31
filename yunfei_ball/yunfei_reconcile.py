@@ -9,7 +9,7 @@ from .yunfei_fetcher import fetch_b_follow, parse_b_follow_page
 from .yunfei_login import login, is_logged_in, BASE_URL
 from collections import defaultdict
 from datetime import datetime
-
+from utils.name_code_loader import build_name_to_code_map
 # 重用原来的 name->code 映射加载逻辑（从 code_index.json）
 CODE_INDEX_PATH = os.path.join(os.path.dirname(__file__), "code_index.json")
 
@@ -23,21 +23,7 @@ except Exception:
     def account_asset_to_tuple(x):
         return x
 
-def load_name_to_code_map(json_path=CODE_INDEX_PATH):
-    if not os.path.exists(json_path):
-        return {}
-    with open(json_path, 'r', encoding='utf-8') as f:
-        code_map = json.load(f)
-    name_to_code = {}
-    for code, namelist in code_map.items():
-        if len(code) == 6:
-            code_with_sh = code + ".SH"
-        else:
-            code_with_sh = code
-        for name in namelist:
-            if name not in name_to_code:
-                name_to_code[name] = code_with_sh
-    return name_to_code
+
 
 def _parse_holding_line(line: str):
     """
@@ -136,7 +122,7 @@ def reconcile_account(account: Any,
     fetched_at = fetch_result.get('fetched_at_iso', None)
 
     # 2) 构造 name->code 映射
-    name_to_code = load_name_to_code_map()
+    name_to_code = build_name_to_code_map(CODE_INDEX_PATH)
 
     # 3) 获取账户持仓快照（尽量标准化成 code -> { qty, mkt_value, percent } 形式）
     account_holdings = {}

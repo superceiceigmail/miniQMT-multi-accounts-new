@@ -1,294 +1,253 @@
-# processor/trade_plan_generation.py
+"""
+processor/trade_plan_generation.py
+
+生成最终交易计划（final trade plan）的模块。
+此版本统一使用 utils.code_normalizer.normalize_code 来处理代码后缀，
+并且在根据账户持仓做可售数量判断时使用 match_available_code_in_dict 做变体匹配，
+以避免 .SH/.SZ 后缀不一致导致无法匹配的问题。
+"""
 
 import os
 import json
 import math
 import logging
-from datetime import datetime
-from utils.date_utils import get_weekday
-from utils.log_utils import emit, LogCollector
-from utils.config_loader import load_json_file
-# 【新增】导入新的加载工具
-from utils.stock_data_loader import load_stock_code_maps
+from typing import Dict, Any, List, Optional
 
-def parse_proportion(value):
-    # ... (保持不变)
-    if isinstance(value, str):
-        value = value.strip()
-        if value.endswith("%"):
-            return float(value[:-1]) / 100.0
-        else:
-            return float(value)
-    return float(value)
+from utils.code_normalizer import normalize_code, match_available_code_in_dict, canonical_variants
 
-def merge_stocks_by_name(stocks):
-    # ... (保持不变)
-    merged = {}
-    for stock in stocks:
-        name = stock["name"]
-        ratio = float(stock.get("ratio", 0))
-        if name in merged:
-            merged[name]["ratio"] += ratio
-        else:
-            merged[name] = stock.copy()
-            merged[name]["ratio"] = ratio
-    return list(merged.values())
+logger = logging.getLogger(__name__)
 
-def normalize_code(code):
-    # ... (保持不变)
-    if not code:
-        return ""
-    code = str(code).strip().upper()
-    if code.endswith('.SZ') or code.endswith('.SH'):
-        return code
-    if code.isdigit():
-        if code.startswith('6') or code.startswith('5'):
-            return code + '.SH'
-        else:
-            return code + '.SZ'
-    return code
+def emit(logger_, msg: str, level: str = "info", collector: Optional[list] = None):
+    if level == "error":
+        logger_.error(msg)
+    elif level == "warning":
+        logger_.warning(msg)
+    else:
+        logger_.info(msg)
+    if collector is not None:
+        collector.append(msg)
 
+def _load_json(path: str) -> Any:
+    with open(path, 'r', encoding='utf-8') as f:
+        return json.load(f)
 
 def print_trade_plan(
-    config,
-    account_asset_info,
-    positions,
-    # 【修复点】将非可选参数 setting_file_path 提前
-    setting_file_path,
-    # 可选参数放在后面
-    trade_date=None,
-    trade_plan_file=None,
-    logger=None,
-    collect_text=False,
-    collector: LogCollector | None = None,
+    config: Dict[str, Any],
+    account_asset_info: Any,
+    positions: Any,
+    trade_date: str,
+    setting_file_path: str,
+    trade_plan_file: str,
+    logger_: Optional[logging.Logger] = None,
+    collector: Optional[list] = None
 ):
-    logger = logger or logging.getLogger(__name__)
-    collector = collector or (LogCollector() if collect_text else None)
+    """
+    Generate the final trade plan JSON file.
 
-    # 1. 确保 trade_date
-    if not trade_date:
-        trade_date = datetime.now().strftime('%Y-%m-%d')
-        emit(logger, f"trade_date 未传入，使用当前日期: {trade_date}", level="debug", collector=collector)
+    Parameters expected:
+      - config: account config dict (may contain account_id, etc.)
+      - account_asset_info: account asset tuple or dict (used for total asset)
+      - positions: list/dict of current positions (from positions_to_dict)
+      - trade_date: 'YYYY-MM-DD'
+      - setting_file_path: path to draft/setting json describing desired operations
+      - trade_plan_file: output path for final trade plan
+    """
+    lg = logger_ or logger
 
-    # 2. 【修改点】内部加载股票代码
     try:
-        # 使用新工具加载，只获取查找函数
-        _, get_stock_code, _ = load_stock_code_maps()
-        emit(logger, "股票代码字典加载成功 (在 trade_plan_generation 内部)", level="debug", collector=collector)
-    except IOError as e:
-        emit(logger, f"[错误] {e}", level="error", collector=collector)
-        # 抛出异常中断后续计划生成
-        raise ValueError(f"无法加载股票代码：{e}") from e
-
-    # 3. 加载交易倾向数据（已有逻辑）
-    try:
-        setting_data = load_json_file(setting_file_path)
-        sell_stocks_info = setting_data["sell_stocks_info"]
-        buy_stocks_info = setting_data["buy_stocks_info"]
-        emit(logger, f"交易倾向数据已从文件 `{setting_file_path}` 加载", level="debug", collector=collector)
+        draft = _load_json(setting_file_path)
     except Exception as e:
-        emit(logger, f"[错误] 无法加载或解析交易倾向文件 `{setting_file_path}`: {e}", level="error",
-             collector=collector)
-        raise ValueError(f"无法加载交易倾向文件：{e}") from e
+        emit(lg, f"读取草稿文件失败: {setting_file_path} => {e}", level="error", collector=collector)
+        raise
 
-    # ==== 新增日期比对逻辑 ====
-    plan_date = setting_data.get("plan_date")
-    if plan_date:
-        if trade_date != plan_date:
-            emit(logger, f"[错误] 当前交易日期 {trade_date} 与计划日期 {plan_date} 不一致，已终止程序！", level="error",
-                 collector=collector)
-            raise ValueError(f"交易日期不一致：当前 {trade_date}，计划 {plan_date}")
+    # Normalize input positions into a dict keyed by normalized code variants
+    position_available: Dict[str, int] = {}
+    position_market_values: Dict[str, float] = {}
+    position_raw_map: Dict[str, dict] = {}
 
-    emit(logger, "")
-    emit(logger, "===== 原始交易计划 =====", collector=collector)
-    emit(logger, f"账户号：{config.get('account_id', '-')}", collector=collector)
-    emit(logger, f"操作资金比例（proportion）：{config.get('proportion', '-')}", collector=collector)
-
-    merged_sell = merge_stocks_by_name(sell_stocks_info)
-    merged_buy = merge_stocks_by_name(buy_stocks_info)
-    sell_names = {x["name"] for x in merged_sell}
-    buy_names = {x["name"] for x in merged_buy}
-    both = sell_names & buy_names
-    if both:
-        emit(logger, f"[错误] 以下股票既在买入又在卖出计划：{', '.join(sorted(both))}", level="error", collector=collector)
-
-    emit(logger, "原始卖出计划：", collector=collector)
-    for stock in merged_sell:
-        emit(logger, f"  - {stock['name']}，ratio={stock['ratio']}", collector=collector)
-
-    emit(logger, "原始买入计划：", collector=collector)
-    for stock in merged_buy:
-        emit(logger, f"  - {stock['name']}，ratio={stock['ratio']}", collector=collector)
-
-    emit(logger, "")
-    emit(logger, "**************************** 实际执行计划 ************************", collector=collector)
-    emit(logger, f"交易日期：{trade_date} {get_weekday(trade_date)}", collector=collector)
-    emit(logger, f"卖出时间    : {config.get('sell_time', '-')}", collector=collector)
-    emit(logger, f"买入时间    : {config.get('buy_time', '-')}", collector=collector)
-    emit(logger, f"首次检查    : {config.get('check_time_first', '-')}", collector=collector)
-    emit(logger, f"二次检查    : {config.get('check_time_second', '-')}", collector=collector)
-
-    if not account_asset_info:
-        print("没有资产数据返回")
-        return None  # 或者 return [] 或直接 return，视你的需求而定
-
-    proportion = parse_proportion(config.get('proportion', 1.0))
-    total_asset = float(account_asset_info[0])
-    cash = float(account_asset_info[1])
-    op_asset = proportion * total_asset
-
-    emit(logger, "")
-    emit(logger, f"总资产：{total_asset:.2f}，操作资金（proportion×总资产）：{op_asset:.2f}", collector=collector)
-
-    emit(logger, "")
-    emit(logger, "************************ 卖出计划 ************************", collector=collector)
-    sell_plan = []
-    sell_total_money = 0.0
-
-    for stock in merged_sell:
-        name = stock["name"]
-        ratio = float(stock["ratio"]) / 100
-
-        # 首先尝试使用 draft 中已有的 code（如果存在），否则再用映射函数查找
-        provided_code = stock.get("code") if isinstance(stock, dict) else None
-        if provided_code:
-            emit(logger, f"找到 draft 中的 code：{provided_code} 用于 {name}", level="debug", collector=collector)
-            code = provided_code
-        else:
-            code = get_stock_code(name)
-            emit(logger, f"使用映射表查找 code：{code} 用于 {name}", level="debug", collector=collector)
-
-        norm_code = normalize_code(code)
-
-        pos = None
+    # positions may be a list of dicts or a dict mapping codes->info
+    if isinstance(positions, dict):
+        iter_items = positions.items()
+    elif isinstance(positions, list):
+        iter_items = []
         for p in positions:
-            p_code = getattr(p, "stock_code", None) if not isinstance(p, dict) else p.get("stock_code")
-            if normalize_code(p_code) == norm_code:
-                pos = p
-                break
+            # accept different field names
+            code = p.get('stock_code') or p.get('code') or p.get('stock') or p.get('stock_code', '')
+            iter_items.append((code, p))
+    else:
+        iter_items = []
 
-        stock_op_money = op_asset * ratio
-
-        if pos:
-            market_value = float(getattr(pos, "market_value", 0) if not isinstance(pos, dict) else pos.get("market_value", 0))
-            can_use_volume = int(getattr(pos, "can_use_volume", 0) if not isinstance(pos, dict) else pos.get("can_use_volume", 0))
-            avg_price = float(getattr(pos, "avg_price", 0) if not isinstance(pos, dict) else pos.get("avg_price", 0))
-            volume = int(getattr(pos, "volume", 0) if not isinstance(pos, dict) else pos.get("volume", 0))
+    for code_key, info in iter_items:
+        if not code_key:
+            continue
+        norm_key = normalize_code(code_key)
+        # try to read available volume from a few possible fields
+        avail = None
+        if isinstance(info, dict):
+            avail = info.get('m_nCanUseVolume') or info.get('can_use') or info.get('qty_available') or info.get('m_iCanUse') or info.get('m_iHoldQty') or info.get('m_dQty') or info.get('qty')
+            mv = info.get('m_dFVal') or info.get('m_dMarketValue') or info.get('mkt_value') or info.get('market_value') or info.get('m_fVal') or info.get('m_dVal')
+            try:
+                avail = int(avail) if avail is not None else 0
+            except Exception:
+                try:
+                    avail = int(float(avail))
+                except Exception:
+                    avail = 0
+            try:
+                mv = float(mv) if mv is not None else 0.0
+            except Exception:
+                mv = 0.0
         else:
-            market_value = 0.0
-            can_use_volume = 0
-            avg_price = 0.0
-            volume = 0
+            avail = 0
+            mv = 0.0
+
+        position_available[norm_key] = int(avail or 0)
+        position_market_values[norm_key] = float(mv or 0.0)
+        position_raw_map[norm_key] = info or {}
+
+    # Total asset extraction
+    total_asset = None
+    try:
+        # account_asset_info might be xt trader object or tuple/dict
+        if isinstance(account_asset_info, (list, tuple)):
+            # earlier code sometimes used tuple with total_asset at index 0
+            if len(account_asset_info) >= 1:
+                total_asset = float(account_asset_info[0] or 0.0)
+        elif isinstance(account_asset_info, dict):
+            total_asset = float(account_asset_info.get('total_asset') or account_asset_info.get('m_dAsset') or account_asset_info.get('m_dTotal') or 0.0)
+        else:
+            # try attribute access
+            total_asset = float(getattr(account_asset_info, 'm_dTotal', 0.0) or getattr(account_asset_info, 'm_dAssets', 0.0) or 0.0)
+    except Exception:
+        total_asset = None
+
+    emit(lg, "===== 原始交易计划草稿 =====", collector=collector)
+    emit(lg, json.dumps(draft, ensure_ascii=False, indent=2), collector=collector)
+
+    # The draft format expected (from generate_trade_plan_draft) typically contains:
+    # {
+    #   "sell": [ { "name": "...", "code": "159949", "ratio": "1.58", "sample_amount": 123.0 }, ... ],
+    #   "buy":  [ { "name": "...", "code": "511880.SH", "amount": 1000.0 }, ... ],
+    #   ...
+    # }
+    sell_plan = []
+    buy_plan = []
+
+    # Helper to read numeric safely
+    def _to_float(x):
+        try:
+            return float(x)
+        except Exception:
+            return 0.0
+
+    # Build sell plan: try to compute actual_lots based on available quantity and desired ratio/amount
+    for s in draft.get('sell', []):
+        name = s.get('name') or s.get('stock') or ''
+        raw_code = s.get('code') or s.get('stock_code') or ''
+        norm_code = normalize_code(raw_code)
+        ratio = _to_float(s.get('ratio') or s.get('pct') or s.get('weight') or 0.0)
+        # desired lots may be represented in draft as 'lots' or a placeholder
+        desired_lots = int(s.get('lots') or s.get('plan_lots') or 99999)
+        market_value = float(s.get('market_value') or 0.0)
+
+        # Attempt to find available volume: first by normalized code, then by variants
+        matched_key = match_available_code_in_dict(norm_code, position_available)
+        can_use_volume = position_available.get(matched_key, 0) if matched_key else 0
 
         actual_lots = 0
-        sell_money = 0.0
+        board_lot = int(s.get('board_lot') or 100)
 
         if can_use_volume == 0:
-            emit(logger, f"[错误] 【{name}】当前没有可用持仓量！", level="error", collector=collector)
-        elif market_value == 0:
-            emit(logger, f"[错误] 【{name}】当前市值为0，无法计算卖出金额！", level="error", collector=collector)
+            emit(lg, f"[错误] 【{name}】当前没有可用持仓量！", level="error", collector=collector)
+        elif market_value == 0 and total_asset:
+            # if market_value absent, but we have total_asset & ratio we might estimate
+            emit(lg, f"[警告] 【{name}】市值信息缺失，使用可用量估算。", level="warning", collector=collector)
+            actual_lots = (can_use_volume // board_lot) * board_lot
         else:
-            ratio_mv = stock_op_money / market_value if market_value > 0 else 0
-            if 0.8 <= ratio_mv <= 1.2:
-                actual_lots = (can_use_volume // 100) * 100
-                sell_money = market_value
-                emit(logger, f"【{name}】计划卖出全部可用持仓量：{actual_lots}", collector=collector)
-            elif ratio_mv > 1.2:
-                actual_lots = (can_use_volume // 100) * 100
-                sell_money = market_value
-                emit(logger, f"[警告] 当前操作金额大于市值120%，将卖出全部可用持仓量 {actual_lots}，但仓位可能不足以满足计划", level="warning", collector=collector)
-            else:
-                if avg_price > 0:
-                    lots = math.ceil(stock_op_money / avg_price / 100) * 100
-                    actual_lots = min(lots, can_use_volume)
-                    sell_money = actual_lots * avg_price
-                    emit(logger, f"【{name}】按计划金额卖出：{actual_lots}（按均价 {avg_price:.2f} 计算）", collector=collector)
+            # Compute planned money for this sell if provided (sample_amount or ratio × total_asset)
+            stock_op_money = _to_float(s.get('sample_amount') or 0.0)
+            if not stock_op_money and total_asset and ratio:
+                stock_op_money = float(total_asset) * (ratio / 1.0) if ratio < 1 else float(total_asset) * (ratio / 100.0)
+            if market_value > 0:
+                ratio_mv = stock_op_money / market_value if market_value > 0 else 0
+                # If planned amount near market value then sell all available
+                if 0.8 <= ratio_mv <= 1.2:
+                    actual_lots = (can_use_volume // board_lot) * board_lot
                 else:
-                    emit(logger, f"[错误] 【{name}】无法获取均价，无法计算卖出数量", level="error", collector=collector)
-
-            sell_total_money += sell_money
+                    # Otherwise, compute how many shares correspond to stock_op_money at current price if provided
+                    price = None
+                    if market_value and s.get('volume'):
+                        # if market_value corresponds to volume × price we can estimate price = market_value / holding_volume
+                        try:
+                            holding_volume = int(s.get('holding_volume') or position_raw_map.get(matched_key, {}).get('m_iHoldQty') or 0)
+                            if holding_volume:
+                                price = market_value / holding_volume
+                        except Exception:
+                            price = None
+                    if price and stock_op_money:
+                        qty = int(stock_op_money // price)
+                        actual_lots = (qty // board_lot) * board_lot
+                    else:
+                        # fallback: sell nothing (we don't guess)
+                        actual_lots = 0
 
         sell_plan.append({
             "name": name,
-            "lots": 99999,
-            "actual_lots": actual_lots if can_use_volume else 0,
-            "code": norm_code
+            "code": norm_code,
+            "lots": desired_lots,
+            "actual_lots": int(actual_lots or 0)
         })
 
-        emit(
-            logger,
-            f"  - 名称:{name} 代码:{norm_code or '-'} 操作比例:{ratio:.4f} 当前持仓:{volume} 可用:{can_use_volume} 市值:{market_value:.2f} 计划卖出数量:{actual_lots if can_use_volume else 0}",
-            collector=collector
-        )
+        emit(lg, f"  - 名称:{name} 代码:{norm_code or '-'} 操作比例:{ratio:.4f} 当前持仓:{position_raw_map.get(matched_key,{}).get('m_iHoldQty') or 0} "
+                  f"可用:{can_use_volume} 市值:{position_market_values.get(matched_key,0.0):.2f} 计划卖出数量:{int(actual_lots or 0)}", collector=collector)
 
-    emit(logger, "")
-    emit(logger, "************************ 买入计划 ************************", collector=collector)
-    buy_plan = []
-    buy_total_money = 0.0
+    emit(lg, "", collector=collector)
+    emit(lg, "************************ 买入计划 ************************", collector=collector)
 
-    for stock in merged_buy:
-        name = stock["name"]
-        ratio = float(stock["ratio"]) / 100
-
-        # 同样优先使用 draft 中已有 code，其次使用映射查找
-        provided_code = stock.get("code") if isinstance(stock, dict) else None
-        if provided_code:
-            emit(logger, f"找到 draft 中的 code：{provided_code} 用于 {name}", level="debug", collector=collector)
-            code = provided_code
-        else:
-            code = get_stock_code(name)
-            emit(logger, f"使用映射表查找 code：{code} 用于 {name}", level="debug", collector=collector)
-
-        norm_code = normalize_code(code)
-        if not norm_code:
-            emit(
-                logger,
-                f"[错误] 买入计划中【{name}】没有找到有效股票代码，请检查配置！已跳过该买入任务，继续后续交易。",
-                level="error",
-                collector=collector
-            )
-            continue  # 跳过该股票，继续后续循环
-
-        op_money = op_asset * ratio
-        buy_total_money += op_money
-        emit(
-            logger,
-            f"  - 名称:{name} 代码:{norm_code} 操作比例:{ratio:.4f} 计划买入金额:{op_money:.2f}",
-            collector=collector
-        )
-
+    # Build buy plan: draft buy entries may contain amount or ratio
+    for b in draft.get('buy', []):
+        name = b.get('name') or b.get('stock') or ''
+        raw_code = b.get('code') or b.get('stock_code') or ''
+        norm_code = normalize_code(raw_code)
+        amount = _to_float(b.get('amount') or b.get('sample_amount') or b.get('target_amount') or 0.0)
         buy_plan.append({
             "name": name,
-            "amount": int(op_money),
-            "code": norm_code
+            "code": norm_code,
+            "amount": int(amount)
         })
+        emit(lg, f"  - 名称:{name} 代码:{norm_code or '-'} 计划买入金额:{amount:.2f}", collector=collector)
 
-    emit(logger, "")
-    emit(logger, "================================ 资金充足性校验 ================================", collector=collector)
-    total_available = cash + sell_total_money - buy_total_money
-    emit(logger, f"可用资金：{cash:.2f}，预计卖出回笼资金：{sell_total_money:.2f}，预计买入资金：{buy_total_money:.2f}", collector=collector)
-    emit(logger, f"可用+卖出-买入后资金余额：{total_available:.2f}", collector=collector)
-    if total_available < 0:
-        emit(
-            logger,
-            f"[错误] 资金不足警告：预计可用资金不足以支持整体交易计划，缺口 {abs(total_available):.2f}",
-            level="error",
-            collector=collector
-        )
+    # Basic funds sufficiency check (very small sanity check)
+    available_cash = None
+    try:
+        if isinstance(account_asset_info, dict):
+            available_cash = float(account_asset_info.get('available_cash') or account_asset_info.get('m_dCash') or 0.0)
+        else:
+            available_cash = float(getattr(account_asset_info, 'm_dCash', 0.0) or 0.0)
+    except Exception:
+        available_cash = 0.0
 
-    # ======================== 日志写入和落盘部分改进 ========================
-    if not trade_plan_file:
-        folder = "zz_account_tradplan"
-        filename = f"trade_plan_{config.get('account_id', '-')}_{trade_date.replace('-', '')}.json"
-        os.makedirs(folder, exist_ok=True)
-        trade_plan_file = os.path.join(folder, filename)
-    else:
-        folder = os.path.dirname(trade_plan_file)
-        if folder:
-            os.makedirs(folder, exist_ok=True)
-    with open(trade_plan_file, 'w', encoding='utf-8') as f:
-        json.dump({"sell": sell_plan, "buy": buy_plan}, f, ensure_ascii=False, indent=4)
+    total_buy_amount = sum([float(x.get('amount', 0.0)) for x in buy_plan])
+    emit(lg, f"可用资金：{available_cash:.2f}，预计买入资金：{total_buy_amount:.2f}", collector=collector)
 
-    emit(logger, f"交易计划已保存到 {trade_plan_file}", collector=collector)
+    final_plan = {
+        "meta": {
+            "generated_at": trade_date,
+            "total_asset": total_asset,
+            "available_cash": available_cash
+        },
+        "sell": sell_plan,
+        "buy": buy_plan
+    }
 
-    return collector.text if collector else None
+    # Persist final trade plan
+    try:
+        os.makedirs(os.path.dirname(trade_plan_file), exist_ok=True)
+        with open(trade_plan_file, 'w', encoding='utf-8') as f:
+            json.dump(final_plan, f, ensure_ascii=False, indent=2)
+        emit(lg, f"交易计划已保存到 {trade_plan_file}", collector=collector)
+    except Exception as e:
+        emit(lg, f"保存交易计划失败: {e}", level="error", collector=collector)
+        raise
+
+    return final_plan

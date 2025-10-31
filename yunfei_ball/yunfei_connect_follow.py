@@ -13,7 +13,7 @@ from datetime import datetime, timedelta
 from bs4 import BeautifulSoup
 from collections import defaultdict
 from requests.exceptions import SSLError
-
+from utils.name_code_loader import build_name_to_code_map
 from yunfei_ball.generate_trade_plan_draft import generate_trade_plan_draft_func
 from utils.asset_helpers import positions_to_dict, account_asset_to_tuple
 
@@ -31,26 +31,7 @@ HEADERS = {
 }
 
 SAMPLE_ACCOUNT_AMOUNT = 730000
-
-
-def load_name_to_code_map(json_path):
-    if not os.path.exists(json_path):
-        print(f"错误：代码索引文件未找到于 {json_path}")
-        return {}
-    with open(json_path, 'r', encoding='utf-8') as f:
-        code_map = json.load(f)
-    name_to_code = {}
-    for code, namelist in code_map.items():
-        # 自动补全 .SH
-        if len(code) == 6:
-            code_with_sh = code + ".SH"
-        else:
-            code_with_sh = code
-        for name in namelist:
-            if name not in name_to_code:
-                name_to_code[name] = code_with_sh
-    return name_to_code
-
+name_to_code = build_name_to_code_map(CODE_INDEX_PATH)
 
 def add_code_to_operation(operation_text, name_to_code):
     def repl(m):
@@ -73,8 +54,6 @@ def handle_trade_operation(op_block_html, name_to_code, batch_no, ratio, sample_
                                                           output_dir="yunfei_ball/setting")
     return draft_plan_file_path
 
-
-name_to_code = load_name_to_code_map(CODE_INDEX_PATH)
 
 
 def delayed_run(delay, *args, **kwargs):
