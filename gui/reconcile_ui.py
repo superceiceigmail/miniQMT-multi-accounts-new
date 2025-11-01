@@ -291,7 +291,7 @@ def _canonical_variants(code: str):
         parts = s.split('.', 1)
         suf = parts[1].upper() if len(parts) > 1 else ''
         return [f"{base}.{suf}", f"{base}.SH", f"{base}.SZ", base]
-    if base and base[0] in ("5", "6", "9"):
+    if base and base[0] in ("5", "6","8" ,"9"):
         return [f"{base}.SH", f"{base}.SZ", base]
     else:
         return [f"{base}.SZ", f"{base}.SH", base]

@@ -88,6 +88,17 @@
     "major": false
   },
   {
+    "content": "1、前端输入，需要补充策略持仓，需要改进操作比例；2、代码后缀问题修改 3、对账重构",
+    "priority": 3,
+    "start_date": "",
+    "start_time": "",
+    "created_date": "2025-10-31",
+    "category": "交易",
+    "project": "",
+    "tags": "",
+    "major": false
+  },
+  {
     "content": "成就计划思考",
     "priority": 2,
     "start_date": "",
@@ -173,6 +184,17 @@
     "project": "",
     "tags": "",
     "created_date": "2025-09-09",
+    "major": false
+  },
+  {
+    "content": "1、前端输入，需要补充策略持仓，需要改进操作比例；2、代码后缀问题修改 3、对账重构",
+    "priority": 5,
+    "start_date": "",
+    "start_time": "",
+    "created_date": "2025-10-31",
+    "category": "量化",
+    "project": "",
+    "tags": "",
     "major": false
   }
 ]
